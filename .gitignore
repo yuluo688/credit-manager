@@ -22,7 +22,7 @@ config.local.yaml
 
 # Plugin runtime data.
 data/
-.kilo 
+.kilo
 .sdk-ref/
 *.db
 *.db-*
