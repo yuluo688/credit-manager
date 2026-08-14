@@ -1,0 +1,3318 @@
+package management
+
+import (
+	"net/http"
+
+	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
+)
+
+func consolePage() pluginapi.ManagementResponse {
+	return pluginapi.ManagementResponse{
+		StatusCode: http.StatusOK,
+		Headers:    http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
+		Body:       []byte(consoleHTML),
+	}
+}
+
+// consoleHTML is a self-contained admin UI. Mutations call host-authenticated
+// /v0/management/credit-manager/* with a management token stored in sessionStorage.
+const consoleHTML = `<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CPA 额度管理</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #fafbf8;
+  --panel: #ffffff;
+  --panel-2: #f7f9f6;
+  --line: #e7ebe5;
+  --text: #1a1f1c;
+  --muted: #5f6a61;
+  --table-text: #1f2922;
+  --table-muted: #4f5b53;
+  --accent: #1eb787;
+  --accent-soft: #e4f7ef;
+  --accent-2: #7968ee;
+  --purple-soft: #efedff;
+  --warn: #e5a12d;
+  --danger: #d95c51;
+  --ok: #1eb787;
+  --shadow: 0 8px 28px rgba(41, 57, 46, .07);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(740px 300px at 45% -8%, rgba(90, 219, 176, .16), transparent 72%),
+    radial-gradient(600px 300px at 100% 8%, rgba(121, 104, 238, .06), transparent 76%),
+    var(--bg);
+  color: var(--text);
+}
+.wrap { max-width: 1600px; margin: 0 auto; padding: 32px 24px 56px; }
+.header { display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:flex-start; margin: 4px 0 24px; }
+h1 { margin:0; font-size:1.7rem; line-height:1.15; letter-spacing:-.035em; font-weight:750; }
+h1::before { content:""; display:inline-block; width:7px; height:7px; margin:0 9px 4px 0; background:var(--accent); border-radius:50%; }
+.sub { color: var(--muted); margin-top:7px; font-size:.86rem; }
+.card {
+  background: rgba(255,255,255,.9);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:18px;
+  box-shadow: var(--shadow);
+  margin-bottom:16px;
+}
+.grid { display:grid; gap:14px; }
+.grid.stats { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.stat {
+  position:relative;
+  overflow:hidden;
+  background: linear-gradient(135deg, #fff, #fbfdfb);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 16px;
+  box-shadow: 0 4px 15px rgba(41, 57, 46, .035);
+}
+.stat::before { content:""; position:absolute; top:13px; left:16px; width:16px; height:2px; border-radius:2px; background:var(--accent); }
+.stat:nth-child(2n)::before { background:var(--accent-2); }
+.stat:nth-child(3n)::before { background:var(--warn); }
+.stat .k { color:var(--muted); font-size:.76rem; margin-top:8px; }
+.stat .v { font-size:1.35rem; font-weight:720; letter-spacing:-.025em; margin-top:4px; word-break:break-all; }
+.tabs { display:flex; gap:7px; flex-wrap:wrap; margin: 4px 0 16px; }
+.tab, button, .btn {
+  appearance:none;
+  border:1px solid var(--line);
+  background: #fff;
+  color:var(--text);
+  border-radius:8px;
+  padding:8px 13px;
+  cursor:pointer;
+  font:inherit;
+  font-size:.86rem;
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.tab:hover, button:hover, .btn:hover { border-color:#cbd5cc; box-shadow:0 4px 12px rgba(41,57,46,.07); }
+.tab.active { background: var(--accent-soft); border-color:#bfe9d7; color:#087d5a; font-weight:650; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow:0 5px 12px rgba(30,183,135,.19); }
+.btn.primary:hover { background:#14a879; border-color:#14a879; }
+.btn.ok { background:#202421; border-color:#202421; color:#fff; }
+.btn.danger { background:#fff7f5; border-color:#f2d0cb; color:#bd443b; }
+.btn.ghost { background:rgba(255,255,255,.58); }
+.row { display:flex; flex-wrap:wrap; gap:12px; align-items:end; }
+label { display:flex; flex-direction:column; gap:6px; font-size:.78rem; color:var(--muted); min-width:140px; flex:1; }
+input, select, textarea {
+  width:100%;
+  border:1px solid #e2e7e1;
+  background:#fcfdfb;
+  color:var(--text);
+  border-radius:8px;
+  padding:9px 10px;
+  font:inherit;
+  outline:none;
+  transition:border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+input:not(:disabled):hover, select:not(:disabled):hover, textarea:not(:disabled):hover {
+  border-color:#c8d6cb;
+  background:#fff;
+}
+select {
+  appearance:none;
+  min-height:38px;
+  padding-right:34px;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4.5 6.25 3.5 3.5 3.5-3.5' stroke='%236d786f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  background-size:16px;
+}
+select:focus {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4.5 6.25 3.5 3.5 3.5-3.5' stroke='%23087d5a' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+select[multiple] {
+  min-height:auto;
+  padding:7px;
+  background-image:none;
+  cursor:default;
+}
+select option { background:#fff; color:var(--text); }
+input[type="datetime-local"] {
+  min-height:38px;
+  padding-right:9px;
+  color-scheme:light;
+  font-variant-numeric:tabular-nums;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  width:18px;
+  height:18px;
+  margin:0;
+  border-radius:5px;
+  cursor:pointer;
+  opacity:.68;
+  transition:opacity .16s ease, background-color .16s ease;
+}
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity:1;
+  background-color:var(--accent-soft);
+}
+input[type="datetime-local"]:focus::-webkit-calendar-picker-indicator { opacity:1; }
+input:focus, select:focus, textarea:focus { border-color:#76d7b8; background:#fff; box-shadow:0 0 0 3px rgba(30,183,135,.12); }
+.native-control { position:absolute !important; width:1px !important; height:1px !important; margin:-1px !important; padding:0 !important; border:0 !important; clip:rect(0 0 0 0) !important; clip-path:inset(50%) !important; overflow:hidden !important; white-space:nowrap !important; opacity:0 !important; pointer-events:none !important; }
+.custom-control { position:relative; display:block; width:100%; min-width:0; }
+.custom-control-trigger {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  min-height:38px;
+  padding:8px 10px;
+  border:1px solid #e2e7e1;
+  border-radius:8px;
+  background:#fcfdfb;
+  color:var(--text);
+  font:inherit;
+  font-size:.86rem;
+  line-height:1.3;
+  text-align:left;
+  box-shadow:none;
+}
+.custom-control-trigger::after { content:""; flex:0 0 auto; width:16px; height:16px; margin-left:10px; background:center / 16px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4.5 6.25 3.5 3.5 3.5-3.5' stroke='%236d786f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); transition:transform .16s ease; }
+.custom-date-trigger::after { width:18px; height:18px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 18 18' fill='none'%3E%3Crect x='3' y='4.5' width='12' height='11' rx='2' stroke='%236d786f' stroke-width='1.5'/%3E%3Cpath d='M6 2.75v3.5M12 2.75v3.5M3 8h12' stroke='%236d786f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.custom-control.open > .custom-control-trigger { border-color:#76d7b8; background:#fff; box-shadow:0 0 0 3px rgba(30,183,135,.12); }
+.custom-select.open > .custom-control-trigger::after { transform:rotate(180deg); }
+.custom-control-trigger:hover:not(:disabled) { border-color:#c8d6cb; background:#fff; box-shadow:none; }
+.custom-control-trigger:disabled { cursor:not-allowed; opacity:.62; }
+.custom-control-value { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.custom-control-panel {
+  position:absolute;
+  z-index:35;
+  top:calc(100% + 6px);
+  left:0;
+  width:max-content;
+  min-width:100%;
+  max-width:min(360px, calc(100vw - 32px));
+  padding:6px;
+  border:1px solid #dbe7df;
+  border-radius:11px;
+  background:#fff;
+  box-shadow:0 16px 36px rgba(29, 49, 37, .16), 0 3px 10px rgba(29, 49, 37, .07);
+}
+.custom-control-panel[hidden] { display:none; }
+.custom-select-panel { max-height:260px; overflow:auto; }
+.custom-option {
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:34px;
+  padding:7px 9px;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:var(--text);
+  font:inherit;
+  font-size:.84rem;
+  line-height:1.3;
+  text-align:left;
+  box-shadow:none;
+}
+.custom-option:hover, .custom-option:focus-visible { border:0; background:#eff9f4; color:#087d5a; box-shadow:none; }
+.custom-option.selected { background:var(--accent-soft); color:#087d5a; font-weight:650; }
+.custom-option.selected::after { content:"✓"; margin-left:auto; padding-left:12px; color:var(--accent); font-weight:800; }
+.custom-option.multi::before { content:""; flex:0 0 auto; width:14px; height:14px; margin-right:9px; border:1px solid #c9d5cc; border-radius:4px; background:#fff; }
+.custom-option.multi.selected::before { border-color:var(--accent); background:var(--accent) center / 11px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='m2.3 6.2 2.25 2.2L9.7 3.4' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.custom-option.multi.selected::after { display:none; }
+.custom-date-panel { width:312px; padding:14px; border-color:#cfe7da; border-radius:14px; background:linear-gradient(180deg, #fff, #fbfdfb); box-shadow:0 20px 44px rgba(29, 49, 37, .17), 0 4px 12px rgba(29, 49, 37, .06); }
+.custom-date-header, .custom-date-footer, .custom-date-time { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.custom-date-header { min-height:32px; padding:0 1px; }
+.custom-date-title { padding:0; border:0; background:transparent; color:var(--text); font:inherit; font-size:.9rem; font-weight:750; letter-spacing:-.01em; box-shadow:none; }
+.custom-date-nav { display:flex; gap:3px; padding:3px; border:1px solid #e5ece6; border-radius:9px; background:#f7faf7; }
+.custom-date-nav button, .custom-date-clear { display:grid; place-items:center; min-width:25px; width:25px; height:25px; padding:0; border:0; border-radius:6px; background:transparent; color:#5e6b62; font-size:1.12rem; line-height:1; box-shadow:none; }
+.custom-date-nav button:hover, .custom-date-clear:hover { border:0; background:#fff; color:#087d5a; box-shadow:0 2px 5px rgba(32,57,42,.08); }
+.custom-date-weekdays, .custom-date-days { display:grid; grid-template-columns:repeat(7, 1fr); gap:3px; margin-top:12px; }
+.custom-date-weekdays { margin-top:14px; padding-top:10px; border-top:1px solid #edf2ee; }
+.custom-date-weekdays span { padding:2px 0; color:#7b887f; font-size:.67rem; font-weight:650; text-align:center; }
+.custom-date-day { display:grid; place-items:center; width:100%; aspect-ratio:1; padding:0; border:0; border-radius:8px; background:transparent; color:#26342b; font:inherit; font-size:.76rem; font-variant-numeric:tabular-nums; box-shadow:none; }
+.custom-date-day:hover, .custom-date-day:focus-visible { border:0; background:#eaf8f1; color:#087d5a; box-shadow:none; }
+.custom-date-day.outside { color:#c1c9c3; }
+.custom-date-day.today { color:#087d5a; font-weight:750; box-shadow:inset 0 0 0 1px #a9dfc8; }
+.custom-date-day.selected { background:linear-gradient(135deg, #1eb787, #27c692); color:#fff; font-weight:750; box-shadow:0 3px 7px rgba(30,183,135,.26); }
+.custom-date-day.selected:hover { background:linear-gradient(135deg, #14a879, #1eb787); color:#fff; }
+.custom-date-time { margin-top:13px; padding:10px; border:1px solid #e3eee7; border-radius:10px; background:#f6faf7; color:#65746a; font-size:.74rem; font-weight:650; }
+.custom-time-fields { display:flex; align-items:center; gap:6px; }
+.custom-time-field { display:grid; grid-template-columns:28px minmax(28px, 1fr) 28px; align-items:center; overflow:hidden; width:90px; height:32px; border:1px solid #d2e2d7; border-radius:7px; background:#fff; color:var(--text); font-size:.78rem; font-variant-numeric:tabular-nums; text-align:center; }
+.custom-time-field button { display:grid; place-items:center; width:28px; height:30px; min-width:28px; padding:0; border:0; border-radius:0; background:transparent; color:#567064; font:inherit; font-size:.95rem; line-height:1; box-shadow:none; }
+.custom-time-field button:hover { border:0; background:var(--accent-soft); color:#087d5a; box-shadow:none; }
+.custom-time-field span { display:grid; place-items:center; min-width:0; height:30px; font-weight:750; line-height:1; }
+.custom-time-separator { color:#98a69d; font-weight:750; line-height:1; }
+.custom-date-footer { margin-top:12px; padding-top:10px; border-top:1px solid #edf1ed; }
+.custom-date-footer button { padding:5px 8px; border:0; border-radius:6px; background:transparent; color:#087d5a; font:inherit; font-size:.75rem; font-weight:650; box-shadow:none; }
+.custom-date-footer button:hover { border:0; background:var(--accent-soft); box-shadow:none; }
+@media (max-width:520px) { .custom-date-panel { width:min(312px, calc(100vw - 28px)); } }
+textarea { min-height:72px; resize:vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.86rem; }
+table { width:100%; border-collapse: separate; border-spacing:0; font-size:.92rem; color:var(--table-text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+th, td { border-bottom:1px solid #e8ece6; padding:12px 10px; text-align:left; vertical-align:top; line-height:1.45; }
+th { color:var(--table-muted); background:#f7faf7; font-weight:700; font-size:.8rem; letter-spacing:.02em; }
+td { font-weight:500; font-variant-numeric:tabular-nums; }
+tbody tr:hover td { background:#f7fbf8; }
+.badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:.78rem; border:1px solid var(--line); background:#fff; }
+.badge.ok { color:#087d5a; background:var(--accent-soft); border-color:#c8eddd; }
+.badge.bad { color:#bd443b; background:#fff6f4; border-color:#f1d3cf; }
+.badge.warn { color:#a66b07; background:#fff8e9; border-color:#f5dfaf; }
+.muted { color:var(--muted); }
+table .muted { color:var(--table-muted); }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.88rem; font-weight:500; word-break: break-all; color:var(--table-text); }
+table .mono.muted { color:var(--table-muted); font-size:.84rem; font-weight:500; }
+.flash {
+  position: fixed;
+  z-index: 40;
+  top: 22px;
+  right: auto;
+  left: 50%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: min(380px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px 14px 12px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 14px 40px rgba(28, 42, 33, .14);
+  color: var(--text);
+  font-size: .86rem;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -8px) scale(.98);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.flash.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0) scale(1);
+  animation: none;
+}
+.flash::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.flash.err {
+  background: #fff;
+  border-color: #f0d4d0;
+  color: #9d3b33;
+}
+.flash.err::before {
+  background: var(--danger);
+  box-shadow: 0 0 0 4px #fdeceb;
+}
+.flash.ok {
+  background: #fff;
+  border-color: #d3eee3;
+  color: #146b4d;
+}
+.flash.ok::before {
+  background: var(--ok);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+.flash-message { min-width: 0; flex: 1; word-break: break-word; }
+.flash-close {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin: -2px -4px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: none;
+}
+.flash-close:hover { background: #f3f5f2; border: none; box-shadow: none; color: var(--text); }
+@media (max-width: 520px) {
+  .flash { top: 12px; right:auto; left:50%; width:calc(100vw - 24px); max-width:none; }
+}
+.empty-state { display:grid; place-items:center; min-height:112px; padding:22px 16px; text-align:center; color:var(--muted); background:linear-gradient(135deg, #fbfdfb, #f6faf7); border:1px dashed #dce7de; border-radius:10px; font-size:.82rem; }
+.empty-state::before { content:""; width:22px; height:2px; margin-bottom:9px; border-radius:2px; background:var(--accent); }
+.empty-state span { display:block; }
+.actions { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+.tabpane { width:100%; max-width:none; animation: pane-in .18s ease both; }
+@keyframes pane-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.hidden { display:none !important; }
+.panel-title { margin:0 0 12px; font-size:1rem; letter-spacing:-.015em; }
+.hint { font-size:.79rem; color:var(--muted); margin:6px 0 0; line-height:1.55; }
+pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2); border:1px solid var(--line); border-radius:9px; padding:11px; margin:8px 0 0; }
+.token-box { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+.filter-card { border-color:#ccebdd; box-shadow:0 8px 24px rgba(30,183,135,.06); }
+.filter-heading, .section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.filter-state { color:#087d5a; background:var(--accent-soft); font-size:.76rem; padding:5px 9px; border:1px solid #c8eddd; border-radius:999px; white-space:nowrap; }
+.filter-grid { display:grid; grid-template-columns:repeat(4, minmax(150px, 1fr)); gap:12px; margin-top:14px; }
+.filter-actions { margin-top:14px; }
+.table-scroll { overflow-x:auto; border:1px solid #edf0eb; border-radius:10px; }
+.usage-table { min-width:1960px; font-size:.88rem; }
+.usage-table th, .usage-table td { white-space:nowrap; padding:11px 10px; }
+.usage-table th { font-size:.78rem; }
+.usage-table td.model { max-width:260px; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.usage-table td.usage-key { max-width:180px; white-space:normal; }
+.usage-table .usage-key-label { display:grid; gap:2px; min-width:0; }
+.usage-table .usage-key-label strong { font-size:.84rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.usage-table .usage-key-label .mono { color:var(--muted); font-size:.72rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.usage-pagination { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:14px; }
+.usage-pagination > .muted:first-child { margin-right:auto; font-size:.78rem; }
+.usage-pagination > .muted:not(:first-child) { margin-right:0; font-size:.78rem; white-space:nowrap; }
+.usage-pagination label { display:inline-flex; flex:0 0 auto; flex-direction:row; align-items:center; gap:6px; min-width:0; color:var(--muted); white-space:nowrap; }
+.usage-pagination select { width:auto; min-width:68px; padding:7px 8px; }
+.usage-pagination .btn { white-space:nowrap; }
+.app-shell { min-height:100vh; }
+.side-rail { display:none; }
+.workspace { min-width:0; width:100%; max-width:1600px; margin:0 auto; padding:64px 34px 56px; box-sizing:border-box; }
+.workspace-top { display:block; margin:0 0 18px; }
+.eyebrow { display:flex; align-items:center; gap:7px; margin:0 0 7px; color:#087d5a; font-size:.72rem; font-weight:700; letter-spacing:.055em; text-transform:uppercase; }
+.eyebrow::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.workspace-top h1 { font-size:1.85rem; }
+.workspace-top h1::before { display:none; }
+.top-actions { display:none; }
+.tabs { display:flex; flex-direction:row; gap:6px; width:max-content; max-width:100%; margin:0 0 18px; padding:0; overflow-x:auto; background:transparent; box-shadow:none; }
+.tab { display:flex; align-items:center; width:auto; flex:none; padding:8px 12px; border-radius:7px; }
+.tab::before { content:""; width:6px; height:6px; margin-right:7px; border-radius:50%; background:#d7ddd6; }
+.tab.active { background:var(--accent-soft); border-color:transparent; color:#087d5a; }
+.tab.active::before { background:var(--accent); }
+.topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; }
+.topbar-actions { display:flex; align-items:center; gap:8px; padding-top:18px; flex-wrap:wrap; }
+.unit-switch {
+  display:inline-flex;
+  align-items:center;
+  gap:0;
+  padding:3px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.72);
+  box-shadow:0 2px 8px rgba(41,57,46,.04);
+}
+.unit-switch-label {
+  padding:0 8px 0 6px;
+  color:var(--muted);
+  font-size:.72rem;
+  white-space:nowrap;
+  user-select:none;
+}
+.unit-switch button {
+  min-width:34px;
+  padding:6px 9px;
+  border:none;
+  border-radius:6px;
+  background:transparent;
+  color:var(--muted);
+  font-size:.8rem;
+  font-weight:650;
+  letter-spacing:.02em;
+  box-shadow:none;
+}
+.unit-switch button:hover { background:#f3f6f3; border:none; box-shadow:none; color:var(--text); }
+.unit-switch button.active {
+  background:var(--accent-soft);
+  color:#087d5a;
+  box-shadow:none;
+}
+.rate-field {
+  display:inline-flex;
+  flex-direction:row;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+  margin:0;
+  padding:3px 8px 3px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.72);
+  box-shadow:0 2px 8px rgba(41,57,46,.04);
+  color:var(--muted);
+  font-size:.72rem;
+  white-space:nowrap;
+}
+.rate-field input {
+  width:72px;
+  min-width:72px;
+  padding:6px 8px;
+  font-size:.8rem;
+  font-weight:650;
+  color:var(--text);
+}
+.rate-field.hidden { display:none !important; }
+.connection-trigger { display:inline-flex; align-items:center; gap:7px; }
+.connection-trigger::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+.modal-backdrop { position:fixed; z-index:20; inset:0; display:grid; place-items:center; padding:20px; background:rgba(24, 35, 28, .32); backdrop-filter:blur(5px); opacity:0; pointer-events:none; transition:opacity .18s ease; }
+.modal-backdrop.open { opacity:1; pointer-events:auto; }
+.connection-modal { width:min(610px, 100%); max-height:calc(100vh - 40px); overflow:auto; background:var(--panel); border:1px solid rgba(255,255,255,.72); border-radius:16px; box-shadow:0 24px 70px rgba(21, 37, 26, .25); transform:translateY(10px) scale(.985); transition:transform .18s ease; }
+.connection-modal.price-modal { width:min(740px, 100%); }
+.connection-modal.key-modal { width:min(580px, 100%); }
+.modal-backdrop.open .connection-modal { transform:translateY(0) scale(1); }
+.delete-key-modal { width:min(480px, 100%); }
+.delete-key-target { margin:0; padding:11px 12px; border:1px solid #f0d4d0; border-radius:10px; background:#fff8f7; color:#7d342d; font-weight:650; word-break:break-word; }
+input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
+.modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:22px 24px 16px; border-bottom:1px solid var(--line); }
+.modal-header .panel-title { margin:0; font-size:1.12rem; letter-spacing:-.02em; }
+.modal-header .hint { margin-top:7px; max-width:56ch; line-height:1.55; }
+.modal-close { display:grid; place-items:center; width:32px; height:32px; padding:0; border-radius:9px; color:var(--muted); font-size:1.2rem; line-height:1; }
+.modal-body { padding:20px 24px 24px; }
+.connection-form { display:grid; gap:16px; }
+.connection-form label { min-width:0; }
+.connection-form .row { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; }
+.connection-form .row label { min-width:0; flex:none; }
+.modal-section {
+  display:grid;
+  gap:12px;
+  padding:16px;
+  border:1px solid #e8eee8;
+  border-radius:12px;
+  background:linear-gradient(180deg, #fcfdfb, #f7faf7);
+}
+.modal-section-title {
+  margin:0;
+  color:var(--text);
+  font-size:.78rem;
+  font-weight:700;
+  letter-spacing:.02em;
+}
+.modal-section-title span {
+  display:inline-block;
+  margin-left:8px;
+  color:var(--muted);
+  font-weight:500;
+  letter-spacing:0;
+}
+.form-grid-2 { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+.form-grid-3 { display:grid; grid-template-columns:minmax(140px, .8fr) minmax(0, 1.4fr) minmax(120px, .7fr); gap:14px; }
+.form-grid-4 { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+.form-grid-2 label,
+.form-grid-3 label,
+.form-grid-4 label,
+.modal-section label {
+  min-width:0;
+  flex:none;
+}
+.field-span-2 { grid-column:1 / -1; }
+.key-material-field { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:0; align-items:stretch; }
+.key-material-prefix {
+  display:flex;
+  align-items:center;
+  padding:0 10px;
+  border:1px solid #e2e7e1;
+  border-right:0;
+  border-radius:8px 0 0 8px;
+  background:#f3f6f3;
+  color:#4d5a51;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:.82rem;
+  white-space:nowrap;
+}
+.key-material-field input { min-width:0; border-radius:0; }
+.key-material-field .btn { border-radius:0 8px 8px 0; white-space:nowrap; }
+.key-material-field:focus-within .key-material-prefix { border-color:#76d7b8; box-shadow:0 0 0 3px rgba(30,183,135,.12); }
+.key-material-field:focus-within input { box-shadow:none; }
+.modal-status {
+  margin:0;
+  padding:12px 14px;
+  border:1px solid #dff0e8;
+  border-radius:10px;
+  background:#f6fcf8;
+  color:#3f6554;
+  font-size:.8rem;
+  line-height:1.55;
+}
+.modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:2px; flex-wrap:wrap; }
+.modal-actions .btn { min-height:36px; padding:9px 14px; }
+.connection-status { display:flex; align-items:center; gap:8px; margin-top:2px; padding:10px 11px; border:1px solid #dff0e8; border-radius:9px; background:#f6fcf8; color:#4a6759; font-size:.75rem; }
+.connection-status::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.connection-status.mono { word-break:break-all; }
+@media (max-width: 680px) {
+  .connection-form .row,
+  .form-grid-2,
+  .form-grid-3,
+  .form-grid-4 { grid-template-columns:1fr; }
+  .field-span-2 { grid-column:auto; }
+  .modal-actions { justify-content:stretch; }
+  .modal-actions .btn { flex:1 1 auto; }
+}
+@media (max-width: 520px) { .topbar { display:block; } .topbar-actions { margin-top:14px; } .modal-backdrop { padding:12px; } .modal-header, .modal-body { padding-left:16px; padding-right:16px; } }
+.workspace-content { width:100%; max-width:none; }
+.page-intro { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:18px; }
+.page-intro h2 { margin:0; font-size:1.25rem; letter-spacing:-.025em; }
+.page-intro p { margin:5px 0 0; color:var(--muted); font-size:.82rem; }
+.page-intro .actions { align-items:center; flex-shrink:0; }
+.page-intro .badge { white-space:nowrap; }
+.btn.sm { padding:5px 10px; font-size:.78rem; border-radius:7px; line-height:1.25; }
+.btn.soft { background:var(--accent-soft); border-color:#c8eddd; color:#087d5a; }
+.btn.soft:hover { background:#d7f3e7; border-color:#b4e5d2; }
+.btn.iconish { min-width:0; }
+.btn:disabled { opacity:.55; cursor:not-allowed; box-shadow:none; }
+.btn:active { transform:translateY(1px); }
+.keys-card { padding:0; overflow:hidden; }
+.keys-card .section-heading { padding:16px 18px 0; margin-bottom:0; }
+.keys-card #keysTable { padding:12px 14px 16px; }
+.keys-table { min-width:920px; table-layout:fixed; }
+.keys-table th:nth-child(1) { width:16%; }
+.keys-table th:nth-child(2) { width:18%; }
+.keys-table th:nth-child(3) { width:14%; }
+.keys-table th:nth-child(4) { width:20%; }
+.keys-table th:nth-child(5) { width:9%; }
+.keys-table th:nth-child(6) { width:23%; }
+.keys-table th { position:sticky; top:0; z-index:1; background:#f7faf7; }
+.keys-table td { vertical-align:middle; padding:14px 10px; }
+.keys-table tbody tr { transition:background .14s ease; }
+.keys-table tbody tr:hover td { background:#f6fbf8; }
+.keys-table tbody tr:last-child td { border-bottom:none; }
+.key-label { display:grid; gap:4px; min-width:0; }
+.key-label strong { font-size:.95rem; letter-spacing:-.01em; font-weight:700; color:var(--table-text); }
+.key-label .mono { color:var(--table-muted); font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.model-chip-row { display:flex; flex-wrap:wrap; gap:5px; max-height:52px; overflow:hidden; }
+.model-chip { display:inline-flex; align-items:center; max-width:100%; padding:4px 9px; border-radius:999px; background:#f3f6f3; border:1px solid #e4eae4; color:#3d4a42; font-size:.78rem; line-height:1.25; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.model-chip.all { background:var(--accent-soft); border-color:#c8eddd; color:#087d5a; font-weight:650; }
+.quota-cell { display:grid; gap:6px; min-width:0; }
+.quota-line { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:.9rem; }
+.quota-line strong { font-weight:700; letter-spacing:-.015em; color:var(--table-text); }
+.quota-line .muted { font-size:.78rem; color:var(--table-muted); }
+.quota-bar { height:6px; border-radius:999px; background:#edf2ee; overflow:hidden; }
+.quota-bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #1eb787, #63d4ad); min-width:0; transition:width .2s ease; }
+.quota-bar.warn > span { background:linear-gradient(90deg, #e5a12d, #f0c56b); }
+.quota-bar.danger > span { background:linear-gradient(90deg, #d95c51, #ee9088); }
+.spend-cell { display:grid; gap:2px; }
+.spend-cell .primary { font-weight:700; letter-spacing:-.01em; font-size:.92rem; color:var(--table-text); }
+.spend-cell .secondary { color:var(--table-muted); font-size:.8rem; font-weight:500; }
+.row-actions { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; align-items:center; }
+.row-actions .btn { white-space:nowrap; }
+.row-actions .btn.danger { padding:5px 9px; }
+.keys-empty { margin:8px 4px 4px; }
+.tabs { scrollbar-width:none; }
+.tabs::-webkit-scrollbar { display:none; }
+.card { transition:box-shadow .16s ease, border-color .16s ease; }
+.card:hover { box-shadow:0 10px 30px rgba(41, 57, 46, .08); }
+.section-heading .panel-title { margin-bottom:0; }
+.section-heading .hint { margin-top:4px; }
+.badge { font-weight:600; letter-spacing:.01em; }
+.table-scroll { background:#fff; }
+.table-scroll table thead th:first-child { border-top-left-radius:10px; }
+.table-scroll table thead th:last-child { border-top-right-radius:10px; }
+@media (max-width: 760px) {
+  .page-intro { align-items:flex-start; flex-direction:column; }
+  .page-intro .actions { width:100%; justify-content:flex-start; }
+  .row-actions { justify-content:flex-start; }
+}
+.overview-layout { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; }
+.overview-layout .stats { grid-template-columns:repeat(3, minmax(150px, 1fr)); align-content:start; }
+.overview-filter-card { margin-bottom:16px; }
+.overview-filter-grid { display:grid; grid-template-columns:repeat(5, minmax(140px, 1fr)); gap:12px; margin-top:14px; }
+.overview-date-range-field { grid-column:span 2; }
+.overview-date-range { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); align-items:center; gap:7px; color:var(--muted); }
+.overview-date-range input { min-width:0; }
+.overview-actions { margin-top:14px; justify-content:flex-end; }
+.overview-filter-state { color:#087d5a; font-size:.76rem; }
+.overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.45fr) minmax(260px, .75fr); gap:16px; margin-top:16px; }
+.overview-dashboard .card { margin-bottom:0; }
+.overview-trends-column { display:grid; gap:16px; min-width:0; }
+.overview-trend-card { min-height:280px; }
+.overview-dashboard > .card,
+.overview-trends-column > .card { display:flex; flex-direction:column; }
+.overview-dashboard > .card > #overviewModelShare,
+.overview-trends-column > .card > #overviewTrend,
+.overview-trends-column > .card > #overviewCostTrend { flex:1; display:flex; }
+.overview-dashboard > .card > #overviewModelShare > *,
+.overview-trends-column > .card > #overviewTrend > *,
+.overview-trends-column > .card > #overviewCostTrend > * { width:100%; }
+.overview-dashboard > .card > #overviewModelShare > .empty-state { min-height:196px; }
+.overview-chart { position:relative; min-height:210px; padding:8px 0 0; }
+.overview-chart svg { display:block; width:100%; height:188px; overflow:visible; }
+.overview-chart-grid { stroke:#e9eeea; stroke-width:1; }
+.overview-chart-area { fill:rgba(30,183,135,.13); }
+.overview-chart-line { fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.overview-chart-line.is-rate { stroke-dasharray:5 4; stroke-width:2; }
+.overview-chart-dot { fill:#fff; stroke-width:2; }
+.overview-chart-labels { display:flex; justify-content:space-between; gap:8px; margin-top:4px; color:var(--muted); font-size:.7rem; }
+.overview-chart-legend {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin-bottom:4px;
+}
+.overview-chart-legend-item {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--table-muted);
+  font-size:.74rem;
+  font-weight:600;
+}
+.overview-chart-legend-swatch {
+  width:12px;
+  height:3px;
+  border-radius:999px;
+  background:currentColor;
+}
+.overview-chart-legend-swatch.is-rate {
+  background:transparent;
+  border-top:2px dashed currentColor;
+  height:0;
+}
+.overview-chart-axis {
+  position:absolute;
+  top:34px;
+  bottom:28px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  pointer-events:none;
+  color:var(--muted);
+  font-size:.66rem;
+  line-height:1;
+}
+.overview-chart-axis.left { left:0; text-align:left; }
+.overview-chart-axis.right { right:0; text-align:right; }
+.overview-model-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.overview-model-tools .unit-switch button { min-width:0; padding:6px 10px; font-size:.78rem; }
+.overview-model-share {
+  display:grid;
+  grid-template-columns:minmax(140px, 168px) minmax(0, 1fr);
+  gap:18px 20px;
+  align-items:center;
+  min-height:220px;
+  padding-top:8px;
+}
+.overview-donut-wrap {
+  position:relative;
+  width:min(100%, 168px);
+  aspect-ratio:1;
+  margin:0 auto;
+}
+.overview-donut-wrap svg { display:block; width:100%; height:100%; overflow:visible; }
+.overview-donut-segment {
+  cursor:pointer;
+  transition:opacity .16s ease, stroke-width .16s ease;
+}
+.overview-donut-segment:hover { opacity:.88; }
+.overview-donut-center {
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-content:center;
+  text-align:center;
+  pointer-events:none;
+}
+.overview-donut-center strong {
+  display:block;
+  font-size:1.45rem;
+  font-weight:750;
+  letter-spacing:-.03em;
+  color:var(--table-text);
+  line-height:1.1;
+}
+.overview-donut-center span {
+  display:block;
+  margin-top:4px;
+  color:var(--table-muted);
+  font-size:.72rem;
+  font-weight:600;
+}
+.overview-share-legend { display:grid; gap:12px; min-width:0; }
+.overview-share-row {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) auto;
+  gap:10px 12px;
+  align-items:start;
+  padding:2px 4px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .14s ease;
+}
+.overview-share-row:hover { background:var(--panel-2); }
+.overview-share-row-main { display:grid; grid-template-columns:12px minmax(0, 1fr); gap:8px; min-width:0; }
+.overview-share-swatch {
+  width:10px;
+  height:10px;
+  margin-top:5px;
+  border-radius:3px;
+  flex-shrink:0;
+}
+.overview-share-copy { min-width:0; }
+.overview-share-model {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size:.86rem;
+  font-weight:700;
+  color:var(--table-text);
+  line-height:1.25;
+}
+.overview-share-meta {
+  display:block;
+  margin-top:2px;
+  color:var(--table-muted);
+  font-size:.74rem;
+  line-height:1.35;
+}
+.overview-share-percent {
+  padding-top:2px;
+  color:var(--table-muted);
+  font-size:.84rem;
+  font-weight:650;
+  white-space:nowrap;
+  text-align:right;
+}
+.overview-no-data { min-height:184px; }
+@media (max-width: 560px) {
+  .overview-model-share { grid-template-columns:1fr; justify-items:center; }
+  .overview-share-legend { width:100%; }
+}
+@media (max-width: 1080px) { .overview-dashboard { grid-template-columns:1fr; } .overview-filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); } }
+@media (max-width: 760px) { .overview-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .overview-date-range-field { grid-column:1 / -1; } }
+@media (max-width: 460px) { .overview-filter-grid { grid-template-columns:1fr; } .overview-date-range { grid-template-columns:1fr; } .overview-date-range > span { display:none; } }
+.overview-guide { min-height:100%; background:linear-gradient(145deg, #202421, #38463b); border-color:#202421; color:#fff; }
+.overview-guide .panel-title { color:#fff; }
+.overview-guide .hint { color:#d2dbd3; }
+.overview-guide .guide-mark { display:grid; place-items:center; width:32px; height:32px; margin-bottom:20px; border-radius:10px; background:rgba(30,183,135,.18); color:#76dfbc; font-weight:800; }
+.management-layout { display:grid; grid-template-columns:minmax(0, 1.05fr) minmax(320px, .95fr); gap:16px; align-items:start; }
+.management-layout .list-card { grid-row:span 2; }
+.form-card { position:sticky; top:20px; }
+.form-card .row { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); }
+.form-card .row label:last-child { grid-column:1 / -1; }
+.pricing-layout { display:block; }
+.pricing-layout .list-card { width:100%; }
+.pricing-table { min-width:840px; table-layout:fixed; }
+.pricing-table th:nth-child(1) { width:24%; }
+.pricing-table th:nth-child(2) { width:29%; }
+.pricing-table th:nth-child(3) { width:26%; }
+.pricing-table th:nth-child(4) { width:10%; }
+.pricing-table th:nth-child(5) { width:11%; }
+.pricing-table td { vertical-align:middle; }
+.pricing-rule-id { font-weight:650; }
+.pricing-pattern { display:flex; align-items:center; gap:7px; min-width:0; }
+.pricing-pattern .mono { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.price-pairs { display:grid; grid-template-columns:repeat(2, minmax(100px, 1fr)); gap:6px 18px; }
+.price-pair { display:flex; justify-content:space-between; gap:8px; color:var(--table-muted); font-size:.8rem; }
+.price-pair strong { color:var(--table-text); font-size:.9rem; font-weight:700; }
+.pricing-table td, .keys-table td { font-size:.9rem; }
+.usage-grid table strong { font-size:.94rem; font-weight:700; color:var(--table-text); }
+.usage-grid table td { font-size:.9rem; }
+.pricing-actions { justify-content:flex-end; flex-wrap:nowrap; }
+.pricing-actions .btn { white-space:nowrap; }
+.pricing-meta { display:flex; align-items:center; gap:8px; }
+#usageStats { margin-bottom:16px; }
+.usage-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
+.usage-grid > .card { padding:20px; margin-bottom:0; }
+.usage-grid > .card:not(.usage-recent-card) table th, .usage-grid > .card:not(.usage-recent-card) table td { padding:12px 10px; }
+.usage-grid .usage-recent-card { grid-column:1 / -1; }
+@media (max-width: 1080px) { .usage-grid { grid-template-columns:1fr; } .usage-grid .usage-recent-card { grid-column:auto; } }
+@media (max-width: 760px) { .workspace { padding:20px 14px 36px; } .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
+@media (max-width: 520px) { .connection-panel .token-box, .form-card .row { grid-template-columns:1fr; } .tabs { width:100%; } .tab { flex:1; justify-content:center; } .price-pairs { grid-template-columns:1fr; } }
+</style>
+
+</head>
+<body>
+  <main class="workspace">
+    <header class="workspace-top topbar">
+      <div>
+        <p class="eyebrow">Credit Manager</p>
+        <h1>额度仪表盘</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="unit-switch" id="tokenUnitSwitch" role="group" aria-label="Token 显示单位">
+          <span class="unit-switch-label">Token</span>
+          <button type="button" data-token-unit="raw" title="原始数量">个</button>
+          <button type="button" data-token-unit="k" title="千 (×1,000)">k</button>
+          <button type="button" data-token-unit="w" title="万 (×10,000)">w</button>
+          <button type="button" data-token-unit="m" title="百万 (×1,000,000)">m</button>
+        </div>
+        <div class="unit-switch" id="currencySwitch" role="group" aria-label="费用显示货币">
+          <span class="unit-switch-label">费用</span>
+          <button type="button" data-currency="USD" title="美元">USD</button>
+          <button type="button" data-currency="CNY" title="人民币（按汇率换算）">CNY</button>
+        </div>
+        <label class="rate-field hidden" id="usdCnyRateField" title="1 美元兑换多少人民币">
+          <span>1 USD =</span>
+          <input id="usdCnyRate" type="number" step="0.0001" min="0.0001" inputmode="decimal" aria-label="美元兑人民币汇率"/>
+          <span>CNY</span>
+        </label>
+        <button class="btn ghost connection-trigger" id="btnOpenConnection">连接设置</button>
+        <button class="btn primary" id="btnRefresh">刷新数据</button>
+      </div>
+    </header>
+
+    <div id="flash" class="flash" role="status" aria-live="polite" aria-atomic="true">
+      <div class="flash-message" id="flashMessage"></div>
+      <button type="button" class="flash-close" id="btnCloseFlash" aria-label="关闭提示">×</button>
+    </div>
+
+    <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
+      <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="connectionModalTitle">连接设置</h2><p class="hint">连接信息仅保存于当前浏览器会话。</p></div>
+          <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="connection-form">
+            <label>CLIProxyAPI 根地址
+              <input id="apiBase" type="text" placeholder="例如 http://127.0.0.1:8317" autocomplete="off"/>
+            </label>
+            <label>宿主管理密钥（Bearer）
+              <input id="mgmtToken" type="password" placeholder="remote-management secret" autocomplete="off"/>
+            </label>
+            <p class="connection-status mono" id="lastUrl">尚未发起管理请求</p>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnClearToken">清除本地信息</button>
+              <button class="btn primary" id="btnSaveToken">连接并加载</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    </div>
+
+    <div class="modal-backdrop" id="keyModal" aria-hidden="true">
+      <section class="connection-modal key-modal" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="keyModalTitle">添加 Key</h2><p class="hint" id="keyModalHint">设置额度和模型策略后创建凭据。</p></div>
+          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭 Key 弹窗">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="keyModalMode" value="create"/>
+          <input type="hidden" id="keyModalId"/>
+          <div class="connection-form">
+            <div class="modal-section">
+              <p class="modal-section-title">基础信息<span>标签与额度</span></p>
+              <div class="form-grid-2">
+                <label>标签
+                  <input id="keyModalLabel" placeholder="team-a / bot"/>
+                </label>
+                <label>最大使用额度（USD）
+                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label class="field-span-2">可用模型（多选；不选=全部）
+                  <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
+                  <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">凭据设置<span>启停与生成方式</span></p>
+              <div class="form-grid-2">
+                <label id="keyModalEnabledWrap">启用
+                  <select id="keyModalEnabled">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </label>
+                <label id="keyMaterialWrap" class="field-span-2">自定义 Key
+                  <span class="key-material-field">
+                    <span class="key-material-prefix">tk-v1-</span>
+                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入 Key 后缀" spellcheck="false"/>
+                    <button class="btn soft" id="btnGenerateKeyMaterial" type="button">生成</button>
+                  </span>
+                  <span class="hint">固定前缀无需输入；后缀格式为 &lt;kid&gt;-&lt;secret&gt;。</span>
+                </label>
+              </div>
+            </div>
+            <div id="keyModalManageActions" class="actions key-modal-manage-actions hidden">
+              <button class="btn soft" id="btnRevealManagedKey">查看 Key</button>
+              <button class="btn ghost" id="btnRotateManagedKey">轮换 Key</button>
+            </div>
+            <div id="keyPlainResult" class="hidden">
+              <p class="hint">Key 明文已加密保存，可在已有 Key 中再次查看。</p>
+              <pre class="plain" id="keyPlaintext"></pre>
+              <div class="actions" style="margin-top:10px"><button class="btn ghost" id="btnCopyKeyPlaintext">复制 Key</button></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnCancelKeyModal">取消</button>
+              <button class="btn primary" id="btnSubmitKeyModal">创建 Key</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="priceModal" aria-hidden="true">
+      <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="priceModalTitle">新增价格规则</h2><p class="hint">价格单位为每 1M tokens 的 USD；保存前可从 models.dev 回填当前可用模型的价格。</p></div>
+          <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="priceModalMode" value="create"/>
+          <div class="connection-form">
+            <div class="modal-section">
+              <p class="modal-section-title">规则标识<span>ID 与参考价格</span></p>
+              <div class="form-grid-2">
+                <label>规则 ID
+                  <input id="priceId" placeholder="gpt-4o"/>
+                </label>
+                <label>可用模型价格
+                  <select id="priceModelPicker"><option value="">加载后选择模型</option></select>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">匹配条件<span>类型 / pattern / 优先级</span></p>
+              <div class="form-grid-2">
+                <label>匹配类型
+                  <select id="priceKind">
+                    <option value="exact">exact</option>
+                    <option value="glob">glob</option>
+                    <option value="regexp">regexp</option>
+                  </select>
+                </label>
+                <label>priority（大优先）
+                  <input id="pricePriority" type="number" value="100"/>
+                </label>
+                <label class="field-span-2">pattern
+                  <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">计费价格<span>USD / 1M tokens</span></p>
+              <div class="form-grid-4">
+                <label>input USD/1M
+                  <input id="priceIn" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>output USD/1M
+                  <input id="priceOut" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存读取 USD/1M
+                  <input id="priceCacheRead" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存创建 USD/1M
+                  <input id="priceCacheCreation" type="number" step="0.000001" value="0"/>
+                </label>
+              </div>
+            </div>
+            <p class="modal-status" id="modelPriceStatus">价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。</p>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnLoadModelPrices">同步当前模型价格</button>
+              <button class="btn ghost" id="btnCancelPriceModal">取消</button>
+              <button class="btn primary" id="btnSavePrice">保存规则</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="workspace-content">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="overview">概览</button>
+        <button class="tab" data-tab="keys">Key 管理</button>
+        <button class="tab" data-tab="pricing">模型与价格</button>
+        <button class="tab" data-tab="usage">使用统计</button>
+      </div>
+
+  <section id="tab-overview" class="tabpane">
+    <div class="page-intro">
+      <div><h2>额度概览</h2><p>按时间、Key、模型和来源聚合账本数据。</p></div>
+      <span class="badge ok">账本运行中</span>
+    </div>
+    <div class="card filter-card overview-filter-card">
+      <div class="filter-heading">
+        <div>
+          <h2 class="panel-title">概览筛选</h2>
+          <p class="hint">筛选仅影响概览指标和图表；时间按 UTC 解析。</p>
+        </div>
+        <span class="overview-filter-state" id="overviewFilterState">最近 30 天 · 全部数据</span>
+      </div>
+      <div class="overview-filter-grid">
+        <label>时间范围
+          <select id="overviewRangeFilter">
+            <option value="today">今日</option>
+            <option value="7">最近 7 天</option>
+            <option value="30" selected>最近 30 天</option>
+            <option value="90">最近 90 天</option>
+            <option value="all">全部时间</option>
+            <option value="custom">自定义范围</option>
+          </select>
+        </label>
+        <label id="overviewDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+          <span class="overview-date-range">
+            <input id="overviewFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
+            <span aria-hidden="true">至</span>
+            <input id="overviewToFilter" type="datetime-local" aria-label="结束时间" disabled/>
+          </span>
+        </label>
+        <label>Key
+          <select id="overviewKeyFilter"><option value="">全部 Key</option></select>
+        </label>
+        <label>模型
+          <select id="overviewModelFilter"><option value="">全部已使用模型</option></select>
+        </label>
+        <label>来源
+          <select id="overviewSourceFilter">
+            <option value="">全部来源</option>
+            <option value="openai">openai</option>
+            <option value="claude">claude</option>
+            <option value="gemini">gemini</option>
+            <option value="responses">responses</option>
+            <option value="reserved_fallback">reserved_fallback</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions overview-actions">
+        <button class="btn ghost" id="btnResetOverview">重置</button>
+        <button class="btn primary" id="btnLoadOverview">刷新概览</button>
+      </div>
+    </div>
+    <div class="grid stats" id="overviewStats"></div>
+    <div class="overview-dashboard">
+      <div class="overview-trends-column">
+        <div class="card overview-trend-card">
+          <div class="section-heading">
+            <div><h2 class="panel-title">Token 趋势</h2><p class="hint" id="overviewTrendHint">输入 / 输出 / 缓存读取 / 缓存命中率</p></div>
+            <span class="muted" id="overviewTrendTotal">—</span>
+          </div>
+          <div id="overviewTrend"></div>
+        </div>
+        <div class="card overview-trend-card">
+          <div class="section-heading">
+            <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总预估费用</p></div>
+            <span class="muted" id="overviewCostTrendTotal">—</span>
+          </div>
+          <div id="overviewCostTrend"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-heading">
+          <div><h2 class="panel-title">模型调用占比</h2><p class="hint">点击区块或模型名称下钻</p></div>
+          <div class="overview-model-tools">
+            <div class="unit-switch" id="modelShareMetricSwitch" role="group" aria-label="模型占比指标">
+              <button type="button" data-model-metric="requests" class="active">调用次数</button>
+              <button type="button" data-model-metric="tokens">Token</button>
+              <button type="button" data-model-metric="cost">费用</button>
+            </div>
+            <span class="muted" id="overviewModelCount">—</span>
+          </div>
+        </div>
+        <div id="overviewModelShare"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-keys" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>Key 管理</h2><p>按 Key 设置额度、启停状态和可用模型策略。</p></div>
+      <div class="actions">
+        <span class="badge ok">额度隔离</span>
+        <button class="btn primary" id="btnOpenCreateKey">添加 Key</button>
+      </div>
+    </div>
+    <div class="card keys-card">
+      <div class="section-heading"><h2 class="panel-title">已有 Key</h2><span class="muted" id="keysCount">额度与状态一览</span></div>
+      <div id="keysTable"></div>
+    </div>
+  </section>
+
+  <section id="tab-pricing" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>模型与价格</h2><p>维护模型匹配规则与每百万 Token 的计费价格。</p></div>
+      <span class="badge">定价规则</span>
+    </div>
+    <div class="pricing-layout">
+    <div class="card list-card">
+      <div class="section-heading"><div><h2 class="panel-title">当前代理模型</h2><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可直接为任一模型设置或编辑价格。</p></div><div class="actions"><span class="muted" id="modelCatalogCount">未加载</span><button class="btn primary" id="btnLoadModelCatalog">加载全部模型</button></div></div>
+      <div id="pricingTable"></div>
+    </div>
+    </div>
+  </section>
+
+  <section id="tab-usage" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>使用统计</h2><p>从请求、Token 到费用的可筛选账本视图。</p></div>
+      <span class="badge ok">实时汇总</span>
+    </div>
+    <div class="card filter-card">
+      <div class="filter-heading">
+        <div>
+          <h2 class="panel-title">统计筛选</h2>
+          <p class="hint">汇总和明细共用以下条件。时间按 UTC 解析，金额单位为 USD。</p>
+        </div>
+        <span class="filter-state" id="usageFilterState">未设置筛选</span>
+      </div>
+      <div class="filter-grid">
+        <label>时间范围
+          <select id="usageRangeFilter">
+            <option value="today">今日</option>
+            <option value="7">最近 7 天</option>
+            <option value="30">最近 30 天</option>
+            <option value="90">最近 90 天</option>
+            <option value="all" selected>全部时间</option>
+            <option value="custom">自定义范围</option>
+          </select>
+        </label>
+        <label id="usageDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+          <span class="overview-date-range">
+            <input id="usageFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
+            <span aria-hidden="true">至</span>
+            <input id="usageToFilter" type="datetime-local" aria-label="结束时间" disabled/>
+          </span>
+        </label>
+        <label>Key
+          <select id="usageKeyFilter"><option value="">全部 Key</option></select>
+        </label>
+        <label>模型
+          <select id="usageModelFilter"><option value="">全部已使用模型</option></select>
+        </label>
+        <label>来源
+          <select id="usageSourceFilter">
+            <option value="">全部来源</option>
+            <option value="openai">openai</option>
+            <option value="claude">claude</option>
+            <option value="gemini">gemini</option>
+            <option value="responses">responses</option>
+            <option value="reserved_fallback">reserved_fallback</option>
+          </select>
+        </label>
+        <label>最低费用（USD）
+          <input id="usageMinCost" type="number" min="0" step="0.000001" placeholder="例如 0.01"/>
+        </label>
+        <label>最高费用（USD）
+          <input id="usageMaxCost" type="number" min="0" step="0.000001" placeholder="不限制"/>
+        </label>
+        <label>最低 Token 数
+          <input id="usageMinTokens" type="number" min="0" step="1" placeholder="不限制"/>
+        </label>
+        <label>最高 Token 数
+          <input id="usageMaxTokens" type="number" min="0" step="1" placeholder="不限制"/>
+        </label>
+      </div>
+      <div class="actions filter-actions">
+        <button class="btn primary" id="btnLoadUsage">应用筛选</button>
+        <button class="btn ghost" id="btnClearUsageFilters">清除筛选</button>
+      </div>
+    </div>
+    <div class="grid stats" id="usageStats"></div>
+    <div class="usage-grid">
+    <div class="card">
+      <div class="section-heading"><h2 class="panel-title">按 Key 汇总</h2><span class="muted" id="usageByKeyCount"></span></div>
+      <div id="usageByKey"></div>
+    </div>
+    <div class="card">
+      <div class="section-heading"><h2 class="panel-title">按模型汇总</h2><span class="muted" id="usageByModelCount"></span></div>
+      <div id="usageByModel"></div>
+    </div>
+    <div class="card usage-recent-card">
+      <div class="section-heading"><h2 class="panel-title">最近明细</h2><span class="muted" id="usageRecentCount"></span></div>
+      <div id="usageRecent"></div>
+      <div class="usage-pagination" id="usagePagination"></div>
+    </div>
+    </div>
+  </section>
+
+  <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
+    <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
+      <div class="modal-header">
+        <div><h2 class="panel-title" id="deleteKeyModalTitle">删除 Key</h2><p class="hint">删除后该 Key 将立即失效，历史使用统计、预占和审计记录会保留。</p></div>
+        <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="delete-key-target" id="deleteKeyTarget"></p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="btnCancelDeleteKey">取消</button>
+          <button class="btn danger" id="btnConfirmDeleteKey">确认删除</button>
+        </div>
+      </div>
+    </section>
+  </div>
+    </div>
+  </main>
+<script>
+(function () {
+  const TOKEN_KEY = 'credit_manager_mgmt_token';
+  const BASE_KEY = 'credit_manager_api_base';
+  const TOKEN_UNIT_KEY = 'credit_manager_token_unit';
+  const CURRENCY_KEY = 'credit_manager_currency';
+  const USD_CNY_RATE_KEY = 'credit_manager_usd_cny_rate';
+  const DEFAULT_USD_CNY_RATE = 7.2;
+  const TOKEN_UNITS = {
+    raw: { div: 1, suffix: '', maxFrac: 0 },
+    k: { div: 1e3, suffix: 'k', maxFrac: 2 },
+    w: { div: 1e4, suffix: 'w', maxFrac: 2 },
+    m: { div: 1e6, suffix: 'm', maxFrac: 2 },
+  };
+  const state = {
+    overview: null,
+    keys: [],
+    modelPrices: {},
+    availableModels: [],
+    usagePage: 1,
+    usagePageSize: 50,
+    usageSummary: null,
+    usageRecent: null,
+    deleteKeyID: '',
+    tokenUnit: 'raw',
+    currency: 'USD',
+    usdCnyRate: DEFAULT_USD_CNY_RATE,
+    currentTab: 'overview',
+    tabLoadSeq: 0,
+    modelShareMetric: 'requests',
+  };
+
+  const $ = (id) => document.getElementById(id);
+  let flashTimer = 0;
+  const clearFlash = () => {
+    const el = $('flash');
+    if (!el) return;
+    el.className = 'flash';
+    if (flashTimer) {
+      clearTimeout(flashTimer);
+      flashTimer = 0;
+    }
+  };
+  const flash = (msg, ok) => {
+    const el = $('flash');
+    const text = $('flashMessage');
+    if (!el || !text) return;
+    text.textContent = msg == null ? '' : String(msg);
+    el.className = 'flash show ' + (ok ? 'ok' : 'err');
+    if (flashTimer) clearTimeout(flashTimer);
+    // Success toasts auto-hide; errors stay longer so they can be read.
+    flashTimer = setTimeout(clearFlash, ok ? 2600 : 5200);
+  };
+
+  function normalizeTokenUnit(unit) {
+    return TOKEN_UNITS[unit] ? unit : 'raw';
+  }
+
+  function getTokenUnit() {
+    return normalizeTokenUnit(state.tokenUnit || localStorage.getItem(TOKEN_UNIT_KEY) || 'raw');
+  }
+
+  function formatTokens(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '—';
+    const unit = getTokenUnit();
+    if (unit === 'raw') return Math.round(n).toLocaleString();
+    const cfg = TOKEN_UNITS[unit];
+    const scaled = n / cfg.div;
+    const abs = Math.abs(scaled);
+    const maxFrac = abs >= 100 ? 1 : cfg.maxFrac;
+    return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + cfg.suffix;
+  }
+
+  function tokenTitle(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return '';
+    return Math.round(n).toLocaleString() + ' tokens';
+  }
+
+  function syncTokenUnitSwitch() {
+    const unit = getTokenUnit();
+    state.tokenUnit = unit;
+    document.querySelectorAll('#tokenUnitSwitch [data-token-unit]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tokenUnit === unit);
+    });
+  }
+
+  function normalizeCurrency(currency) {
+    return currency === 'CNY' ? 'CNY' : 'USD';
+  }
+
+  function getCurrency() {
+    return normalizeCurrency(state.currency || localStorage.getItem(CURRENCY_KEY) || 'USD');
+  }
+
+  function normalizeUsdCnyRate(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : DEFAULT_USD_CNY_RATE;
+  }
+
+  function getUsdCnyRate() {
+    return normalizeUsdCnyRate(state.usdCnyRate);
+  }
+
+  function currencyCode() {
+    return getCurrency();
+  }
+
+  function microToUSD(value) {
+    if (value == null || value === '') return null;
+    const n = Number(value);
+    return Number.isFinite(n) ? n / 1e6 : null;
+  }
+
+  function formatUSDAmount(usd) {
+    return usd.toLocaleString(undefined, { maximumFractionDigits: 6 });
+  }
+
+  function formatCNYAmount(cny) {
+    const abs = Math.abs(cny);
+    const maxFrac = abs >= 100 ? 2 : (abs >= 1 ? 3 : 4);
+    return cny.toLocaleString(undefined, { maximumFractionDigits: maxFrac });
+  }
+
+  // Display helper: ledger stores micro-USD; CNY is display-only via local rate.
+  function formatMoney(value) {
+    const usd = microToUSD(value);
+    if (usd == null) return '—';
+    if (getCurrency() === 'CNY') {
+      return '¥' + formatCNYAmount(usd * getUsdCnyRate());
+    }
+    return '$' + formatUSDAmount(usd);
+  }
+
+  function moneyTitle(value) {
+    const usd = microToUSD(value);
+    if (usd == null) return '';
+    const usdText = '$' + formatUSDAmount(usd);
+    if (getCurrency() === 'CNY') {
+      return usdText + ' · ¥' + formatCNYAmount(usd * getUsdCnyRate()) + ' @ ' + getUsdCnyRate();
+    }
+    return usdText;
+  }
+
+  function syncCurrencySwitch() {
+    const currency = getCurrency();
+    state.currency = currency;
+    document.querySelectorAll('#currencySwitch [data-currency]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.currency === currency);
+    });
+    const rateField = $('usdCnyRateField');
+    const rateInput = $('usdCnyRate');
+    if (rateField) rateField.classList.toggle('hidden', currency !== 'CNY');
+    if (rateInput && document.activeElement !== rateInput) {
+      rateInput.value = String(getUsdCnyRate());
+    }
+  }
+
+  function refreshDisplayUnits() {
+    if (state.overview) {
+      renderOverview(state.overview);
+      renderKeys(state.overview.keys || state.keys);
+      renderPricing((state.overview.pricing) || []);
+    } else if (state.keys && state.keys.length) {
+      renderKeys(state.keys);
+    }
+    if (state.usageSummary || state.usageRecent) {
+      renderUsage(state.usageSummary || {}, state.usageRecent || {});
+    }
+  }
+
+  function setTokenUnit(unit) {
+    const next = normalizeTokenUnit(unit);
+    state.tokenUnit = next;
+    localStorage.setItem(TOKEN_UNIT_KEY, next);
+    syncTokenUnitSwitch();
+    refreshDisplayUnits();
+  }
+
+  function setCurrency(currency) {
+    const next = normalizeCurrency(currency);
+    state.currency = next;
+    localStorage.setItem(CURRENCY_KEY, next);
+    syncCurrencySwitch();
+    refreshDisplayUnits();
+  }
+
+  function setUsdCnyRate(value) {
+    const next = normalizeUsdCnyRate(value);
+    state.usdCnyRate = next;
+    localStorage.setItem(USD_CNY_RATE_KEY, String(next));
+    syncCurrencySwitch();
+    refreshDisplayUnits();
+  }
+
+  const microFromUSD = (v) => {
+    if (v === '' || v == null) return null;
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) throw new Error('金额无效');
+    return Math.round(n * 1e6);
+  };
+  const esc = (s) => String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  function token() {
+    return ($('mgmtToken').value || sessionStorage.getItem(TOKEN_KEY) || '').trim();
+  }
+
+  function detectDefaultBase() {
+    try {
+      const q = new URLSearchParams(location.search || '');
+      const fromQuery = (q.get('api_base') || q.get('api') || '').trim();
+      if (fromQuery) return fromQuery.replace(/\/$/, '');
+    } catch (_) {}
+    // Resource page served by CLIProxyAPI itself.
+    if ((location.pathname || '').indexOf('/v0/resource/plugins/') === 0) {
+      return location.origin;
+    }
+    return (sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
+  }
+
+  function apiBase() {
+    const raw = ($('apiBase').value || sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
+    return raw;
+  }
+
+  function managementURL(path) {
+    const base = apiBase();
+    const p = '/v0/management/' + String(path || '').replace(/^\/+/, '');
+    return base ? (base + p) : p;
+  }
+
+  function hostURL(path) {
+    const base = apiBase();
+    const p = '/' + String(path || '').replace(/^\/+/, '');
+    return base ? (base + p) : p;
+  }
+
+  function errorMessage(data, text, status) {
+    if (data) {
+      if (typeof data.error === 'string' && data.error.trim()) return data.error.trim();
+      if (data.error && typeof data.error === 'object') {
+        if (typeof data.error.message === 'string' && data.error.message.trim()) return data.error.message.trim();
+        if (typeof data.error.type === 'string' && data.error.type.trim()) return data.error.type.trim();
+      }
+      if (typeof data.message === 'string' && data.message.trim()) return data.message.trim();
+    }
+    if (text && String(text).trim()) return String(text).trim();
+    return 'HTTP ' + status;
+  }
+
+  async function hostAPI(path) {
+    const res = await fetch(hostURL(path), { headers: { 'Accept': 'application/json' } });
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+    if (!res.ok) {
+      throw new Error(errorMessage(data, text, res.status));
+    }
+    return data;
+  }
+
+  // Host management routes (/v0/management/*) use the remote-management secret,
+  // not client API keys. Prefer this path for model discovery.
+  async function hostManagementGET(path) {
+    const t = token();
+    if (!t) throw new Error('请先填写并保存宿主管理密钥');
+    const url = managementURL(path);
+    if ($('lastUrl')) $('lastUrl').textContent = '请求: GET ' + url;
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + t,
+          'Accept': 'application/json',
+        },
+      });
+    } catch (e) {
+      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查 API 根地址是否可访问。');
+    }
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+    if (!res.ok) {
+      throw new Error(errorMessage(data, text, res.status));
+    }
+    return data;
+  }
+
+  async function fetchAvailableModels() {
+    const fromManagement = await fetchModelsViaManagement();
+    if (fromManagement.length) {
+      return { data: fromManagement.map(id => ({ id })), source: 'management' };
+    }
+    // Fallback only when management discovery returned nothing.
+    try {
+      const payload = await hostAPI('v1/models');
+      return { data: modelIDs(payload).map(id => ({ id })), source: 'v1/models' };
+    } catch (e) {
+      const msg = e && e.message ? e.message : String(e);
+      if (/missing api key|invalid api key|unauthorized|401/i.test(msg)) {
+        throw new Error('无法通过管理接口发现模型，且 /v1/models 鉴权失败（' + msg + '）。请确认宿主已配置上游认证文件。');
+      }
+      throw e;
+    }
+  }
+
+  async function fetchModelsViaManagement() {
+    const filesPayload = await hostManagementGET('auth-files');
+    const files = (filesPayload && filesPayload.files) || [];
+    const names = [...new Set(files.map(file => {
+      if (!file || typeof file !== 'object') return '';
+      return String(file.name || file.id || file.Name || file.ID || '').trim();
+    }).filter(Boolean))];
+    if (!names.length) return [];
+    const ids = new Set();
+    const results = await Promise.all(names.map(async name => {
+      try {
+        return await hostManagementGET('auth-files/models?name=' + encodeURIComponent(name));
+      } catch (_) {
+        return null;
+      }
+    }));
+    results.forEach(payload => {
+      const models = (payload && payload.models) || [];
+      models.forEach(model => {
+        const id = typeof model === 'string' ? model : (model && (model.id || model.ID || model.name));
+        if (id) ids.add(String(id).trim());
+      });
+    });
+    return [...ids].filter(Boolean).sort();
+  }
+
+  async function api(method, path, body) {
+    const t = token();
+    if (!t) throw new Error('请先填写并保存宿主管理密钥');
+    const url = managementURL(path);
+    if ($('lastUrl')) $('lastUrl').textContent = '请求: ' + method + ' ' + url;
+    const opts = {
+      method,
+      headers: {
+        'Authorization': 'Bearer ' + t,
+        'Accept': 'application/json',
+      },
+    };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (e) {
+      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查 API 根地址是否可访问，以及是否跨域被浏览器拦截。');
+    }
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
+    if (!res.ok) {
+      const err = (data && (data.error || data.message)) || text || res.statusText || ('HTTP ' + res.status);
+      if (res.status === 404) {
+        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请把「CLIProxyAPI 根地址」改成代理实际地址（如 http://127.0.0.1:8317），确认已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
+      }
+      if (res.status === 401 || res.status === 403) {
+        throw new Error((typeof err === 'string' ? err : JSON.stringify(err)) + '（管理密钥错误，或未允许远程管理）');
+      }
+      throw new Error(typeof err === 'string' ? err : JSON.stringify(err));
+    }
+    return data;
+  }
+
+  function customControlText(select) {
+    if (select.multiple) {
+      const chosen = [...select.options].filter(option => option.selected).map(option => option.textContent.trim());
+      return chosen.length ? chosen.join('、') : '全部可用';
+    }
+    return select.selectedOptions[0] ? select.selectedOptions[0].textContent.trim() : '请选择';
+  }
+
+  function padDatePart(value) {
+    return String(value).padStart(2, '0');
+  }
+
+  function formatDateTimeLocal(date) {
+    return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) + 'T' + padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes());
+  }
+
+  function parseDateTimeLocal(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function dispatchControlChange(control) {
+    control.dispatchEvent(new Event('input', { bubbles: true }));
+    control.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function refreshCustomControl(control) {
+    const wrapper = control.closest('.custom-control');
+    if (!wrapper) return;
+    const trigger = wrapper.querySelector('.custom-control-trigger');
+    if (!trigger) return;
+    trigger.disabled = control.disabled;
+    if (control.tagName === 'SELECT') {
+      trigger.querySelector('.custom-control-value').textContent = customControlText(control);
+      wrapper.querySelectorAll('.custom-option').forEach(option => {
+        option.classList.toggle('selected', option.dataset.value === control.value || (control.multiple && [...control.selectedOptions].some(selected => selected.value === option.dataset.value)));
+      });
+      return;
+    }
+    const date = parseDateTimeLocal(control.value);
+    trigger.querySelector('.custom-control-value').textContent = date
+      ? new Intl.DateTimeFormat('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(date)
+      : '选择日期和时间';
+  }
+
+  function closeCustomControls(except) {
+    document.querySelectorAll('.custom-control.open').forEach(wrapper => {
+      if (wrapper !== except) {
+        wrapper.classList.remove('open');
+        const panel = wrapper.querySelector('.custom-control-panel');
+        if (panel) panel.hidden = true;
+      }
+    });
+  }
+
+  function buildCustomSelect(select) {
+    if (select.closest('.custom-control')) return;
+    const wrapper = document.createElement('span');
+    wrapper.className = 'custom-control custom-select';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-control-trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    const value = document.createElement('span');
+    value.className = 'custom-control-value';
+    trigger.append(value);
+    const panel = document.createElement('div');
+    panel.className = 'custom-control-panel custom-select-panel';
+    panel.setAttribute('role', 'listbox');
+    panel.hidden = true;
+    select.before(wrapper);
+    wrapper.append(select, trigger, panel);
+    select.classList.add('native-control');
+
+    const renderOptions = () => {
+      panel.innerHTML = '';
+      [...select.options].forEach(option => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'custom-option' + (select.multiple ? ' multi' : '');
+        item.dataset.value = option.value;
+        item.textContent = option.textContent;
+        item.disabled = option.disabled;
+        item.classList.toggle('selected', option.selected);
+        item.addEventListener('click', event => {
+          event.stopPropagation();
+          if (select.multiple) {
+            option.selected = !option.selected;
+          } else {
+            select.value = option.value;
+            wrapper.classList.remove('open');
+            panel.hidden = true;
+          }
+          dispatchControlChange(select);
+          refreshCustomControl(select);
+        });
+        panel.append(item);
+      });
+      refreshCustomControl(select);
+    };
+    trigger.addEventListener('click', () => {
+      if (select.disabled) return;
+      const opening = !wrapper.classList.contains('open');
+      closeCustomControls(wrapper);
+      wrapper.classList.toggle('open', opening);
+      panel.hidden = !opening;
+    });
+    select.addEventListener('change', () => refreshCustomControl(select));
+    new MutationObserver(renderOptions).observe(select, { childList:true, subtree:true, characterData:true });
+    renderOptions();
+  }
+
+  function buildCustomDateInput(input) {
+    if (input.closest('.custom-control')) return;
+    const wrapper = document.createElement('span');
+    wrapper.className = 'custom-control custom-date';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-control-trigger custom-date-trigger';
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    const value = document.createElement('span');
+    value.className = 'custom-control-value';
+    trigger.append(value);
+    const panel = document.createElement('div');
+    panel.className = 'custom-control-panel custom-date-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.hidden = true;
+    input.before(wrapper);
+    wrapper.append(input, trigger, panel);
+    input.classList.add('native-control');
+    let viewDate = parseDateTimeLocal(input.value) || new Date();
+
+    const setDateValue = date => {
+      const previous = parseDateTimeLocal(input.value);
+      date.setHours(previous ? previous.getHours() : 0, previous ? previous.getMinutes() : 0, 0, 0);
+      input.value = formatDateTimeLocal(date);
+      dispatchControlChange(input);
+      refreshCustomControl(input);
+    };
+    const renderCalendar = () => {
+      const selected = parseDateTimeLocal(input.value);
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const first = new Date(year, month, 1);
+      const start = new Date(year, month, 1 - first.getDay());
+      const today = new Date();
+      const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      const days = Array.from({ length:42 }, (_, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index));
+      panel.innerHTML = '';
+      const header = document.createElement('div');
+      header.className = 'custom-date-header';
+      const title = document.createElement('button');
+      title.type = 'button';
+      title.className = 'custom-date-title';
+      title.textContent = year + '年' + (month + 1) + '月';
+      const nav = document.createElement('div');
+      nav.className = 'custom-date-nav';
+      [['‹', -1, '上个月'], ['›', 1, '下个月']].forEach(([text, offset, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = text;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          viewDate = new Date(year, month + offset, 1);
+          renderCalendar();
+        });
+        nav.append(button);
+      });
+      header.append(title, nav);
+      const weekdays = document.createElement('div');
+      weekdays.className = 'custom-date-weekdays';
+      ['日','一','二','三','四','五','六'].forEach(day => { const item = document.createElement('span'); item.textContent = day; weekdays.append(item); });
+      const dayGrid = document.createElement('div');
+      dayGrid.className = 'custom-date-days';
+      days.forEach(date => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'custom-date-day';
+        if (date.getMonth() !== month) button.classList.add('outside');
+        if (sameDay(date, today)) button.classList.add('today');
+        if (sameDay(date, selected)) button.classList.add('selected');
+        button.textContent = date.getDate();
+        button.addEventListener('click', () => { setDateValue(date); viewDate = new Date(date); renderCalendar(); });
+        dayGrid.append(button);
+      });
+      const setTimePart = (part, amount) => {
+        const date = parseDateTimeLocal(input.value) || new Date(year, month, 1);
+        if (part === 'hours') date.setHours((date.getHours() + amount + 24) % 24);
+        else date.setMinutes((date.getMinutes() + amount + 60) % 60);
+        input.value = formatDateTimeLocal(date);
+        dispatchControlChange(input);
+        refreshCustomControl(input);
+        renderCalendar();
+      };
+      const timeField = (part, value, amount) => {
+        const field = document.createElement('div');
+        field.className = 'custom-time-field';
+        const decrement = document.createElement('button');
+        decrement.type = 'button';
+        decrement.textContent = '−';
+        decrement.setAttribute('aria-label', part === 'hours' ? '减少小时' : '减少分钟');
+        decrement.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, -amount); });
+        const text = document.createElement('span');
+        text.textContent = padDatePart(value);
+        const increment = document.createElement('button');
+        increment.type = 'button';
+        increment.textContent = '+';
+        increment.setAttribute('aria-label', part === 'hours' ? '增加小时' : '增加分钟');
+        increment.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, amount); });
+        field.append(decrement, text, increment);
+        return field;
+      };
+      const time = document.createElement('div');
+      time.className = 'custom-date-time';
+      const timeLabel = document.createElement('span');
+      timeLabel.textContent = '时间';
+      const fields = document.createElement('div');
+      fields.className = 'custom-time-fields';
+      const timeValue = selected || new Date(year, month, 1);
+      const separator = document.createElement('span');
+      separator.className = 'custom-time-separator';
+      separator.textContent = ':';
+      fields.append(timeField('hours', timeValue.getHours(), 1), separator, timeField('minutes', timeValue.getMinutes(), 5));
+      time.append(timeLabel, fields);
+      const footer = document.createElement('div');
+      footer.className = 'custom-date-footer';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.textContent = '清除';
+      clear.addEventListener('click', () => { input.value = ''; dispatchControlChange(input); refreshCustomControl(input); renderCalendar(); });
+      const now = document.createElement('button');
+      now.type = 'button';
+      now.textContent = '此刻';
+      now.addEventListener('click', () => { const date = new Date(); viewDate = new Date(date); setDateValue(date); renderCalendar(); });
+      footer.append(clear, now);
+      panel.append(header, weekdays, dayGrid, time, footer);
+    };
+    trigger.addEventListener('click', () => {
+      if (input.disabled) return;
+      const opening = !wrapper.classList.contains('open');
+      closeCustomControls(wrapper);
+      wrapper.classList.toggle('open', opening);
+      panel.hidden = !opening;
+      if (opening) { viewDate = parseDateTimeLocal(input.value) || new Date(); renderCalendar(); }
+    });
+    input.addEventListener('change', () => refreshCustomControl(input));
+    refreshCustomControl(input);
+  }
+
+  function initCustomControls(root) {
+    (root || document).querySelectorAll('select:not(.native-control)').forEach(buildCustomSelect);
+    (root || document).querySelectorAll('input[type="datetime-local"]:not(.native-control)').forEach(buildCustomDateInput);
+  }
+
+  function refreshCustomControls() {
+    document.querySelectorAll('.native-control').forEach(refreshCustomControl);
+  }
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.custom-control')) closeCustomControls();
+  });
+
+  function setTab(name) {
+    const tab = name || 'overview';
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    document.querySelectorAll('.tabpane').forEach(pane => {
+      pane.classList.toggle('hidden', pane.id !== 'tab-' + tab);
+    });
+    state.currentTab = tab;
+    refreshActiveTab().catch(e => flash(e.message, false));
+  }
+
+  async function loadOverviewBundle() {
+    const data = await api('GET', 'credit-manager/overview' + overviewQuery());
+    state.overview = data;
+    renderKeys(data.keys || []);
+    renderOverview(data);
+    renderPricing(data.pricing || []);
+    return data;
+  }
+
+  // Refresh only the data needed by the visible tab when switching.
+  async function refreshActiveTab() {
+    const tab = state.currentTab || 'overview';
+    const seq = ++state.tabLoadSeq;
+    if (tab === 'usage') {
+      await loadOverviewBundle();
+      if (seq !== state.tabLoadSeq) return;
+      await loadUsage();
+      if (seq !== state.tabLoadSeq) return;
+      return;
+    }
+    if (tab === 'pricing') {
+      await loadOverviewBundle();
+      if (seq !== state.tabLoadSeq) return;
+      await loadModelCatalog();
+      return;
+    }
+    // overview / keys
+    await loadOverviewBundle();
+  }
+
+  function overviewRangeDates() {
+    return presetRangeDates($('overviewRangeFilter').value);
+  }
+
+  function usageRangeDates() {
+    return presetRangeDates($('usageRangeFilter').value);
+  }
+
+  function presetRangeDates(range) {
+    if (range === 'all' || range === 'custom') return { from: '', to: '' };
+    const to = new Date();
+    if (range === 'today') {
+      const from = new Date(to.getTime());
+      from.setUTCHours(0, 0, 0, 0);
+      return { from: from.toISOString(), to: to.toISOString() };
+    }
+    const from = new Date(to.getTime());
+    from.setUTCDate(from.getUTCDate() - Number(range));
+    return { from: from.toISOString(), to: to.toISOString() };
+  }
+
+  function overviewDateInput(iso) {
+    return iso ? new Date(iso).toISOString().slice(0, 16) : '';
+  }
+
+  function setOverviewRangeVisibility() {
+    const custom = $('overviewRangeFilter').value === 'custom';
+    $('overviewDateRangeField').classList.toggle('hidden', !custom);
+    $('overviewFromFilter').disabled = !custom;
+    $('overviewToFilter').disabled = !custom;
+    if (!custom) {
+      const range = overviewRangeDates();
+      $('overviewFromFilter').value = overviewDateInput(range.from);
+      $('overviewToFilter').value = overviewDateInput(range.to);
+    }
+    refreshCustomControls();
+  }
+
+  function setUsageRangeVisibility() {
+    const custom = $('usageRangeFilter').value === 'custom';
+    $('usageDateRangeField').classList.toggle('hidden', !custom);
+    $('usageFromFilter').disabled = !custom;
+    $('usageToFilter').disabled = !custom;
+    if (!custom) {
+      const range = usageRangeDates();
+      $('usageFromFilter').value = overviewDateInput(range.from);
+      $('usageToFilter').value = overviewDateInput(range.to);
+    }
+    refreshCustomControls();
+  }
+
+  function getOverviewFilterValues() {
+    const value = id => ($(id).value || '').trim();
+    const range = $('overviewRangeFilter').value === 'custom'
+      ? { from: value('overviewFromFilter'), to: value('overviewToFilter') }
+      : overviewRangeDates();
+    const filter = {
+      plugin_key_id: value('overviewKeyFilter'),
+      model: value('overviewModelFilter'),
+      source: value('overviewSourceFilter'),
+      from: range.from,
+      to: range.to,
+      limit: '5000',
+    };
+    if (filter.from) filter.from = new Date(filter.from).toISOString();
+    if (filter.to) filter.to = new Date(filter.to).toISOString();
+    if (filter.from && filter.to && filter.from > filter.to) throw new Error('开始时间不能晚于结束时间');
+    return filter;
+  }
+
+  function overviewQuery() {
+    const params = new URLSearchParams();
+    Object.entries(getOverviewFilterValues()).forEach(([key, value]) => {
+      if (value !== '') params.set(key, value);
+    });
+    return '?' + params.toString();
+  }
+
+  function usageTokens(item) {
+    return Number(item.total_tokens != null ? item.total_tokens :
+      Number(item.input_tokens || 0) + Number(item.output_tokens || 0) + Number(item.reasoning_tokens || 0) +
+      Number(item.cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0));
+  }
+
+  function overviewModelUsage(items) {
+    const usage = new Map();
+    items.forEach(item => {
+      const name = item.model || '未标记模型';
+      const current = usage.get(name) || { model: name, tokens: 0, requests: 0, cost: 0 };
+      current.tokens += usageTokens(item);
+      current.requests += 1;
+      current.cost += Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0);
+      usage.set(name, current);
+    });
+    return [...usage.values()].sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
+  }
+
+  const MODEL_SHARE_COLORS = ['#7c6cf0', '#3ecf8e', '#f0a04b', '#e88b9a', '#4dabf7', '#20c997', '#ff922b', '#cc5de8', '#51cf66', '#339af0'];
+
+  function getModelShareMetric() {
+    const metric = state.modelShareMetric || 'requests';
+    return metric === 'tokens' || metric === 'cost' ? metric : 'requests';
+  }
+
+  function modelShareMetricValue(item, metric) {
+    if (metric === 'tokens') return Number(item.tokens || 0);
+    if (metric === 'cost') return Number(item.cost || 0);
+    return Number(item.requests || 0);
+  }
+
+  function formatModelShareCenter(value, metric) {
+    if (metric === 'tokens') return formatTokens(value);
+    if (metric === 'cost') return formatMoney(value);
+    return Number(value || 0).toLocaleString();
+  }
+
+  function modelShareCenterLabel(metric) {
+    if (metric === 'tokens') return 'Token';
+    if (metric === 'cost') return '费用';
+    return '请求次数';
+  }
+
+  function syncModelShareMetricSwitch() {
+    const metric = getModelShareMetric();
+    document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.modelMetric === metric);
+    });
+  }
+
+  function setModelShareMetric(metric) {
+    state.modelShareMetric = metric === 'tokens' || metric === 'cost' ? metric : 'requests';
+    syncModelShareMetricSwitch();
+    if (state.overview) renderOverviewModels(state.overview.recent_usage || []);
+  }
+
+  async function drillOverviewModel(model) {
+    const name = String(model || '').trim();
+    if (!name) return;
+    const select = $('overviewModelFilter');
+    if (!select) return;
+    if (![...select.options].some(opt => opt.value === name)) {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      select.appendChild(option);
+    }
+    select.value = name;
+    refreshCustomControl(select);
+    try {
+      await reload();
+      flash('已下钻到模型：' + name, true);
+    } catch (e) { flash(e.message, false); }
+  }
+
+  function usageCost(item) {
+    return Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0);
+  }
+
+  function usageCacheRelated(item) {
+    return Number(item.cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0);
+  }
+
+  function overviewDailySeries(items) {
+    const days = new Map();
+    (items || []).forEach(item => {
+      const date = item.created_at ? new Date(item.created_at) : null;
+      if (!date || Number.isNaN(date.getTime())) return;
+      const day = date.toISOString().slice(0, 10);
+      const current = days.get(day) || {
+        date: day,
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheRelated: 0,
+        tokens: 0,
+        cost: 0,
+      };
+      current.input += Number(item.input_tokens || 0);
+      current.output += Number(item.output_tokens || 0);
+      current.cacheRead += Number(item.cache_read_tokens || 0);
+      current.cacheRelated += usageCacheRelated(item);
+      current.tokens += usageTokens(item);
+      current.cost += usageCost(item);
+      days.set(day, current);
+    });
+    return [...days.values()]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(point => ({
+        ...point,
+        cacheHitRate: point.cacheRelated > 0 ? point.cacheRead / point.cacheRelated * 100 : 0,
+      }));
+  }
+
+  function buildLinePath(coords) {
+    return coords.map((point, index) => (index ? 'L' : 'M') + point.x.toFixed(2) + ',' + point.y.toFixed(2)).join(' ');
+  }
+
+  function renderOverviewLineChart(options) {
+    const {
+      target,
+      points,
+      series,
+      emptyText,
+      ariaLabel,
+      leftPadding = 36,
+      rightPadding = 36,
+    } = options;
+    if (!points.length) {
+      target.innerHTML = '<div class="empty-state overview-no-data"><span>'+esc(emptyText)+'</span></div>';
+      return;
+    }
+    const width = 720;
+    const height = 176;
+    const padding = { top: 12, right: rightPadding, bottom: 14, left: leftPadding };
+    const span = Math.max(points.length - 1, 1);
+    const leftSeries = series.filter(item => item.axis !== 'right');
+    const rightSeries = series.filter(item => item.axis === 'right');
+    const leftMax = Math.max(1, ...leftSeries.flatMap(item => points.map(point => Number(point[item.key] || 0))));
+    const rightMax = rightSeries.length
+      ? Math.max(1, ...rightSeries.flatMap(item => points.map(point => Number(point[item.key] || 0))), 100)
+      : 1;
+    const xAt = index => padding.left + (width - padding.left - padding.right) * index / span;
+    const yAt = (value, max) => padding.top + (height - padding.top - padding.bottom) * (1 - value / max);
+    const grid = [0.25, 0.5, 0.75].map(ratio =>
+      '<line class="overview-chart-grid" x1="'+padding.left+'" x2="'+(width - padding.right)+'" y1="'+(padding.top + (height - padding.top - padding.bottom) * ratio)+'" y2="'+(padding.top + (height - padding.top - padding.bottom) * ratio)+'"></line>'
+    ).join('');
+    const paths = series.map(item => {
+      const max = item.axis === 'right' ? rightMax : leftMax;
+      const coords = points.map((point, index) => ({
+        x: xAt(index),
+        y: yAt(Number(point[item.key] || 0), max),
+      }));
+      const line = buildLinePath(coords);
+      const className = 'overview-chart-line' + (item.dashed ? ' is-rate' : '');
+      const dots = points.length <= 31
+        ? coords.map((coord, index) => {
+            const value = Number(points[index][item.key] || 0);
+            const label = item.format ? item.format(value, points[index]) : String(value);
+            return '<circle class="overview-chart-dot" cx="'+coord.x.toFixed(2)+'" cy="'+coord.y.toFixed(2)+'" r="2.8" stroke="'+item.color+'"><title>'+esc(points[index].date + ' · ' + item.label + ' · ' + label)+'</title></circle>';
+          }).join('')
+        : '';
+      let area = '';
+      if (item.fill) {
+        area = '<path class="overview-chart-area" d="'+line+' L'+coords[coords.length - 1].x.toFixed(2)+','+(height - padding.bottom)+' L'+coords[0].x.toFixed(2)+','+(height - padding.bottom)+' Z" style="fill:'+item.fill+'"></path>';
+      }
+      return area + '<path class="'+className+'" d="'+line+'" style="stroke:'+item.color+'"></path>' + dots;
+    }).join('');
+    const legend = series.map(item =>
+      '<span class="overview-chart-legend-item" style="color:'+item.color+'">'+
+        '<span class="overview-chart-legend-swatch'+(item.dashed ? ' is-rate' : '')+'"></span>'+
+        esc(item.label)+
+      '</span>'
+    ).join('');
+    const leftTicks = [leftMax, leftMax * 0.5, 0].map(value => esc(options.formatLeft ? options.formatLeft(value) : String(Math.round(value))));
+    const rightTicks = rightSeries.length
+      ? [rightMax, rightMax * 0.5, 0].map(value => esc(options.formatRight ? options.formatRight(value) : (value.toFixed(0) + '%')))
+      : [];
+    target.innerHTML =
+      '<div class="overview-chart">'+
+        '<div class="overview-chart-legend">'+legend+'</div>'+
+        (leftSeries.length ? '<div class="overview-chart-axis left"><span>'+leftTicks[0]+'</span><span>'+leftTicks[1]+'</span><span>'+leftTicks[2]+'</span></div>' : '')+
+        (rightSeries.length ? '<div class="overview-chart-axis right"><span>'+rightTicks[0]+'</span><span>'+rightTicks[1]+'</span><span>'+rightTicks[2]+'</span></div>' : '')+
+        '<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="'+esc(ariaLabel)+'">'+grid+paths+'</svg>'+
+        '<div class="overview-chart-labels"><span>'+esc(points[0].date)+'</span><span>'+esc(points[points.length - 1].date)+'</span></div>'+
+      '</div>';
+  }
+
+  function renderOverviewTrend(items) {
+    const points = overviewDailySeries(items);
+    const target = $('overviewTrend');
+    const totalInput = points.reduce((sum, point) => sum + point.input, 0);
+    const totalOutput = points.reduce((sum, point) => sum + point.output, 0);
+    const totalCacheRead = points.reduce((sum, point) => sum + point.cacheRead, 0);
+    const totalCacheRelated = points.reduce((sum, point) => sum + point.cacheRelated, 0);
+    const avgHit = totalCacheRelated > 0 ? totalCacheRead / totalCacheRelated * 100 : 0;
+    $('overviewTrendTotal').textContent = points.length
+      ? '入 ' + formatTokens(totalInput) + ' · 出 ' + formatTokens(totalOutput) + ' · 缓存 ' + formatTokens(totalCacheRead) + (totalCacheRelated > 0 ? ' · 命中 ' + avgHit.toFixed(1) + '%' : '')
+      : '—';
+    $('overviewTrendHint').textContent = points.length
+      ? points.length + ' 个有使用记录的自然日 · 输入 / 输出 / 缓存读取 / 缓存命中率'
+      : '输入 / 输出 / 缓存读取 / 缓存命中率';
+    renderOverviewLineChart({
+      target,
+      points,
+      emptyText: '当前筛选条件下暂无 Token 趋势',
+      ariaLabel: 'Token 趋势图',
+      formatLeft: value => formatTokens(value),
+      formatRight: value => value.toFixed(0) + '%',
+      series: [
+        {
+          key: 'input',
+          label: '输入',
+          color: '#1eb787',
+          format: value => formatTokens(value) + ' Token',
+        },
+        {
+          key: 'output',
+          label: '输出',
+          color: '#7968ee',
+          format: value => formatTokens(value) + ' Token',
+        },
+        {
+          key: 'cacheRead',
+          label: '缓存读取',
+          color: '#f0a04b',
+          format: value => formatTokens(value) + ' Token',
+        },
+        {
+          key: 'cacheHitRate',
+          label: '缓存命中率',
+          color: '#e56b8a',
+          axis: 'right',
+          dashed: true,
+          format: value => value.toFixed(1) + '%',
+        },
+      ],
+    });
+  }
+
+  function renderOverviewCostTrend(items) {
+    const points = overviewDailySeries(items);
+    const target = $('overviewCostTrend');
+    const total = points.reduce((sum, point) => sum + point.cost, 0);
+    $('overviewCostTrendTotal').textContent = points.length ? formatMoney(total) : '—';
+    $('overviewCostTrendHint').textContent = points.length
+      ? points.length + ' 个有使用记录的自然日 · 预估费用'
+      : '按日汇总预估费用';
+    renderOverviewLineChart({
+      target,
+      points,
+      emptyText: '当前筛选条件下暂无费用趋势',
+      ariaLabel: '费用趋势图',
+      leftPadding: 42,
+      rightPadding: 12,
+      formatLeft: value => formatMoney(value),
+      series: [
+        {
+          key: 'cost',
+          label: '费用',
+          color: '#1eb787',
+          fill: 'rgba(30,183,135,.13)',
+          format: value => formatMoney(value),
+        },
+      ],
+    });
+  }
+
+  function renderOverviewModels(items) {
+    const metric = getModelShareMetric();
+    const models = overviewModelUsage(items).sort((a, b) =>
+      modelShareMetricValue(b, metric) - modelShareMetricValue(a, metric) ||
+      b.requests - a.requests ||
+      a.model.localeCompare(b.model)
+    );
+    const target = $('overviewModelShare');
+    $('overviewModelCount').textContent = models.length ? models.length + ' 个模型' : '—';
+    syncModelShareMetricSwitch();
+    if (!models.length) {
+      target.innerHTML = '<div class="empty-state"><span>当前筛选条件下暂无模型使用数据</span></div>';
+      return;
+    }
+    const metricTotal = models.reduce((sum, item) => sum + modelShareMetricValue(item, metric), 0);
+    const ringTotal = metricTotal || 1;
+    const size = 120;
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = 42;
+    const stroke = 18;
+    const circumference = 2 * Math.PI * radius;
+    let offset = 0;
+    const segments = models.map((item, index) => {
+      const value = modelShareMetricValue(item, metric);
+      const ratio = value / ringTotal;
+      const length = circumference * ratio;
+      const color = MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length];
+      const seg = { item, color, percent: ratio * 100, value, length, offset };
+      offset += length;
+      return seg;
+    });
+    const rings = segments.map(seg =>
+      '<circle class="overview-donut-segment" data-model="'+esc(seg.item.model)+'" cx="'+cx+'" cy="'+cy+'" r="'+radius+'" fill="none" stroke="'+seg.color+'" stroke-width="'+stroke+'" stroke-dasharray="'+seg.length.toFixed(3)+' '+(circumference - seg.length).toFixed(3)+'" stroke-dashoffset="'+(-seg.offset).toFixed(3)+'" transform="rotate(-90 '+cx+' '+cy+')"><title>'+esc(seg.item.model + ' · ' + seg.percent.toFixed(1) + '%')+'</title></circle>'
+    ).join('');
+    const legend = segments.map(seg =>
+      '<div class="overview-share-row" data-model="'+esc(seg.item.model)+'" title="下钻到 '+esc(seg.item.model)+'">'+
+        '<div class="overview-share-row-main">'+
+          '<span class="overview-share-swatch" style="background:'+seg.color+'"></span>'+
+          '<div class="overview-share-copy">'+
+            '<span class="overview-share-model">'+esc(seg.item.model)+'</span>'+
+            '<span class="overview-share-meta">'+esc(seg.item.requests.toLocaleString() + ' 次调用 · ' + formatTokens(seg.item.tokens) + ' Tokens')+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<span class="overview-share-percent">'+seg.percent.toFixed(1)+'%</span>'+
+      '</div>'
+    ).join('');
+    target.innerHTML =
+      '<div class="overview-model-share">'+
+        '<div class="overview-donut-wrap">'+
+          '<svg viewBox="0 0 '+size+' '+size+'" role="img" aria-label="模型调用占比">'+
+            '<circle cx="'+cx+'" cy="'+cy+'" r="'+radius+'" fill="none" stroke="#edf2ee" stroke-width="'+stroke+'"></circle>'+
+            rings+
+          '</svg>'+
+          '<div class="overview-donut-center">'+
+            '<strong>'+esc(formatModelShareCenter(metricTotal, metric))+'</strong>'+
+            '<span>'+esc(modelShareCenterLabel(metric))+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="overview-share-legend">'+legend+'</div>'+
+      '</div>';
+    target.querySelectorAll('[data-model]').forEach(el => {
+      el.addEventListener('click', () => drillOverviewModel(el.getAttribute('data-model') || ''));
+    });
+  }
+
+  function renderOverviewModelFilter(items) {
+    const select = $('overviewModelFilter');
+    const current = select.value;
+    const models = [...new Set((items || []).map(item => {
+      const value = item.Model != null ? item.Model : item.model;
+      return String(value || '').trim();
+    }).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    select.innerHTML = '<option value="">全部已使用模型</option>' + models.map(model =>
+      '<option value="'+esc(model)+'">'+esc(model)+'</option>'
+    ).join('');
+    if (models.includes(current)) select.value = current;
+    refreshCustomControl(select);
+  }
+
+  function renderOverview(data) {
+    const keys = (data.keys || []).filter(key => !key.revoked_at);
+    const items = data.recent_usage || [];
+    renderOverviewModelFilter(data.used_models || []);
+    const activeKeys = keys.filter(k => k.enabled && !k.revoked_at).length;
+    const totalTokens = items.reduce((sum, item) => sum + usageTokens(item), 0);
+    const totalSpend = items.reduce((sum, item) => sum + Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0), 0);
+    const totalReq = items.length;
+    const filter = getOverviewFilterValues();
+    const rangeText = $('overviewRangeFilter').selectedOptions[0].textContent;
+    const labels = [rangeText];
+    if (filter.plugin_key_id) labels.push('指定 Key');
+    if (filter.model) labels.push('模型: ' + filter.model);
+    if (filter.source) labels.push('来源: ' + filter.source);
+    $('overviewFilterState').textContent = labels.join(' · ');
+    $('overviewStats').innerHTML = [
+      ['Key 数 / 可用', keys.length + ' / ' + activeKeys],
+      ['筛选请求', totalReq.toLocaleString()],
+      ['筛选 Token', formatTokens(totalTokens)],
+      ['筛选费用 ' + currencyCode(), formatMoney(totalSpend)],
+      ['模型数量', overviewModelUsage(items).length.toLocaleString()],
+    ].map(([k,v]) => '<div class="stat"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div></div>').join('');
+    renderOverviewTrend(items);
+    renderOverviewCostTrend(items);
+    renderOverviewModels(items);
+  }
+
+  function renderKeys(keys) {
+    state.keys = (keys || []).filter(key => !key.revoked_at);
+    const selects = [
+      { element: $('usageKeyFilter'), empty: '全部 Key' },
+      { element: $('overviewKeyFilter'), empty: '全部 Key' },
+    ];
+    selects.forEach(({ element, empty }) => {
+      const current = element.value;
+      element.innerHTML = '<option value="">'+esc(empty)+'</option>' + state.keys.map(k =>
+        '<option value="'+esc(k.id)+'">'+esc((k.label || k.id).slice(0, 48) + (k.revoked_at ? '（已删除）' : ''))+'</option>'
+      ).join('');
+      if (current) element.value = current;
+      refreshCustomControl(element);
+    });
+
+    if ($('keysCount')) {
+      $('keysCount').textContent = state.keys.length ? (state.keys.length + ' 个 Key') : '暂无 Key';
+    }
+
+    if (!state.keys.length) {
+      $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span>还没有 Key。点击右上角“添加 Key”创建第一个额度凭证。</span></div>';
+      return;
+    }
+
+    const money = (v) => formatMoney(v);
+
+    const modelChips = (models) => {
+      if (!models || !models.length) return '<span class="model-chip all">全部模型</span>';
+      const shown = models.slice(0, 3).map(m => '<span class="model-chip" title="'+esc(m)+'">'+esc(m)+'</span>').join('');
+      const more = models.length > 3 ? '<span class="model-chip">+'+ (models.length - 3) +'</span>' : '';
+      return '<div class="model-chip-row">' + shown + more + '</div>';
+    };
+
+    const quotaBlock = (k) => {
+      const quota = Number(k.quota_micro_usd || 0);
+      const used = Number(k.settled_spend_micro_usd || 0);
+      if (quota <= 0) {
+        return '<div class="quota-cell">' +
+          '<div class="quota-line"><strong>不限制</strong><span class="muted">限额</span></div>' +
+          '<div class="quota-bar"><span style="width:0%"></span></div>' +
+          '</div>';
+      }
+      const pct = Math.min(100, Math.max(0, (used / quota) * 100));
+      const tone = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : '');
+      return '<div class="quota-cell">' +
+        '<div class="quota-line"><strong>'+esc(money(quota))+'</strong><span class="muted">限额</span></div>' +
+        '<div class="quota-bar '+tone+'"><span style="width:'+pct.toFixed(1)+'%"></span></div>' +
+        '</div>';
+    };
+
+    $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th>标签</th><th>可用模型</th><th>Key 限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+      state.keys.map(k => {
+        const st = k.revoked_at ? '<span class="badge bad">已删除</span>' : (k.enabled ? '<span class="badge ok">启用</span>' : '<span class="badge warn">禁用</span>');
+        return '<tr>' +
+          '<td><div class="key-label"><strong>'+esc(k.label||'(无标签)')+'</strong></div></td>' +
+          '<td>'+modelChips(k.allowed_models)+'</td>' +
+          '<td>'+quotaBlock(k)+'</td>' +
+          '<td><div class="spend-cell"><span class="primary">'+esc(money(k.settled_spend_micro_usd))+'</span><span class="secondary">剩余 '+(Number(k.quota_micro_usd||0) <= 0 ? '不限制' : esc(money(k.remaining_micro_usd)))+'</span></div></td>' +
+          '<td>'+st+'</td>' +
+          '<td><div class="row-actions">' +
+            '<button class="btn soft sm" data-copy="'+esc(k.id)+'">复制 Key</button>' +
+            '<button class="btn primary sm" data-manage="'+esc(k.id)+'">管理 Key</button>' +
+            '<button class="btn danger sm" data-delete="'+esc(k.id)+'">删除</button>' +
+          '</div></td></tr>';
+      }).join('') + '</tbody></table></div>';
+
+    $('keysTable').querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => copyKeyByID(btn.dataset.copy)));
+    $('keysTable').querySelectorAll('[data-manage]').forEach(btn => btn.addEventListener('click', () => openKeyModal('manage', btn.dataset.manage)));
+    $('keysTable').querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => openDeleteKeyModal(btn.dataset.delete)));
+  }
+
+  async function copyText(text) {
+    await navigator.clipboard.writeText(text || '');
+  }
+
+  async function copyKeyByID(id) {
+    try {
+      const result = await api('POST', 'credit-manager/keys/reveal', { id });
+      await copyText(result.plaintext || '');
+      flash('已复制 Key', true);
+    } catch (e) { flash(e.message || '复制失败', false); }
+  }
+
+  async function revealKey(id) {
+    try {
+      const result = await api('POST', 'credit-manager/keys/reveal', { id });
+      const key = state.keys.find(item => item.id === id);
+      $('keyPlaintext').textContent = result.plaintext || '';
+      $('keyPlainResult').classList.remove('hidden');
+      $('keyModalHint').textContent = '正在查看「' + (key && key.label || 'Key') + '」的明文凭据；可复制后继续管理。';
+      flash('已读取加密保存的 Key 明文', true);
+    } catch (e) { flash(e.message, false); }
+  }
+
+  function createKeyMaterialSuffix() {
+    const bytes = new Uint8Array(42);
+    crypto.getRandomValues(bytes);
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    const encoded = Array.from(bytes, byte => alphabet[byte & 31]).join('');
+    return encoded.slice(0, 16) + '-' + encoded.slice(16);
+  }
+
+  function keyMaterialFromInput() {
+    const suffix = $('keyMaterial').value.trim().replace(/^tk-v1-/i, '');
+    return suffix ? 'tk-v1-' + suffix : '';
+  }
+
+  function setKeyModels(models) {
+    const selected = new Set((models || []).map(value => String(value).trim()).filter(Boolean));
+    const available = [...new Set([...(state.availableModels || []), ...selected])].sort();
+    const picker = $('keyModalModels');
+    picker.innerHTML = available.map(modelID =>
+      '<option value="' + esc(modelID) + '"' + (selected.has(modelID) ? ' selected' : '') + '>' + esc(modelID) + '</option>'
+    ).join('');
+    $('keyModalModelsHint').textContent = available.length
+      ? '可直接勾选多个模型；不选择任何模型表示全部模型可用。'
+      : '未发现可用模型；请确认宿主管理密钥和上游认证文件。';
+    refreshCustomControl(picker);
+  }
+
+  function selectedKeyModels() {
+    return Array.from($('keyModalModels').selectedOptions).map(option => option.value);
+  }
+
+  async function loadKeyModels(selectedModels) {
+    setKeyModels(selectedModels);
+    try {
+      const available = await fetchAvailableModels();
+      state.availableModels = modelIDs(available);
+      setKeyModels(selectedModels);
+    } catch (e) {
+      $('keyModalModelsHint').textContent = '模型目录加载失败：' + e.message + '。可稍后重新打开弹窗。';
+    }
+  }
+
+  function openKeyModal(mode, id) {
+    const key = id ? state.keys.find(x => x.id === id) : null;
+    const isManagedKey = mode === 'manage';
+    const isRotation = mode === 'rotate';
+    const titles = { create: '添加 Key', manage: '管理 Key', rotate: '轮换 Key' };
+    const hints = {
+      create: '设置额度和模型策略后创建凭据。',
+      manage: '可编辑 Key 策略，按需查看明文或轮换凭据。',
+      rotate: '创建替代凭据并立即禁用旧 Key；历史使用记录会保留在旧 Key 上。',
+    };
+    $('keyModalMode').value = mode;
+    $('keyModalId').value = key ? key.id : '';
+    $('keyModalTitle').textContent = titles[mode];
+    $('keyModalHint').textContent = hints[mode];
+    $('keyModalLabel').value = key ? (key.label || '') : '';
+    $('keyModalQuotaUSD').value = key ? Number(key.quota_micro_usd || 0) / 1e6 : '';
+    const allowedModels = key ? (key.allowed_models || []) : [];
+    setKeyModels(allowedModels);
+    $('keyModalEnabled').value = key && !key.enabled ? 'false' : 'true';
+    $('keyModalLabel').disabled = isRotation;
+    $('keyModalQuotaUSD').disabled = isRotation;
+    $('keyModalModels').disabled = isRotation;
+    $('keyModalEnabledWrap').classList.toggle('hidden', mode !== 'manage');
+    $('keyMaterialWrap').classList.toggle('hidden', mode === 'manage');
+    $('keyModalManageActions').classList.toggle('hidden', !isManagedKey);
+    $('btnRotateManagedKey').classList.toggle('hidden', Boolean(key && key.revoked_at));
+    $('keyMaterial').value = '';
+    $('keyPlainResult').classList.add('hidden');
+    $('btnSubmitKeyModal').textContent = mode === 'create' ? '创建 Key' : (mode === 'manage' ? '保存策略' : '确认轮换');
+    refreshCustomControls();
+    const modal = $('keyModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('keyModalLabel').focus();
+    void loadKeyModels(allowedModels);
+  }
+
+  function closeKeyModal() {
+    const modal = $('keyModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function priceValue(price, camel, snake) {
+    return price && (price[camel] != null ? price[camel] : price[snake]);
+  }
+
+  function openPriceModal(rule) {
+    const price = rule && (rule.Price || rule.price) || {};
+    const id = rule && (rule.ID || rule.id) || '';
+    $('priceModalMode').value = rule ? 'edit' : 'create';
+    $('priceModalTitle').textContent = rule ? '编辑价格规则' : '新增价格规则';
+    $('priceId').value = id;
+    $('priceId').disabled = Boolean(rule);
+    $('priceKind').value = rule ? (rule.MatchKind || rule.match_kind) : 'exact';
+    $('pricePattern').value = rule ? (rule.Pattern || rule.pattern) : '';
+    $('pricePriority').value = rule ? (rule.Priority != null ? rule.Priority : rule.priority) : 100;
+    $('priceIn').value = Number(priceValue(price, 'Input', 'input') || 0) / 1e6;
+    $('priceOut').value = Number(priceValue(price, 'Output', 'output') || 0) / 1e6;
+    $('priceCacheRead').value = Number(priceValue(price, 'CacheRead', 'cache_read') || 0) / 1e6;
+    $('priceCacheCreation').value = Number(priceValue(price, 'CacheCreation', 'cache_creation') || 0) / 1e6;
+    $('priceModelPicker').value = '';
+    $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」。可同步并选择当前可用模型的 models.dev 价格进行回填。' : '价格来源：models.dev。仅匹配当前代理公开的模型；同步不会自动保存。';
+    refreshCustomControls();
+    const modal = $('priceModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('priceId').focus();
+  }
+
+  function closePriceModal() {
+    const modal = $('priceModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function submitKeyModal() {
+    const mode = $('keyModalMode').value;
+    const keyMaterial = mode === 'manage' ? '' : keyMaterialFromInput();
+    const id = $('keyModalId').value;
+    // empty or 0 = unlimited; always send a non-negative micro-USD amount
+    const quota = mode === 'rotate' ? null : (microFromUSD($('keyModalQuotaUSD').value) ?? 0);
+    let result;
+    if (mode === 'create') {
+      result = await api('POST', 'credit-manager/keys', {
+        label: $('keyModalLabel').value.trim(),
+        quota_micro_usd: quota,
+        allowed_models: selectedKeyModels(),
+        key_material: keyMaterial,
+      });
+    } else if (mode === 'manage') {
+      result = await api('POST', 'credit-manager/keys/update', {
+        id,
+        label: $('keyModalLabel').value,
+        quota_micro_usd: quota,
+        enabled: $('keyModalEnabled').value === 'true',
+        set_allowed_models: true,
+        allowed_models: selectedKeyModels(),
+      });
+    } else {
+      result = await api('POST', 'credit-manager/keys/rotate', { id, key_material: keyMaterial });
+    }
+    await reload();
+    if (mode === 'manage') {
+      closeKeyModal();
+      flash('Key 策略已保存', true);
+      return;
+    }
+    if (mode === 'create' && result.plaintext) {
+      try {
+        await copyText(result.plaintext);
+        closeKeyModal();
+        flash('Key 已创建并复制到剪贴板', true);
+      } catch (_) {
+        $('keyPlaintext').textContent = result.plaintext;
+        $('keyPlainResult').classList.remove('hidden');
+        flash('Key 已创建；自动复制失败，请手动复制', false);
+      }
+      return;
+    }
+    if (result.plaintext) {
+      $('keyPlaintext').textContent = result.plaintext;
+      $('keyPlainResult').classList.remove('hidden');
+    }
+    flash(mode === 'rotate' ? 'Key 已轮换，旧 Key 已禁用；请复制新 Key' : 'Key 已创建；请复制明文', true);
+  }
+
+  function priceNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? number : 0;
+  }
+
+  function modelIDs(payload) {
+    const items = Array.isArray(payload) ? payload : (payload && payload.data) || [];
+    return [...new Set(items.map(item => typeof item === 'string' ? item : item && item.id).filter(Boolean))].sort();
+  }
+
+  // Prefer first-party catalogs when the same model ID appears under many gateways.
+  const modelsDevProviderRank = {
+    openai: 100, anthropic: 100, google: 100, 'google-vertex': 95, xai: 100,
+    deepseek: 100, mistral: 90, cohere: 90, meta: 90, 'amazon-bedrock': 85,
+    azure: 85, together: 60, fireworks: 60, groq: 60, openrouter: 40,
+    vercel: 35, github: 35, 'github-copilot': 35, opencode: 30,
+  };
+
+  function modelsDevBaseID(id) {
+    const value = String(id || '').trim().toLowerCase().replace(/^~+/, '');
+    const slash = value.lastIndexOf('/');
+    return slash >= 0 ? value.slice(slash + 1) : value;
+  }
+
+  function modelsDevLooseID(id) {
+    return modelsDevBaseID(id).replace(/[._]/g, '-');
+  }
+
+  function modelsDevCostKey(cost) {
+    const c = cost || {};
+    return [c.input, c.output, c.cache_read, c.cache_write].map(value => Number(value) || 0).join('|');
+  }
+
+  function modelsDevHasPrice(cost) {
+    const c = cost || {};
+    return ['input', 'output', 'cache_read', 'cache_write'].some(key => Number(c[key]) > 0);
+  }
+
+  function modelsDevMatchQuality(catalogID, providerID, query) {
+    const id = String(catalogID || '').toLowerCase();
+    const full = String(providerID + '/' + catalogID).toLowerCase();
+    const base = modelsDevBaseID(id);
+    const queryBase = modelsDevBaseID(query);
+    if (id === query || full === query) return 100;
+    if (base === query || base === queryBase) return 80;
+    if (id.endsWith('/' + queryBase) || id.endsWith('.' + queryBase)) return 70;
+    if (queryBase.length >= 4 && modelsDevLooseID(id) === modelsDevLooseID(query)) return 50;
+    return 0;
+  }
+
+  function modelsDevCandidates(catalog, modelID) {
+    const normalized = String(modelID).trim().toLowerCase();
+    if (!normalized) return [];
+    const matches = [];
+    Object.entries(catalog || {}).forEach(([providerID, provider]) => {
+      Object.values((provider && provider.models) || {}).forEach(model => {
+        if (!model || !model.cost) return;
+        const quality = modelsDevMatchQuality(model.id, providerID, normalized);
+        if (!quality) return;
+        const providerScore = modelsDevProviderRank[providerID] || 10;
+        matches.push({
+          providerID,
+          model,
+          quality,
+          providerScore,
+          priced: modelsDevHasPrice(model.cost),
+        });
+      });
+    });
+    return matches;
+  }
+
+  function resolveModelsDevMatch(candidates) {
+    if (!candidates.length) return null;
+    if (candidates.length === 1) return candidates[0];
+    const qualities = [...new Set(candidates.map(item => item.quality))].sort((a, b) => b - a);
+    let matched = null;
+    for (const quality of qualities) {
+      let pool = candidates.filter(item => item.quality === quality);
+      const priced = pool.filter(item => item.priced);
+      if (priced.length) pool = priced;
+      const bestProvider = Math.max(...pool.map(item => item.providerScore));
+      const preferred = pool.filter(item => item.providerScore === bestProvider);
+      const preferredCosts = new Set(preferred.map(item => modelsDevCostKey(item.model.cost)));
+      if (preferred.length === 1 || preferredCosts.size === 1) {
+        matched = preferred[0];
+        break;
+      }
+      const poolCosts = new Set(pool.map(item => modelsDevCostKey(item.model.cost)));
+      if (poolCosts.size === 1) {
+        matched = preferred[0] || pool[0];
+        break;
+      }
+    }
+    if (!matched) return null;
+    // Same price under a first-party catalog wins over gateway mirrors.
+    const cost = modelsDevCostKey(matched.model.cost);
+    return candidates
+      .filter(item => item.priced && modelsDevCostKey(item.model.cost) === cost)
+      .sort((a, b) => b.providerScore - a.providerScore || b.quality - a.quality)[0] || matched;
+  }
+
+  function loadModelPrice(modelID) {
+    const item = state.modelPrices && state.modelPrices[modelID];
+    if (!item) return;
+    const cost = item.cost || {};
+    $('priceId').value = modelID;
+    $('priceKind').value = 'exact';
+    $('pricePattern').value = modelID;
+    refreshCustomControls();
+    $('priceIn').value = priceNumber(cost.input);
+    $('priceOut').value = priceNumber(cost.output);
+    $('priceCacheRead').value = priceNumber(cost.cache_read);
+    $('priceCacheCreation').value = priceNumber(cost.cache_write);
+    $('modelPriceStatus').textContent = '已回填 ' + modelID + ' 的价格，来源：models.dev / ' + item.provider + '。请核对后保存。';
+  }
+
+  function pricingRuleIndex(rules) {
+    return new Map((rules || []).filter(rule => (rule.MatchKind || rule.match_kind) === 'exact').map(rule => [rule.Pattern || rule.pattern, rule]));
+  }
+
+  function modelsDevPricingRule(modelID, item) {
+    const cost = item.cost || {};
+    return {
+      id: modelID,
+      match_kind: 'exact',
+      pattern: modelID,
+      priority: 100,
+      enabled: true,
+      price: {
+        input: Math.round(priceNumber(cost.input) * 1e6),
+        output: Math.round(priceNumber(cost.output) * 1e6),
+        cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
+        cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
+      },
+    };
+  }
+
+  async function syncModelsDevPrices(prices, rules) {
+    const exactRules = pricingRuleIndex(rules);
+    const ruleIDs = new Set((rules || []).map(rule => String(rule.ID || rule.id || '').trim()));
+    const pending = Object.entries(prices).filter(([modelID]) => !exactRules.has(modelID) && !ruleIDs.has(modelID));
+    let saved = 0;
+    const failed = [];
+    for (const [modelID, item] of pending) {
+      try {
+        await api('POST', 'credit-manager/pricing', modelsDevPricingRule(modelID, item));
+        saved += 1;
+      } catch (error) {
+        failed.push(modelID + '（' + (error && error.message ? error.message : error) + '）');
+      }
+    }
+    if (saved) {
+      const result = await api('GET', 'credit-manager/pricing');
+      state.overview = { ...(state.overview || {}), pricing: result.items || [] };
+    }
+    return { saved, skipped: Object.keys(prices).length - pending.length, failed };
+  }
+
+  async function loadModelCatalog() {
+    const status = $('modelCatalogStatus');
+    const button = $('btnLoadModelCatalog');
+    button.disabled = true;
+    status.textContent = '正在读取当前代理模型与 models.dev 价格目录…';
+    try {
+      const [available, catalog] = await Promise.all([
+        fetchAvailableModels(),
+        fetch('https://models.dev/api.json').then(async response => {
+          if (!response.ok) throw new Error('models.dev HTTP ' + response.status);
+          return response.json();
+        }),
+      ]);
+      const models = modelIDs(available);
+      const source = available && available.source ? available.source : 'unknown';
+      const prices = {};
+      const ambiguous = [];
+      models.forEach(modelID => {
+        const candidates = modelsDevCandidates(catalog, modelID);
+        const matched = resolveModelsDevMatch(candidates);
+        if (matched) {
+          prices[modelID] = { provider: matched.providerID, cost: matched.model.cost };
+        } else if (candidates.length) {
+          ambiguous.push(modelID);
+        }
+      });
+      const sync = await syncModelsDevPrices(prices, (state.overview && state.overview.pricing) || []);
+      state.availableModels = models;
+      state.modelPrices = prices;
+      const picker = $('priceModelPicker');
+      picker.innerHTML = '<option value="">选择已匹配价格的当前模型</option>' + Object.keys(prices).sort().map(modelID =>
+        '<option value="' + esc(modelID) + '">' + esc(modelID + ' · ' + prices[modelID].provider) + '</option>'
+      ).join('');
+      refreshCustomControl(picker);
+      $('modelCatalogCount').textContent = models.length + ' 个模型 · ' + Object.keys(prices).length + ' 个已匹配';
+      const syncText = '新增 ' + sync.saved + '，保留 ' + sync.skipped + (sync.failed.length ? '，失败 ' + sync.failed.length : '');
+      const ambiguousText = ambiguous.length ? '；' + ambiguous.length + ' 个未自动匹配' : '';
+      status.textContent = '已加载 ' + models.length + ' 个模型，匹配 ' + Object.keys(prices).length + ' 个价格；' + syncText + ambiguousText + '。';
+      renderPricing((state.overview && state.overview.pricing) || []);
+      if (sync.failed.length) throw new Error('部分 models.dev 价格未保存：' + sync.failed.join('；'));
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function loadModelPrices() {
+    await loadModelCatalog();
+    $('modelPriceStatus').textContent = '模型目录与价格规则已同步。选择模型可查看或调整 models.dev 价格。';
+  }
+
+  function renderPricing(items) {
+    const rules = items || [];
+    const rulesByModel = pricingRuleIndex(rules);
+    const models = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort();
+    if (!models.length) {
+      $('pricingTable').innerHTML = '<p class="hint">尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。</p>';
+      return;
+    }
+    $('pricingTable').innerHTML = '<div class="table-scroll"><table class="pricing-table"><thead><tr><th>模型</th><th>models.dev 价格</th><th>当前规则</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+      models.map(modelID => {
+        const matched = state.modelPrices[modelID];
+        const rule = rulesByModel.get(modelID);
+        const price = rule && (rule.Price || rule.price) || {};
+        const pricePairs = matched ? [
+          ['输入', matched.cost.input], ['输出', matched.cost.output], ['缓存读取', matched.cost.cache_read], ['缓存创建', matched.cost.cache_write],
+        ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') : '<span class="muted">未找到唯一匹配价格</span>';
+        const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output')))+'</div>' : '<span class="muted">未设置</span>';
+        const status = rule ? ((rule.Enabled != null ? rule.Enabled : rule.enabled) ? '<span class="badge ok">已设置</span>' : '<span class="badge warn">已停用</span>') : (matched ? '<span class="badge">待保存</span>' : '<span class="badge bad">无价格</span>');
+        return '<tr>' +
+          '<td><div class="pricing-rule-id mono">'+esc(modelID)+'</div>'+(matched ? '<div class="hint">models.dev / '+esc(matched.provider)+'</div>' : '')+'</td>' +
+          '<td><div class="price-pairs">'+pricePairs+'</div></td>' +
+          '<td>'+currentRule+'</td>' +
+          '<td><div class="pricing-meta">'+status+'</div></td>' +
+          '<td><div class="actions pricing-actions"><button class="btn soft sm" data-configure-model="'+esc(modelID)+'">'+(rule ? '编辑' : '设置价格')+'</button>'+(rule ? '<button class="btn danger sm" data-del-price="'+esc(rule.ID || rule.id)+'">删除</button>' : '')+'</div></td>' +
+          '</tr>';
+      }).join('') + '</tbody></table></div>';
+    $('pricingTable').querySelectorAll('[data-configure-model]').forEach(btn => btn.addEventListener('click', () => {
+      const modelID = btn.dataset.configureModel;
+      const rule = rulesByModel.get(modelID);
+      openPriceModal(rule);
+      if (!rule) loadModelPrice(modelID);
+    }));
+    $('pricingTable').querySelectorAll('[data-del-price]').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm('删除价格规则 ' + btn.dataset.delPrice + ' ?')) return;
+      try {
+        await api('POST', 'credit-manager/pricing/delete', { id: btn.dataset.delPrice });
+        flash('已删除价格规则', true);
+        await reload();
+      } catch (e) { flash(e.message, false); }
+    }));
+  }
+
+  function normKeySum(x) {
+    return {
+      label: x.Label || x.label || '历史 Key',
+      req: x.RequestCount || x.request_count || 0,
+      cost: x.CostMicroUSD || x.cost_micro_usd || 0,
+      inn: x.InputTokens || x.input_tokens || 0,
+      out: x.OutputTokens || x.output_tokens || 0,
+    };
+  }
+  function normModelSum(x) {
+    return {
+      model: x.Model || x.model,
+      req: x.RequestCount || x.request_count || 0,
+      cost: x.CostMicroUSD || x.cost_micro_usd || 0,
+      inn: x.InputTokens || x.input_tokens || 0,
+      out: x.OutputTokens || x.output_tokens || 0,
+    };
+  }
+
+  function renderUsageModelFilter(items) {
+    const select = $('usageModelFilter');
+    const current = select.value;
+    const models = [...new Set((items || []).map(item => {
+      const value = item.Model != null ? item.Model : item.model;
+      return String(value || '').trim();
+    }).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    select.innerHTML = '<option value="">全部已使用模型</option>' + models.map(model =>
+      '<option value="'+esc(model)+'">'+esc(model)+'</option>'
+    ).join('');
+    if (models.includes(current)) select.value = current;
+    refreshCustomControl(select);
+  }
+
+  function renderUsage(summary, recent) {
+    renderUsageModelFilter((state.overview && state.overview.used_models) || []);
+    const pageData = recent || {};
+    const byKey = (summary.by_key || []).map(normKeySum);
+    const byModel = (summary.by_model || []).map(normModelSum);
+    const items = pageData.items || [];
+    const totalRequests = byKey.reduce((sum, item) => sum + Number(item.req || 0), 0);
+    const totalCost = byKey.reduce((sum, item) => sum + Number(item.cost || 0), 0);
+    const totalInput = byKey.reduce((sum, item) => sum + Number(item.inn || 0), 0);
+    const totalOutput = byKey.reduce((sum, item) => sum + Number(item.out || 0), 0);
+    $('usageStats').innerHTML = [
+      ['筛选请求数', totalRequests],
+      ['筛选费用 ' + currencyCode(), formatMoney(totalCost)],
+      ['输入 Token', formatTokens(totalInput)],
+      ['输出 Token', formatTokens(totalOutput)],
+    ].map(([k,v]) => '<div class="stat"><div class="k">'+esc(k)+'</div><div class="v">'+esc(v)+'</div></div>').join('');
+    $('usageByKeyCount').textContent = byKey.length + ' 个 Key';
+    $('usageByModelCount').textContent = byModel.length + ' 个模型';
+    $('usageRecentCount').textContent = (Number(pageData.total || 0)).toLocaleString() + ' 条明细';
+    const filterLabels = [];
+    const filter = getUsageFilterValues();
+    const rangeText = $('usageRangeFilter').selectedOptions[0].textContent;
+    if (rangeText) filterLabels.push(rangeText);
+    if (filter.plugin_key_id) filterLabels.push('Key');
+    if (filter.model) filterLabels.push('模型: ' + filter.model);
+    if (filter.source) filterLabels.push('来源: ' + filter.source);
+    if (filter.min_cost_micro_usd || filter.max_cost_micro_usd) filterLabels.push('费用范围');
+    if (filter.min_tokens || filter.max_tokens) filterLabels.push('Token 范围');
+    $('usageFilterState').textContent = filterLabels.length ? filterLabels.join(' · ') : '未设置筛选';
+
+    const emptyState = message => '<div class="empty-state"><span>'+esc(message)+'</span></div>';
+    $('usageByKey').innerHTML = byKey.length ? '<table><thead><tr><th>Key</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
+      byKey.map(x => '<tr><td><div><strong>'+esc(x.label||'(无标签)')+'</strong></div></td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
+      '</tbody></table>' : emptyState('当前筛选条件下暂无按 Key 汇总');
+    $('usageByModel').innerHTML = byModel.length ? '<table><thead><tr><th>模型</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
+      byModel.map(x => '<tr><td class="mono">'+esc(x.model)+'</td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
+      '</tbody></table>' : emptyState('当前筛选条件下暂无按模型汇总');
+    const formatOptional = (value, formatter) => value == null || value === '' ? '—' : formatter(value);
+    const formatMilliseconds = value => formatOptional(value, v => {
+      const n = Number(v);
+      return Number.isFinite(n) ? (n < 1000 ? n.toFixed(n < 100 ? 1 : 0) + ' ms' : (n / 1000).toFixed(2) + ' s') : '—';
+    });
+    const formatTPS = value => formatOptional(value, v => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n.toFixed(2) : '—';
+    });
+    const cacheHit = u => {
+      const read = Number(u.cache_read_tokens || 0);
+      const related = Number(u.cached_tokens || 0) + read + Number(u.cache_creation_tokens || 0);
+      return related > 0 ? (read / related * 100).toFixed(1) + '%' : '—';
+    };
+    const totalUsageTokens = u => u.total_tokens != null ? Number(u.total_tokens) :
+      Number(u.input_tokens || 0) + Number(u.output_tokens || 0) + Number(u.reasoning_tokens || 0) + Number(u.cached_tokens || 0) + Number(u.cache_read_tokens || 0) + Number(u.cache_creation_tokens || 0);
+    const usageAuthCell = u => {
+      const provider = String(u.auth_provider || u.auth_type || '').trim();
+      const account = String(u.auth_label || u.auth_email || u.auth_name || '').trim();
+      const display = [provider, account].filter(Boolean).join(' · ') || '未知账号';
+      return '<td class="usage-key" title="'+esc(display)+'"><div class="usage-key-label"><strong>'+esc(display)+'</strong></div></td>';
+    };
+
+    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>Tier</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>预估费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
+      items.map(u => {
+        const estimatedCost = u.estimated_cost_micro_usd != null ? u.estimated_cost_micro_usd : u.cost_micro_usd;
+        const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
+        return '<tr><td class="mono">'+esc(u.created_at)+'</td>'+usageAuthCell(u)+
+          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.tier || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
+          cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
+          '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(estimatedCost))+'">'+esc(formatMoney(estimatedCost))+'</td></tr>';
+      }).join('') + '</tbody></table></div>' : emptyState('当前筛选条件下暂无使用明细');
+    renderUsagePagination(pageData);
+  }
+
+  function renderUsagePagination(pageData) {
+    const total = Number(pageData.total || 0);
+    const page = Number(pageData.page || state.usagePage || 1);
+    const pageSize = Number(pageData.page_size || state.usagePageSize || 50);
+    const totalPages = Math.max(Number(pageData.total_pages || 0), 1);
+    state.usagePage = page;
+    state.usagePageSize = pageSize;
+    const start = total ? (page - 1) * pageSize + 1 : 0;
+    const end = Math.min(page * pageSize, total);
+    $('usagePagination').innerHTML = '<span class="muted">显示 '+start+'–'+end+'，共 '+total.toLocaleString()+' 条</span>' +
+      '<label>每页<select id="usagePageSize"><option value="25">25 条</option><option value="50">50 条</option><option value="100">100 条</option><option value="200">200 条</option></select></label>' +
+      '<button class="btn ghost" id="btnUsagePrev" '+(page <= 1 ? 'disabled' : '')+'>上一页</button>' +
+      '<span class="muted">第 '+page+' / '+totalPages+' 页</span>' +
+      '<button class="btn ghost" id="btnUsageNext" '+(page >= totalPages ? 'disabled' : '')+'>下一页</button>';
+    $('usagePageSize').value = String(pageSize);
+    initCustomControls($('usagePagination'));
+    refreshCustomControl($('usagePageSize'));
+    $('usagePageSize').addEventListener('change', async event => {
+      try {
+        state.usagePageSize = Number(event.target.value);
+        state.usagePage = 1;
+        await loadUsage();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnUsagePrev').addEventListener('click', async () => {
+      try {
+        state.usagePage = Math.max(1, page - 1);
+        await loadUsage();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnUsageNext').addEventListener('click', async () => {
+      try {
+        state.usagePage = Math.min(totalPages, page + 1);
+        await loadUsage();
+      } catch (e) { flash(e.message, false); }
+    });
+  }
+
+  function getUsageFilterValues() {
+    const value = id => ($(id).value || '').trim();
+    const toMicro = id => {
+      const raw = value(id);
+      if (!raw) return '';
+      const number = Number(raw);
+      if (!Number.isFinite(number) || number < 0) throw new Error('费用范围必须是非负数字');
+      return String(Math.round(number * 1e6));
+    };
+    const range = $('usageRangeFilter').value === 'custom'
+      ? { from: value('usageFromFilter'), to: value('usageToFilter') }
+      : usageRangeDates();
+    const filter = {
+      plugin_key_id: value('usageKeyFilter'),
+      model: value('usageModelFilter'),
+      source: value('usageSourceFilter'),
+      from: range.from,
+      to: range.to,
+      min_cost_micro_usd: toMicro('usageMinCost'),
+      max_cost_micro_usd: toMicro('usageMaxCost'),
+      min_tokens: value('usageMinTokens'),
+      max_tokens: value('usageMaxTokens'),
+    };
+    if (filter.from) filter.from = new Date(filter.from).toISOString();
+    if (filter.to) filter.to = new Date(filter.to).toISOString();
+    if (filter.from && filter.to && filter.from > filter.to) throw new Error('开始时间不能晚于结束时间');
+    return filter;
+  }
+
+  function usageQuery(includePagination) {
+    const params = new URLSearchParams();
+    Object.entries(getUsageFilterValues()).forEach(([key, value]) => {
+      if (value !== '') params.set(key, value);
+    });
+    if (includePagination) {
+      params.set('page', String(state.usagePage));
+      params.set('page_size', String(state.usagePageSize));
+    }
+    return '?' + params.toString();
+  }
+
+  async function loadUsage(resetPage) {
+    if (resetPage) state.usagePage = 1;
+    const [summary, recent] = await Promise.all([
+      api('GET', 'credit-manager/usage/summary' + usageQuery(false)),
+      api('GET', 'credit-manager/usage' + usageQuery(true)),
+    ]);
+    state.usageSummary = summary;
+    state.usageRecent = recent;
+    renderUsage(summary, recent);
+  }
+
+  async function reload() {
+    clearFlash();
+    state.tabLoadSeq += 1;
+    await loadOverviewBundle();
+    await loadUsage();
+  }
+
+  async function reloadWithModelCatalog() {
+    await reload();
+    await loadModelCatalog();
+  }
+
+  function openDeleteKeyModal(id) {
+    const key = state.keys.find(item => item.id === id);
+    state.deleteKeyID = id;
+    $('deleteKeyTarget').textContent = '即将删除：' + (key && (key.label || key.id) || id);
+    const modal = $('deleteKeyModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('btnConfirmDeleteKey').focus();
+  }
+
+  function closeDeleteKeyModal() {
+    state.deleteKeyID = '';
+    const modal = $('deleteKeyModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function deleteKeyPermanently(id) {
+    try {
+      await api('POST', 'credit-manager/keys/delete', { id });
+      closeDeleteKeyModal();
+      flash('Key 已删除，历史使用统计已保留', true);
+      await reload();
+    } catch (e) { flash(e.message, false); }
+  }
+
+  const closeConnectionModal = () => {
+    const modal = $('connectionModal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  };
+  const openConnectionModal = () => {
+    const modal = $('connectionModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('apiBase').focus();
+  };
+
+  // events
+  document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.dataset.tab === state.currentTab) {
+      refreshActiveTab().catch(e => flash(e.message, false));
+      return;
+    }
+    setTab(btn.dataset.tab);
+  }));
+  document.querySelectorAll('#tokenUnitSwitch [data-token-unit]').forEach(btn => {
+    btn.addEventListener('click', () => setTokenUnit(btn.dataset.tokenUnit));
+  });
+  document.querySelectorAll('#currencySwitch [data-currency]').forEach(btn => {
+    btn.addEventListener('click', () => setCurrency(btn.dataset.currency));
+  });
+  document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
+    btn.addEventListener('click', () => setModelShareMetric(btn.dataset.modelMetric));
+  });
+  $('usdCnyRate').addEventListener('change', () => setUsdCnyRate($('usdCnyRate').value));
+  $('usdCnyRate').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      setUsdCnyRate($('usdCnyRate').value);
+      $('usdCnyRate').blur();
+    }
+  });
+  $('btnCloseFlash').addEventListener('click', clearFlash);
+  $('btnOpenConnection').addEventListener('click', openConnectionModal);
+  $('btnCloseConnection').addEventListener('click', closeConnectionModal);
+  $('connectionModal').addEventListener('click', event => {
+    if (event.target === $('connectionModal')) closeConnectionModal();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeCustomControls();
+      clearFlash();
+      closeConnectionModal();
+      closeKeyModal();
+      closePriceModal();
+      closeDeleteKeyModal();
+    }
+  });
+  $('btnSaveToken').addEventListener('click', async () => {
+    const t = $('mgmtToken').value.trim();
+    if (!t) { flash('请输入管理密钥', false); return; }
+    const base = $('apiBase').value.trim().replace(/\/$/, '');
+    sessionStorage.setItem(TOKEN_KEY, t);
+    if (base) sessionStorage.setItem(BASE_KEY, base);
+    else sessionStorage.removeItem(BASE_KEY);
+    try {
+      await reloadWithModelCatalog();
+      closeConnectionModal();
+      flash('已加载数据并同步模型价格', true);
+    } catch (e) { flash(e.message, false); }
+  });
+  $('btnClearToken').addEventListener('click', () => {
+    sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(BASE_KEY);
+    $('mgmtToken').value = '';
+    flash('已清除本地管理密钥与 API 根地址', true);
+  });
+  $('btnRefresh').addEventListener('click', async () => {
+    try { await reloadWithModelCatalog(); flash('模型与价格已刷新并同步', true); } catch (e) { flash(e.message, false); }
+  });
+  $('overviewRangeFilter').addEventListener('change', setOverviewRangeVisibility);
+  $('usageRangeFilter').addEventListener('change', setUsageRangeVisibility);
+  $('btnLoadOverview').addEventListener('click', async () => {
+    try {
+      await reload();
+      flash('概览已按当前条件刷新', true);
+    } catch (e) { flash(e.message, false); }
+  });
+  $('btnResetOverview').addEventListener('click', async () => {
+    $('overviewRangeFilter').value = '30';
+    $('overviewKeyFilter').value = '';
+    $('overviewModelFilter').value = '';
+    $('overviewSourceFilter').value = '';
+    $('overviewFromFilter').value = '';
+    $('overviewToFilter').value = '';
+    refreshCustomControls();
+    setOverviewRangeVisibility();
+    try {
+      await reload();
+      flash('概览筛选已重置', true);
+    } catch (e) { flash(e.message, false); }
+  });
+  $('btnLoadModelCatalog').addEventListener('click', async () => {
+    try { await loadModelCatalog(); flash('已加载全部模型并同步新价格规则', true); } catch (e) { $('modelCatalogStatus').textContent = '加载失败：' + e.message; flash(e.message, false); }
+  });
+  $('btnOpenCreateKey').addEventListener('click', () => openKeyModal('create'));
+  $('btnClosePriceModal').addEventListener('click', closePriceModal);
+  $('btnCancelPriceModal').addEventListener('click', closePriceModal);
+  $('priceModal').addEventListener('click', event => {
+    if (event.target === $('priceModal')) closePriceModal();
+  });
+  $('btnCloseKeyModal').addEventListener('click', closeKeyModal);
+  $('btnCancelKeyModal').addEventListener('click', closeKeyModal);
+  $('keyModal').addEventListener('click', event => {
+    if (event.target === $('keyModal')) closeKeyModal();
+  });
+  $('btnCloseDeleteKeyModal').addEventListener('click', closeDeleteKeyModal);
+  $('btnCancelDeleteKey').addEventListener('click', closeDeleteKeyModal);
+  $('deleteKeyModal').addEventListener('click', event => {
+    if (event.target === $('deleteKeyModal')) closeDeleteKeyModal();
+  });
+  $('btnConfirmDeleteKey').addEventListener('click', async () => {
+    if (!state.deleteKeyID) return;
+    await deleteKeyPermanently(state.deleteKeyID);
+  });
+  $('btnGenerateKeyMaterial').addEventListener('click', () => {
+    $('keyMaterial').value = createKeyMaterialSuffix();
+    $('keyMaterial').focus();
+  });
+  $('btnRevealManagedKey').addEventListener('click', () => {
+    const id = $('keyModalId').value;
+    if (id) revealKey(id);
+  });
+  $('btnRotateManagedKey').addEventListener('click', () => {
+    const id = $('keyModalId').value;
+    if (id) openKeyModal('rotate', id);
+  });
+  $('btnCopyKeyPlaintext').addEventListener('click', async () => {
+    try {
+      await copyText($('keyPlaintext').textContent || '');
+      flash('已复制 Key', true);
+    } catch (_) { flash('复制失败，请手动复制', false); }
+  });
+  $('btnSubmitKeyModal').addEventListener('click', async () => {
+    try { await submitKeyModal(); } catch (e) { flash(e.message, false); }
+  });
+  $('btnLoadModelPrices').addEventListener('click', async () => {
+    try { await loadModelPrices(); } catch (e) { $('modelPriceStatus').textContent = '同步失败：' + e.message; flash(e.message, false); }
+  });
+  $('priceModelPicker').addEventListener('change', event => loadModelPrice(event.target.value));
+  $('btnSavePrice').addEventListener('click', async () => {
+    try {
+      const body = {
+        id: $('priceId').value.trim(),
+        match_kind: $('priceKind').value,
+        pattern: $('pricePattern').value.trim(),
+        priority: Number($('pricePriority').value || 0),
+        enabled: true,
+        price: {
+          input: microFromUSD($('priceIn').value) || 0,
+          output: microFromUSD($('priceOut').value) || 0,
+          cache_read: microFromUSD($('priceCacheRead').value) || 0,
+          cache_creation: microFromUSD($('priceCacheCreation').value) || 0,
+        },
+      };
+      if (!body.id || !body.pattern) throw new Error('规则 ID 与 pattern 必填');
+      await api('POST', 'credit-manager/pricing', body);
+      closePriceModal();
+      flash('价格规则已保存', true);
+      await reload();
+    } catch (e) { flash(e.message, false); }
+  });
+  $('btnLoadUsage').addEventListener('click', async () => {
+    try {
+      await loadUsage(true);
+      flash('统计已按当前条件刷新', true);
+    } catch (e) { flash(e.message, false); }
+  });
+  $('btnClearUsageFilters').addEventListener('click', async () => {
+    $('usageRangeFilter').value = 'all';
+    ['usageKeyFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
+    refreshCustomControls();
+    setUsageRangeVisibility();
+    try {
+      await loadUsage(true);
+      flash('统计筛选已清除', true);
+    } catch (e) { flash(e.message, false); }
+  });
+
+  // boot
+  const savedBase = detectDefaultBase();
+  state.tokenUnit = normalizeTokenUnit(localStorage.getItem(TOKEN_UNIT_KEY) || 'raw');
+  state.currency = normalizeCurrency(localStorage.getItem(CURRENCY_KEY) || 'USD');
+  state.usdCnyRate = normalizeUsdCnyRate(localStorage.getItem(USD_CNY_RATE_KEY) || DEFAULT_USD_CNY_RATE);
+  syncTokenUnitSwitch();
+  syncCurrencySwitch();
+  syncModelShareMetricSwitch();
+  initCustomControls();
+  if (savedBase) $('apiBase').value = savedBase;
+  setOverviewRangeVisibility();
+  setUsageRangeVisibility();
+  const saved = sessionStorage.getItem(TOKEN_KEY) || '';
+  if (saved) {
+    $('mgmtToken').value = saved;
+    reloadWithModelCatalog().catch(e => flash(e.message, false));
+  }
+})();
+</script>
+</body>
+</html>
+`
