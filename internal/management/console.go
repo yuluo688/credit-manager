@@ -825,7 +825,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
                 </label>
                 <label id="keyMaterialWrap" class="field-span-2">自定义 Key
                   <span class="key-material-field">
-                    <span class="key-material-prefix">tk-v1-</span>
+                    <span class="key-material-prefix">tk-</span>
                     <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入 Key 后缀" spellcheck="false"/>
                     <button class="btn soft" id="btnGenerateKeyMaterial" type="button">生成</button>
                   </span>
@@ -2487,8 +2487,8 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   }
 
   function keyMaterialFromInput() {
-    const suffix = $('keyMaterial').value.trim().replace(/^tk-v1-/i, '');
-    return suffix ? 'tk-v1-' + suffix : '';
+    const suffix = $('keyMaterial').value.trim().replace(/^tk-/i, '');
+    return suffix ? 'tk-' + suffix : '';
   }
 
   function setKeyModels(models) {

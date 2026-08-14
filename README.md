@@ -18,7 +18,7 @@
 请求使用以下鉴权头：
 
 ```text
-Authorization: Bearer tk-v1-...
+Authorization: Bearer tk-...
 ```
 
 ## 快速开始
@@ -27,7 +27,9 @@ Authorization: Bearer tk-v1-...
 2. 在 CLIProxyAPI 管理中心启用 `credit-manager`。宿主配置可为空；切换开关或重载配置通常无需重启。
 3. 仅在替换动态库文件后重启 CLIProxyAPI。Windows 已加载的 DLL 通常无法热替换。
 4. 在侧栏打开 **CPA 额度管理**，输入宿主管理密钥后，签发插件 Key 并设置独立额度、可用模型和模型计价规则；随后可查询按 Key 和模型聚合的用量统计。
-5. 客户端携带 `Authorization: Bearer tk-v1-...` 调用模型接口。
+5. 客户端携带 `Authorization: Bearer tk-...` 调用模型接口。
+
+> **重要：** 启用 `credit-manager` 后，插件会接管代理请求的前端鉴权。原先配置在 CPA 中的 `api-keys` 或其他宿主 Key 将无法用于模型请求；请在 **CPA 额度管理** 中签发 `tk-...` 格式的插件 Key，并将客户端改用该 Key。
 
 首次启动时，插件会自动完成以下初始化：
 
@@ -153,7 +155,7 @@ export CREDIT_MANAGER_CONFIG_FILE=/path/to/config.yaml
 同时确保：
 
 - 宿主已配置**上游模型凭据**（OAuth、API Key 等）。本插件仅负责鉴权与额度管理，不处理上游登录。
-- **独占前端鉴权**：启用后，代理请求仅接受插件 `tk-v1-...` Key；宿主 `api-keys` 不再用于此类请求。
+- **独占前端鉴权**：启用后，代理请求仅接受插件 `tk-...` Key；原先的宿主 `api-keys` 和其他 CPA Key 均不再可用于模型请求。
 - 默认 `data_dir`（`./data/credit-manager`）必须可写，其中保存 `key-peppers` 和 SQLite 数据库。
 
 ### 签发插件 Key
@@ -259,7 +261,7 @@ curl -sS -D - -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys" 
   "id": "...",
   "kid": "...",
   "fingerprint": "...",
-  "plaintext": "tk-v1-xxxx_yyyy",
+  "plaintext": "tk-xxxx_yyyy",
   ...
 }
 ```
@@ -288,7 +290,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/audit?caller_id=tea
 
 ```bash
 curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
-  -H "Authorization: Bearer tk-v1-xxxx_yyyy" \
+  -H "Authorization: Bearer tk-xxxx_yyyy" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4o",
@@ -416,7 +418,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 
 ## 密钥安全
 
-- 明文格式：`tk-v1-<kid>-<secret>`。
+- 明文格式：`tk-<kid>-<secret>`。
 - 数据库仅存储：`kid`、HMAC、pepper ID、指纹、principal 和 `caller_scope`。
 - pepper 仅保存在环境变量或 `data_dir/key-peppers` 中，不写入 SQLite、日志或管理查询结果。
 - 签发 Key 的响应包含 `Cache-Control: no-store`。
@@ -434,7 +436,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 
 ```text
 客户端
-  |  Authorization: Bearer tk-v1-...
+  |  Authorization: Bearer tk-...
   v
 CLIProxyAPI
   |  frontend_auth.authenticate  -> 本插件校验 Key，返回 principal
@@ -486,7 +488,7 @@ A：管理路由使用宿主管理鉴权，而非插件 Key。请使用宿主的
 
 **Q：代理请求返回 401，原因是什么？**
 
-A：确认请求使用了 `tk-v1-...`，并确认当前 pepper 与 Key 签发时一致。请检查环境变量或 `data_dir/key-peppers` 未被替换或删除。
+A：确认请求使用了 `tk-...`，并确认当前 pepper 与 Key 签发时一致。请检查环境变量或 `data_dir/key-peppers` 未被替换或删除。
 
 **Q：请求因 `no pricing rule` 被拒绝，如何处理？**
 

@@ -18,10 +18,8 @@ import (
 )
 
 const (
-	// FormatVersion is the public key format identifier.
-	FormatVersion = "v1"
-	// Prefix is the full key prefix: tk-v1-<kid>-<secret>
-	Prefix = "tk-" + FormatVersion + "-"
+	// Prefix is the full key prefix: tk-<kid>-<secret>.
+	Prefix = "tk-"
 	// PrincipalPrefix is a stable non-secret principal for host caller_scope.
 	PrincipalPrefix = "cmk:"
 	kidBytes        = 10
