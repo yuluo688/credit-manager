@@ -1096,6 +1096,31 @@ func (s *Store) UpdateUsageAuth(ctx context.Context, ledgerID string, auth AuthI
 	return nil
 }
 
+// UpdateUsageDetail replaces fallback token estimates with the host's final
+// usage record. Preserve protocol-derived sources when they were already
+// available; only relabel the synthetic fallback source.
+func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
+	ledgerID = strings.TrimSpace(ledgerID)
+	if ledgerID == "" {
+		return fmt.Errorf("%w: usage ledger id is required", ErrInvalidArgument)
+	}
+	if err := usage.Validate(); err != nil {
+		return err
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET
+		input_tokens=?, output_tokens=?, reasoning_tokens=?, cached_tokens=?, cache_read_tokens=?, cache_creation_tokens=?,
+		source=CASE WHEN source='reserved_fallback' THEN 'host_usage' ELSE source END
+		WHERE id=?`,
+		usage.Input, usage.Output, usage.Reasoning, usage.Cached, usage.CacheRead, usage.CacheCreation, ledgerID)
+	if err != nil {
+		return fmt.Errorf("update usage detail: %w", err)
+	}
+	if err := requireOneRow(result, ErrInvalidArgument); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry, error) {
 	limit := filter.Limit
 	if limit <= 0 {

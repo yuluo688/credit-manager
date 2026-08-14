@@ -26,7 +26,7 @@ import (
 const (
 	PluginID      = "credit-manager"
 	PluginName    = "CPA Credit Manager"
-	PluginVersion = "0.2.0"
+	PluginVersion = "0.1"
 	// CallerScopeMetadataKey mirrors sdk/cliproxy/executor.CallerScopeMetadataKey.
 	CallerScopeMetadataKey = "caller_scope"
 )
@@ -267,6 +267,27 @@ func (s *Service) Reserve(ctx context.Context, key store.PluginKey, plan Reserve
 }
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
+	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
+		cost, err := money.Cost(hostUsage, plan.Price)
+		if err != nil {
+			return err
+		}
+		if plan.AllowUnpriced {
+			cost = 0
+		}
+		metrics.TokensPerSecond = tokensPerSecond(hostUsage.Output, metrics.GenerationDuration)
+		return s.settleWithAuth(ctx, store.Settlement{
+			ReservationID:         reservation.ID,
+			Model:                 plan.Model,
+			PricingRuleID:         plan.PricingRuleID,
+			Usage:                 hostUsage,
+			CostMicroUSD:          cost,
+			EstimatedCostMicroUSD: reservation.HeldMicroUSD,
+			Source:                "host_usage",
+			Metrics:               metrics,
+			SettlementSummary:     "host_usage_callback",
+		})
+	}
 	if parsed.Found {
 		cost, err := money.Cost(parsed.Usage, plan.Price)
 		if err != nil {

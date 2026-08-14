@@ -66,6 +66,7 @@ import (
 	"unsafe"
 
 	"github.com/yuluo688/credit-manager/internal/management"
+	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/service"
 	"github.com/yuluo688/credit-manager/internal/store"
 	"github.com/yuluo688/credit-manager/internal/usageparse"
@@ -409,6 +410,7 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	svc.TrackAuthCapture(reservation.ID, plan.Model)
 
 	startedAt := time.Now()
+	body = requestBodyWithStreamUsage(body, req.SourceFormat, req.Format)
 	raw, err := callHost(pluginabi.MethodHostModelExecuteStream, hostModelExecutionRequest{
 		HostModelExecutionRequest: pluginapi.HostModelExecutionRequest{
 			EntryProtocol: firstNonEmpty(req.SourceFormat, "openai"),
@@ -544,15 +546,35 @@ func handleUsage(raw []byte) ([]byte, error) {
 		return okEnvelope(map[string]any{})
 	}
 	auth := authIdentityFromUsage(record)
-	if auth.Empty() {
-		return okEnvelope(map[string]any{})
+	if !auth.Empty() {
+		auth = enrichAuthIdentity(auth)
 	}
-	auth = enrichAuthIdentity(auth)
-	ledgerID, ok := svc.ObserveSelectedAuth(record.RequestedAt, auth, record.Model, record.Alias)
+	usage := usageFromHostRecord(record)
+	ledgerID, ok := svc.ObserveHostUsage(record.RequestedAt, auth, usage, record.Model, record.Alias)
 	if ok && strings.TrimSpace(ledgerID) != "" {
-		_ = svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth)
+		if !auth.Empty() {
+			_ = svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth)
+		}
+		if hostUsageFound(usage) {
+			_ = svc.Store().UpdateUsageDetail(context.Background(), ledgerID, usage)
+		}
 	}
 	return okEnvelope(map[string]any{})
+}
+
+func usageFromHostRecord(record pluginapi.UsageRecord) money.TokenUsage {
+	return money.TokenUsage{
+		Input:         record.Detail.InputTokens,
+		Output:        record.Detail.OutputTokens,
+		Reasoning:     record.Detail.ReasoningTokens,
+		Cached:        record.Detail.CachedTokens,
+		CacheRead:     record.Detail.CacheReadTokens,
+		CacheCreation: record.Detail.CacheCreationTokens,
+	}
+}
+
+func hostUsageFound(usage money.TokenUsage) bool {
+	return usage.Input > 0 || usage.Output > 0 || usage.Reasoning > 0 || usage.Cached > 0 || usage.CacheRead > 0 || usage.CacheCreation > 0
 }
 
 func authIdentityFromUsage(record pluginapi.UsageRecord) store.AuthIdentity {
@@ -645,6 +667,34 @@ func requestBody(req pluginapi.ExecutorRequest) []byte {
 		return req.OriginalRequest
 	}
 	return req.Payload
+}
+
+// OpenAI-compatible SSE streams omit the terminal usage chunk unless it is
+// explicitly requested. Preserve client options while enabling it for ledger
+// settlement, which also carries reasoning and cache token details.
+func requestBodyWithStreamUsage(body []byte, sourceFormat, outputFormat string) []byte {
+	format := strings.ToLower(firstNonEmpty(outputFormat, sourceFormat))
+	if strings.Contains(format, "claude") || strings.Contains(format, "gemini") {
+		return body
+	}
+	var payload map[string]any
+	if len(body) == 0 || json.Unmarshal(body, &payload) != nil {
+		return body
+	}
+	options, ok := payload["stream_options"].(map[string]any)
+	if !ok {
+		options = make(map[string]any)
+		payload["stream_options"] = options
+	}
+	if _, exists := options["include_usage"]; exists {
+		return body
+	}
+	options["include_usage"] = true
+	updated, err := json.Marshal(payload)
+	if err != nil {
+		return body
+	}
+	return updated
 }
 
 func usageMetricsFromRequest(body []byte, startedAt, completedAt time.Time, result string) store.UsageMetrics {

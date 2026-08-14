@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
@@ -16,6 +17,8 @@ type pendingAuthCapture struct {
 	ledgerID      string
 	auth          store.AuthIdentity
 	hasAuth       bool
+	usage         money.TokenUsage
+	hasUsage      bool
 }
 
 // TrackAuthCapture registers a reservation that will later receive selected auth identity.
@@ -39,10 +42,11 @@ func (s *Service) TrackAuthCapture(reservationID, model string) {
 	}
 }
 
-// ObserveSelectedAuth correlates a host usage record to a pending reservation and
+// ObserveHostUsage correlates a host usage record to a pending reservation and
 // returns the ledger id when the ledger row already exists and needs an update.
-func (s *Service) ObserveSelectedAuth(requestedAt time.Time, auth store.AuthIdentity, models ...string) (ledgerID string, ok bool) {
-	if s == nil || auth.Empty() {
+// Usage callbacks can lack credential data, so auth is optional here.
+func (s *Service) ObserveHostUsage(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, models ...string) (ledgerID string, ok bool) {
+	if s == nil {
 		return "", false
 	}
 	modelSet := make(map[string]struct{}, len(models))
@@ -67,7 +71,7 @@ func (s *Service) ObserveSelectedAuth(requestedAt time.Time, auth store.AuthIden
 	var best *pendingAuthCapture
 	bestDelta := time.Duration(1<<63 - 1)
 	for _, pending := range s.authPending {
-		if pending == nil || pending.hasAuth {
+		if pending == nil || pending.hasUsage {
 			continue
 		}
 		if _, matches := modelSet[strings.ToLower(pending.model)]; !matches {
@@ -85,14 +89,37 @@ func (s *Service) ObserveSelectedAuth(requestedAt time.Time, auth store.AuthIden
 	if best == nil {
 		return "", false
 	}
-	best.auth = auth
-	best.hasAuth = true
+	if !auth.Empty() {
+		best.auth = auth
+		best.hasAuth = true
+	}
+	best.usage = usage
+	best.hasUsage = usageFound(usage)
 	if strings.TrimSpace(best.ledgerID) == "" {
 		return "", true
 	}
 	ledgerID = best.ledgerID
 	delete(s.authPending, best.reservationID)
 	return ledgerID, true
+}
+
+// CapturedHostUsage returns final host usage that arrived before settlement.
+func (s *Service) CapturedHostUsage(reservationID string) (money.TokenUsage, bool) {
+	if s == nil {
+		return money.TokenUsage{}, false
+	}
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	s.pruneAuthPendingLocked(time.Now())
+	pending := s.authPending[strings.TrimSpace(reservationID)]
+	if pending == nil || !pending.hasUsage {
+		return money.TokenUsage{}, false
+	}
+	return pending.usage, true
+}
+
+func usageFound(usage money.TokenUsage) bool {
+	return usage.Input > 0 || usage.Output > 0 || usage.Reasoning > 0 || usage.Cached > 0 || usage.CacheRead > 0 || usage.CacheCreation > 0
 }
 
 // AuthForSettlement returns any already-captured auth for the reservation and
@@ -117,7 +144,13 @@ func (s *Service) AuthForSettlement(reservationID, ledgerID string) store.AuthId
 	}
 	if pending.hasAuth {
 		auth := pending.auth
-		delete(s.authPending, reservationID)
+		// Retain the correlation until host usage arrives; it can be emitted
+		// after settlement and must still replace fallback token estimates.
+		if pending.hasUsage {
+			delete(s.authPending, reservationID)
+		} else if ledgerID != "" {
+			pending.ledgerID = ledgerID
+		}
 		return auth
 	}
 	if ledgerID != "" {
