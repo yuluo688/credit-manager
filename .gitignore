@@ -1,0 +1,32 @@
+dist/
+*.dll
+*.so
+*.dylib
+*.h
+*.exe
+
+# Local secrets and environment overrides.
+.env
+.env.*
+!.env.example
+key-peppers
+bootstrap-api-key.txt
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Local runtime configuration. Keep the documented template tracked.
+config.yaml
+config.local.yaml
+
+# Plugin runtime data.
+data/
+.sdk-ref/
+*.db
+*.db-*
+*.lock
+
+# IDE settings.
+.idea/
+.vscode/
