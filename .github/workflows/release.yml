@@ -1,0 +1,111 @@
+name: Release CPA Plugin
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            library: credit-manager.so
+          - runner: ubuntu-24.04-arm
+            goos: linux
+            goarch: arm64
+            library: credit-manager.so
+          - runner: macos-13
+            goos: darwin
+            goarch: amd64
+            library: credit-manager.dylib
+          - runner: macos-14
+            goos: darwin
+            goarch: arm64
+            library: credit-manager.dylib
+          - runner: windows-latest
+            goos: windows
+            goarch: amd64
+            library: credit-manager.dll
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.x"
+      - name: Build Unix dynamic library
+        if: matrix.goos != 'windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          CGO_ENABLED=1 go build -buildmode=c-shared -o "dist/${{ matrix.library }}" .
+      - name: Build Windows dynamic library
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $env:CGO_ENABLED = '1'
+          go build -buildmode=c-shared -o "dist/${{ matrix.library }}" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ matrix.library }}
+          if-no-files-found: error
+
+  release:
+    name: Package and publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Package CPA plugin store assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          test -n "$version"
+          mkdir -p release
+          while IFS=':' read -r goos goarch library; do
+            source="artifacts/plugin-${goos}-${goarch}/${library}"
+            archive="credit-manager_${version}_${goos}_${goarch}.zip"
+            test -s "$source"
+            zip -j "release/$archive" "$source"
+          done <<'TARGETS'
+          linux:amd64:credit-manager.so
+          linux:arm64:credit-manager.so
+          darwin:amd64:credit-manager.dylib
+          darwin:arm64:credit-manager.dylib
+          windows:amd64:credit-manager.dll
+          TARGETS
+          (
+            cd release
+            sha256sum *.zip > checksums.txt
+          )
+      - name: Verify archive contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          for archive in release/*.zip; do
+            test "$(unzip -Z1 "$archive" | wc -l)" -eq 1
+          done
+          (
+            cd release
+            sha256sum --check checksums.txt
+          )
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release/*.zip
+            release/checksums.txt
