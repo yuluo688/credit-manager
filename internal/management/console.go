@@ -22,6 +22,7 @@ const consoleHTML = `<!doctype html>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>CPA 额度管理</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
 <style>
 :root {
   color-scheme: light;
@@ -360,6 +361,7 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
 .filter-grid { display:grid; grid-template-columns:repeat(4, minmax(150px, 1fr)); gap:12px; margin-top:14px; }
 .filter-actions { margin-top:14px; }
 .table-scroll { overflow-x:auto; border:1px solid #edf0eb; border-radius:10px; }
+.table-swipe-hint { display:none; }
 .usage-table { min-width:1960px; font-size:.88rem; }
 .usage-table th, .usage-table td { white-space:nowrap; padding:11px 10px; }
 .usage-table th { font-size:.78rem; }
@@ -608,6 +610,11 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   .page-intro { align-items:flex-start; flex-direction:column; }
   .page-intro .actions { width:100%; justify-content:flex-start; }
   .row-actions { justify-content:flex-start; }
+  .filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .usage-grid > .card { padding:16px; }
+  .usage-grid > .card:not(.usage-recent-card) table { min-width:520px; }
+  .table-scroll { -webkit-overflow-scrolling:touch; touch-action:pan-x; }
+  .table-swipe-hint { display:block; margin:9px 2px 0; color:var(--muted); font-size:.72rem; }
 }
 .overview-layout { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; }
 .overview-layout .stats { grid-template-columns:repeat(3, minmax(150px, 1fr)); align-content:start; }
@@ -619,165 +626,61 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 .overview-actions { margin-top:14px; justify-content:flex-end; }
 .overview-filter-state { color:#087d5a; font-size:.76rem; }
 .overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.45fr) minmax(260px, .75fr); gap:16px; margin-top:16px; }
+.overview-dashboard { align-items:start; }
 .overview-dashboard .card { margin-bottom:0; }
 .overview-trends-column { display:grid; gap:16px; min-width:0; }
-.overview-trend-card { min-height:280px; }
+.overview-trend-card { min-height:300px; }
 .overview-dashboard > .card,
 .overview-trends-column > .card { display:flex; flex-direction:column; }
 .overview-dashboard > .card > #overviewModelShare,
 .overview-trends-column > .card > #overviewTrend,
-.overview-trends-column > .card > #overviewCostTrend { flex:1; display:flex; }
-.overview-dashboard > .card > #overviewModelShare > *,
-.overview-trends-column > .card > #overviewTrend > *,
-.overview-trends-column > .card > #overviewCostTrend > * { width:100%; }
+.overview-trends-column > .card > #overviewCostTrend { flex:1; min-height:224px; width:100%; }
+.overview-dashboard > .card > #overviewModelShare { min-height:286px; width:100%; }
 .overview-dashboard > .card > #overviewModelShare > .empty-state { min-height:196px; }
-.overview-chart { position:relative; min-height:210px; padding:8px 0 0; }
-.overview-chart svg { display:block; width:100%; height:188px; overflow:visible; }
-.overview-chart-grid { stroke:#e9eeea; stroke-width:1; }
-.overview-chart-area { fill:rgba(30,183,135,.13); }
-.overview-chart-line { fill:none; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
-.overview-chart-line.is-rate { stroke-dasharray:5 4; stroke-width:2; }
-.overview-chart-dot { fill:#fff; stroke-width:2; }
-.overview-chart-labels { display:flex; justify-content:space-between; gap:8px; margin-top:4px; color:var(--muted); font-size:.7rem; }
-.overview-chart-legend {
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px 14px;
-  margin-bottom:4px;
-}
-.overview-chart-legend-item {
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  color:var(--table-muted);
-  font-size:.74rem;
-  font-weight:600;
-}
-.overview-chart-legend-swatch {
-  width:12px;
-  height:3px;
-  border-radius:999px;
-  background:currentColor;
-}
-.overview-chart-legend-swatch.is-rate {
-  background:transparent;
-  border-top:2px dashed currentColor;
-  height:0;
-}
-.overview-chart-axis {
-  position:absolute;
-  top:34px;
-  bottom:28px;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  pointer-events:none;
-  color:var(--muted);
-  font-size:.66rem;
-  line-height:1;
-}
-.overview-chart-axis.left { left:0; text-align:left; }
-.overview-chart-axis.right { right:0; text-align:right; }
+.overview-echart { width:100%; height:224px; }
+#overviewModelShare.overview-echart { height:286px; }
 .overview-model-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .overview-model-tools .unit-switch button { min-width:0; padding:6px 10px; font-size:.78rem; }
-.overview-model-share {
-  display:grid;
-  grid-template-columns:minmax(140px, 168px) minmax(0, 1fr);
-  gap:18px 20px;
-  align-items:center;
-  min-height:220px;
-  padding-top:8px;
-}
-.overview-donut-wrap {
-  position:relative;
-  width:min(100%, 168px);
-  aspect-ratio:1;
-  margin:0 auto;
-}
-.overview-donut-wrap svg { display:block; width:100%; height:100%; overflow:visible; }
-.overview-donut-segment {
-  cursor:pointer;
-  transition:opacity .16s ease, stroke-width .16s ease;
-}
-.overview-donut-segment:hover { opacity:.88; }
-.overview-donut-center {
-  position:absolute;
-  inset:0;
-  display:grid;
-  place-content:center;
-  text-align:center;
-  pointer-events:none;
-}
-.overview-donut-center strong {
-  display:block;
-  font-size:1.45rem;
-  font-weight:750;
-  letter-spacing:-.03em;
-  color:var(--table-text);
-  line-height:1.1;
-}
-.overview-donut-center span {
-  display:block;
-  margin-top:4px;
-  color:var(--table-muted);
-  font-size:.72rem;
-  font-weight:600;
-}
-.overview-share-legend { display:grid; gap:12px; min-width:0; }
-.overview-share-row {
-  display:grid;
-  grid-template-columns:minmax(0, 1fr) auto;
-  gap:10px 12px;
-  align-items:start;
-  padding:2px 4px;
-  border-radius:8px;
-  cursor:pointer;
-  transition:background .14s ease;
-}
-.overview-share-row:hover { background:var(--panel-2); }
-.overview-share-row-main { display:grid; grid-template-columns:12px minmax(0, 1fr); gap:8px; min-width:0; }
-.overview-share-swatch {
-  width:10px;
-  height:10px;
-  margin-top:5px;
-  border-radius:3px;
-  flex-shrink:0;
-}
-.overview-share-copy { min-width:0; }
-.overview-share-model {
-  display:block;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size:.86rem;
-  font-weight:700;
-  color:var(--table-text);
-  line-height:1.25;
-}
-.overview-share-meta {
-  display:block;
-  margin-top:2px;
-  color:var(--table-muted);
-  font-size:.74rem;
-  line-height:1.35;
-}
-.overview-share-percent {
-  padding-top:2px;
-  color:var(--table-muted);
-  font-size:.84rem;
-  font-weight:650;
-  white-space:nowrap;
-  text-align:right;
-}
 .overview-no-data { min-height:184px; }
-@media (max-width: 560px) {
-  .overview-model-share { grid-template-columns:1fr; justify-items:center; }
-  .overview-share-legend { width:100%; }
-}
 @media (max-width: 1080px) { .overview-dashboard { grid-template-columns:1fr; } .overview-filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); } }
 @media (max-width: 760px) { .overview-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .overview-date-range-field { grid-column:1 / -1; } }
-@media (max-width: 460px) { .overview-filter-grid { grid-template-columns:1fr; } .overview-date-range { grid-template-columns:1fr; } .overview-date-range > span { display:none; } }
+@media (max-width: 560px) {
+  .workspace { padding:84px 14px 36px; }
+  .topbar { gap:12px; }
+  .topbar-actions { width:100%; padding-top:0; gap:7px; }
+  .overview-trend-card { min-height:292px; }
+  .section-heading { align-items:flex-start; flex-wrap:wrap; }
+  .section-heading > .muted { margin-left:auto; }
+  .overview-model-tools { width:100%; justify-content:space-between; }
+  #overviewModelShare.overview-echart { height:326px; }
+  .overview-dashboard > .card > #overviewModelShare { min-height:326px; }
+}
+@media (max-width: 460px) {
+  .overview-filter-grid, .filter-grid { grid-template-columns:1fr; }
+  .overview-date-range { grid-template-columns:1fr; }
+  .overview-date-range > span[aria-hidden] { display:none; }
+  .usage-pagination {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:9px 8px;
+    align-items:center;
+  }
+  .usage-pagination > .muted:first-child {
+    grid-column:1 / -1;
+    margin:0;
+    white-space:normal;
+  }
+  .usage-pagination label {
+    grid-column:1 / -1;
+    justify-content:flex-start;
+  }
+  .usage-pagination > .muted:not(:first-child) {
+    align-self:center;
+    margin:0;
+    text-align:center;
+  }
+  .usage-pagination .btn { min-width:0; padding:8px 6px; font-size:.78rem; }
+}
 .overview-guide { min-height:100%; background:linear-gradient(145deg, #202421, #38463b); border-color:#202421; color:#fff; }
 .overview-guide .panel-title { color:#fff; }
 .overview-guide .hint { color:#d2dbd3; }
@@ -809,13 +712,19 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 .pricing-actions .btn { white-space:nowrap; }
 .pricing-meta { display:flex; align-items:center; gap:8px; }
 #usageStats { margin-bottom:16px; }
-.usage-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
-.usage-grid > .card { padding:20px; margin-bottom:0; }
+.usage-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; min-width:0; }
+.usage-grid > .card { min-width:0; padding:20px; margin-bottom:0; }
 .usage-grid > .card:not(.usage-recent-card) table th, .usage-grid > .card:not(.usage-recent-card) table td { padding:12px 10px; }
 .usage-grid .usage-recent-card { grid-column:1 / -1; }
-@media (max-width: 1080px) { .usage-grid { grid-template-columns:1fr; } .usage-grid .usage-recent-card { grid-column:auto; } }
+@media (max-width: 1080px) { .usage-grid { grid-template-columns:minmax(0, 1fr); } .usage-grid .usage-recent-card { grid-column:auto; } }
 @media (max-width: 760px) { .workspace { padding:20px 14px 36px; } .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
-@media (max-width: 520px) { .connection-panel .token-box, .form-card .row { grid-template-columns:1fr; } .tabs { width:100%; } .tab { flex:1; justify-content:center; } .price-pairs { grid-template-columns:1fr; } }
+@media (max-width: 520px) {
+  .connection-panel .token-box, .form-card .row { grid-template-columns:1fr; }
+  .tabs { width:100%; gap:5px; }
+  .tab { flex:1 1 0; justify-content:center; min-width:0; padding:8px 5px; font-size:.76rem; white-space:nowrap; }
+  .tab::before { width:5px; height:5px; margin-right:5px; }
+  .price-pairs { grid-template-columns:1fr; }
+}
 </style>
 
 </head>
@@ -1261,6 +1170,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     currentTab: 'overview',
     tabLoadSeq: 0,
     modelShareMetric: 'requests',
+    charts: {},
   };
 
   const $ = (id) => document.getElementById(id);
@@ -1301,7 +1211,8 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     const cfg = TOKEN_UNITS[unit];
     const scaled = n / cfg.div;
     const abs = Math.abs(scaled);
-    const maxFrac = abs >= 100 ? 1 : cfg.maxFrac;
+    // Preserve small non-zero values when a large display unit is selected.
+    const maxFrac = abs > 0 && abs < 0.01 ? 6 : (abs >= 100 ? 1 : cfg.maxFrac);
     return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + cfg.suffix;
   }
 
@@ -1720,7 +1631,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   function buildCustomDateInput(input) {
     if (input.closest('.custom-control')) return;
     const wrapper = document.createElement('span');
-    wrapper.className = 'custom-control custom-date';
+    wrapper.className = 'custom-control custom-date-control';
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'custom-control-trigger custom-date-trigger';
@@ -2032,6 +1943,11 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     return '请求次数';
   }
 
+  function truncateModelName(name, maxLength) {
+    const value = String(name || '');
+    return value.length > maxLength ? value.slice(0, Math.max(1, maxLength - 1)) + '…' : value;
+  }
+
   function syncModelShareMetricSwitch() {
     const metric = getModelShareMetric();
     document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
@@ -2072,6 +1988,32 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     return Number(item.cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0);
   }
 
+  function disposeOverviewChart(id) {
+    const chart = state.charts[id];
+    if (chart) chart.dispose();
+    delete state.charts[id];
+  }
+
+  function renderOverviewEChart(id, emptyText, option, handlers) {
+    const target = $(id);
+    disposeOverviewChart(id);
+    if (!option || !window.echarts) {
+      target.className = '';
+      target.innerHTML = '<div class="empty-state overview-no-data"><span>'+esc(window.echarts ? emptyText : '图表组件加载失败，请检查网络连接后刷新页面')+'</span></div>';
+      return;
+    }
+    target.innerHTML = '';
+    target.className = 'overview-echart';
+    const chart = echarts.init(target, null, { renderer: 'svg' });
+    chart.setOption(option);
+    Object.entries(handlers || {}).forEach(([event, handler]) => chart.on(event, handler));
+    state.charts[id] = chart;
+  }
+
+  function resizeOverviewCharts() {
+    Object.values(state.charts).forEach(chart => chart.resize());
+  }
+
   function overviewDailySeries(items) {
     const days = new Map();
     (items || []).forEach(item => {
@@ -2103,83 +2045,109 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       }));
   }
 
-  function buildLinePath(coords) {
-    return coords.map((point, index) => (index ? 'L' : 'M') + point.x.toFixed(2) + ',' + point.y.toFixed(2)).join(' ');
-  }
-
   function renderOverviewLineChart(options) {
     const {
-      target,
+      targetID,
       points,
       series,
       emptyText,
-      ariaLabel,
-      leftPadding = 36,
-      rightPadding = 36,
     } = options;
     if (!points.length) {
-      target.innerHTML = '<div class="empty-state overview-no-data"><span>'+esc(emptyText)+'</span></div>';
+      renderOverviewEChart(targetID, emptyText, null);
       return;
     }
-    const width = 720;
-    const height = 176;
-    const padding = { top: 12, right: rightPadding, bottom: 14, left: leftPadding };
-    const span = Math.max(points.length - 1, 1);
-    const leftSeries = series.filter(item => item.axis !== 'right');
-    const rightSeries = series.filter(item => item.axis === 'right');
-    const leftMax = Math.max(1, ...leftSeries.flatMap(item => points.map(point => Number(point[item.key] || 0))));
-    const rightMax = rightSeries.length
-      ? Math.max(1, ...rightSeries.flatMap(item => points.map(point => Number(point[item.key] || 0))), 100)
-      : 1;
-    const xAt = index => padding.left + (width - padding.left - padding.right) * index / span;
-    const yAt = (value, max) => padding.top + (height - padding.top - padding.bottom) * (1 - value / max);
-    const grid = [0.25, 0.5, 0.75].map(ratio =>
-      '<line class="overview-chart-grid" x1="'+padding.left+'" x2="'+(width - padding.right)+'" y1="'+(padding.top + (height - padding.top - padding.bottom) * ratio)+'" y2="'+(padding.top + (height - padding.top - padding.bottom) * ratio)+'"></line>'
-    ).join('');
-    const paths = series.map(item => {
-      const max = item.axis === 'right' ? rightMax : leftMax;
-      const coords = points.map((point, index) => ({
-        x: xAt(index),
-        y: yAt(Number(point[item.key] || 0), max),
-      }));
-      const line = buildLinePath(coords);
-      const className = 'overview-chart-line' + (item.dashed ? ' is-rate' : '');
-      const dots = points.length <= 31
-        ? coords.map((coord, index) => {
-            const value = Number(points[index][item.key] || 0);
-            const label = item.format ? item.format(value, points[index]) : String(value);
-            return '<circle class="overview-chart-dot" cx="'+coord.x.toFixed(2)+'" cy="'+coord.y.toFixed(2)+'" r="2.8" stroke="'+item.color+'"><title>'+esc(points[index].date + ' · ' + item.label + ' · ' + label)+'</title></circle>';
-          }).join('')
-        : '';
-      let area = '';
-      if (item.fill) {
-        area = '<path class="overview-chart-area" d="'+line+' L'+coords[coords.length - 1].x.toFixed(2)+','+(height - padding.bottom)+' L'+coords[0].x.toFixed(2)+','+(height - padding.bottom)+' Z" style="fill:'+item.fill+'"></path>';
-      }
-      return area + '<path class="'+className+'" d="'+line+'" style="stroke:'+item.color+'"></path>' + dots;
-    }).join('');
-    const legend = series.map(item =>
-      '<span class="overview-chart-legend-item" style="color:'+item.color+'">'+
-        '<span class="overview-chart-legend-swatch'+(item.dashed ? ' is-rate' : '')+'"></span>'+
-        esc(item.label)+
-      '</span>'
-    ).join('');
-    const leftTicks = [leftMax, leftMax * 0.5, 0].map(value => esc(options.formatLeft ? options.formatLeft(value) : String(Math.round(value))));
-    const rightTicks = rightSeries.length
-      ? [rightMax, rightMax * 0.5, 0].map(value => esc(options.formatRight ? options.formatRight(value) : (value.toFixed(0) + '%')))
-      : [];
-    target.innerHTML =
-      '<div class="overview-chart">'+
-        '<div class="overview-chart-legend">'+legend+'</div>'+
-        (leftSeries.length ? '<div class="overview-chart-axis left"><span>'+leftTicks[0]+'</span><span>'+leftTicks[1]+'</span><span>'+leftTicks[2]+'</span></div>' : '')+
-        (rightSeries.length ? '<div class="overview-chart-axis right"><span>'+rightTicks[0]+'</span><span>'+rightTicks[1]+'</span><span>'+rightTicks[2]+'</span></div>' : '')+
-        '<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="'+esc(ariaLabel)+'">'+grid+paths+'</svg>'+
-        '<div class="overview-chart-labels"><span>'+esc(points[0].date)+'</span><span>'+esc(points[points.length - 1].date)+'</span></div>'+
-      '</div>';
+    const hasRightAxis = series.some(item => item.axis === 'right');
+    renderOverviewEChart(targetID, emptyText, {
+      color: series.map(item => item.color),
+      animationDuration: 420,
+      animationEasing: 'cubicOut',
+      grid: { top: 42, right: hasRightAxis ? 50 : 18, bottom: points.length > 10 ? 47 : 30, left: 60, containLabel: false },
+      legend: {
+        top: 2,
+        left: 0,
+        itemWidth: 12,
+        itemHeight: 3,
+        itemGap: 16,
+        textStyle: { color: '#4f5b53', fontSize: 12, fontWeight: 600 },
+        selectedMode: true,
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(26, 31, 28, .94)',
+        borderWidth: 0,
+        padding: [10, 12],
+        textStyle: { color: '#fff', fontSize: 12 },
+        axisPointer: { type: 'line', lineStyle: { color: '#9ea9a1', type: 'dashed' } },
+        formatter(params) {
+          const rows = params.map(param => {
+            const item = series[param.seriesIndex];
+            return param.marker + item.label + '<span style="float:right;margin-left:20px;font-weight:700">' + item.format(param.value, points[param.dataIndex]) + '</span>';
+          });
+          return '<div style="min-width:150px"><strong>'+esc(params[0].axisValue)+'</strong><div style="height:6px"></div>' + rows.join('<br/>') + '</div>';
+        },
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: points.map(point => point.date),
+        axisLine: { lineStyle: { color: '#dce5de' } },
+        axisTick: { show: false },
+        axisLabel: { color: '#6a766e', fontSize: 11, hideOverlap: true, formatter: value => value.slice(5) },
+      },
+      yAxis: [
+        {
+          type: 'value',
+          min: 0,
+          splitNumber: 3,
+          axisLabel: { color: '#6a766e', fontSize: 11, formatter: value => options.formatLeft(value) },
+          splitLine: { lineStyle: { color: '#e8eeea' } },
+          axisLine: { show: false },
+          axisTick: { show: false },
+        },
+        ...(hasRightAxis ? [{
+          type: 'value', min: 0, max: 100, splitNumber: 2,
+          axisLabel: { color: '#6a766e', fontSize: 11, formatter: value => options.formatRight(value) },
+          splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false },
+        }] : []),
+      ],
+      dataZoom: points.length > 10 ? [{
+        type: 'inside', start: 0, end: 100, zoomOnMouseWheel: 'shift', moveOnMouseMove: true,
+      }, {
+        type: 'slider', height: 15, bottom: 6, start: 0, end: 100,
+        borderColor: 'transparent', backgroundColor: '#f0f4f1', fillerColor: 'rgba(30,183,135,.20)',
+        handleStyle: { color: '#1eb787', borderColor: '#1eb787' }, textStyle: { color: 'transparent' },
+      }] : [],
+      series: series.map(item => ({
+        name: item.label,
+        type: 'line',
+        yAxisIndex: item.axis === 'right' ? 1 : 0,
+        smooth: true,
+        showSymbol: points.length <= 31,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: item.dashed ? 2 : 2.5, type: item.dashed ? 'dashed' : 'solid' },
+        itemStyle: { borderWidth: 2, borderColor: '#fff' },
+        areaStyle: item.fill ? { color: item.fill } : undefined,
+        emphasis: { focus: 'series', scale: true },
+        data: points.map(point => Number(point[item.key] || 0)),
+      })),
+      media: [{
+        query: { maxWidth: 560 },
+        option: {
+          grid: { top: 45, right: hasRightAxis ? 38 : 10, bottom: points.length > 10 ? 45 : 28, left: 48 },
+          legend: { itemGap: 10, textStyle: { fontSize: 11 } },
+          xAxis: { axisLabel: { fontSize: 10 } },
+          yAxis: [
+            { axisLabel: { fontSize: 10, formatter: value => options.formatLeft(value) } },
+            ...(hasRightAxis ? [{ axisLabel: { fontSize: 10, formatter: value => options.formatRight(value) } }] : []),
+          ],
+        },
+      }],
+    });
   }
 
   function renderOverviewTrend(items) {
     const points = overviewDailySeries(items);
-    const target = $('overviewTrend');
     const totalInput = points.reduce((sum, point) => sum + point.input, 0);
     const totalOutput = points.reduce((sum, point) => sum + point.output, 0);
     const totalCacheRead = points.reduce((sum, point) => sum + point.cacheRead, 0);
@@ -2192,10 +2160,9 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       ? points.length + ' 个有使用记录的自然日 · 输入 / 输出 / 缓存读取 / 缓存命中率'
       : '输入 / 输出 / 缓存读取 / 缓存命中率';
     renderOverviewLineChart({
-      target,
+      targetID: 'overviewTrend',
       points,
       emptyText: '当前筛选条件下暂无 Token 趋势',
-      ariaLabel: 'Token 趋势图',
       formatLeft: value => formatTokens(value),
       formatRight: value => value.toFixed(0) + '%',
       series: [
@@ -2231,19 +2198,15 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 
   function renderOverviewCostTrend(items) {
     const points = overviewDailySeries(items);
-    const target = $('overviewCostTrend');
     const total = points.reduce((sum, point) => sum + point.cost, 0);
     $('overviewCostTrendTotal').textContent = points.length ? formatMoney(total) : '—';
     $('overviewCostTrendHint').textContent = points.length
       ? points.length + ' 个有使用记录的自然日 · 预估费用'
       : '按日汇总预估费用';
     renderOverviewLineChart({
-      target,
+      targetID: 'overviewCostTrend',
       points,
       emptyText: '当前筛选条件下暂无费用趋势',
-      ariaLabel: '费用趋势图',
-      leftPadding: 42,
-      rightPadding: 12,
       formatLeft: value => formatMoney(value),
       series: [
         {
@@ -2264,62 +2227,119 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       b.requests - a.requests ||
       a.model.localeCompare(b.model)
     );
-    const target = $('overviewModelShare');
     $('overviewModelCount').textContent = models.length ? models.length + ' 个模型' : '—';
     syncModelShareMetricSwitch();
     if (!models.length) {
-      target.innerHTML = '<div class="empty-state"><span>当前筛选条件下暂无模型使用数据</span></div>';
+      renderOverviewEChart('overviewModelShare', '当前筛选条件下暂无模型使用数据', null);
       return;
     }
     const metricTotal = models.reduce((sum, item) => sum + modelShareMetricValue(item, metric), 0);
-    const ringTotal = metricTotal || 1;
-    const size = 120;
-    const cx = size / 2;
-    const cy = size / 2;
-    const radius = 42;
-    const stroke = 18;
-    const circumference = 2 * Math.PI * radius;
-    let offset = 0;
-    const segments = models.map((item, index) => {
-      const value = modelShareMetricValue(item, metric);
-      const ratio = value / ringTotal;
-      const length = circumference * ratio;
-      const color = MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length];
-      const seg = { item, color, percent: ratio * 100, value, length, offset };
-      offset += length;
-      return seg;
-    });
-    const rings = segments.map(seg =>
-      '<circle class="overview-donut-segment" data-model="'+esc(seg.item.model)+'" cx="'+cx+'" cy="'+cy+'" r="'+radius+'" fill="none" stroke="'+seg.color+'" stroke-width="'+stroke+'" stroke-dasharray="'+seg.length.toFixed(3)+' '+(circumference - seg.length).toFixed(3)+'" stroke-dashoffset="'+(-seg.offset).toFixed(3)+'" transform="rotate(-90 '+cx+' '+cy+')"><title>'+esc(seg.item.model + ' · ' + seg.percent.toFixed(1) + '%')+'</title></circle>'
-    ).join('');
-    const legend = segments.map(seg =>
-      '<div class="overview-share-row" data-model="'+esc(seg.item.model)+'" title="下钻到 '+esc(seg.item.model)+'">'+
-        '<div class="overview-share-row-main">'+
-          '<span class="overview-share-swatch" style="background:'+seg.color+'"></span>'+
-          '<div class="overview-share-copy">'+
-            '<span class="overview-share-model">'+esc(seg.item.model)+'</span>'+
-            '<span class="overview-share-meta">'+esc(seg.item.requests.toLocaleString() + ' 次调用 · ' + formatTokens(seg.item.tokens) + ' Tokens')+'</span>'+
-          '</div>'+
-        '</div>'+
-        '<span class="overview-share-percent">'+seg.percent.toFixed(1)+'%</span>'+
-      '</div>'
-    ).join('');
-    target.innerHTML =
-      '<div class="overview-model-share">'+
-        '<div class="overview-donut-wrap">'+
-          '<svg viewBox="0 0 '+size+' '+size+'" role="img" aria-label="模型调用占比">'+
-            '<circle cx="'+cx+'" cy="'+cy+'" r="'+radius+'" fill="none" stroke="#edf2ee" stroke-width="'+stroke+'"></circle>'+
-            rings+
-          '</svg>'+
-          '<div class="overview-donut-center">'+
-            '<strong>'+esc(formatModelShareCenter(metricTotal, metric))+'</strong>'+
-            '<span>'+esc(modelShareCenterLabel(metric))+'</span>'+
-          '</div>'+
-        '</div>'+
-        '<div class="overview-share-legend">'+legend+'</div>'+
-      '</div>';
-    target.querySelectorAll('[data-model]').forEach(el => {
-      el.addEventListener('click', () => drillOverviewModel(el.getAttribute('data-model') || ''));
+    renderOverviewEChart('overviewModelShare', '当前筛选条件下暂无模型使用数据', {
+      color: models.map((_, index) => MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length]),
+      animationDuration: 420,
+      animationEasing: 'cubicOut',
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(26, 31, 28, .94)',
+        borderWidth: 0,
+        padding: [10, 12],
+        textStyle: { color: '#fff', fontSize: 12 },
+        formatter(param) {
+          const item = param.data.item;
+          return '<strong>'+esc(item.model)+'</strong><br/>'+
+            '<span style="color:#cdd6cf">'+esc(modelShareCenterLabel(metric))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatModelShareCenter(param.value, metric))+'</span><br/>'+
+            '<span style="color:#cdd6cf">请求 / Token</span><span style="float:right;margin-left:20px">'+esc(item.requests.toLocaleString() + ' / ' + formatTokens(item.tokens))+'</span><br/>'+
+            '<span style="color:#cdd6cf">占比</span><span style="float:right;margin-left:20px">'+param.percent.toFixed(1)+'%</span>';
+        },
+      },
+      legend: {
+        type: 'scroll',
+        orient: 'vertical',
+        left: '57%',
+        right: 4,
+        top: 'middle',
+        width: '39%',
+        itemWidth: 8,
+        itemHeight: 8,
+        itemGap: 12,
+        textStyle: {
+          color: '#344038',
+          fontSize: 11,
+          rich: {
+            name: { width: 88, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
+            value: { width: 46, align: 'right', color: '#5f6a61', fontWeight: 700 },
+          },
+        },
+        formatter(name) {
+          const item = models.find(model => model.model === name);
+          const value = item ? modelShareMetricValue(item, metric) : 0;
+          const percent = metricTotal ? value / metricTotal * 100 : 0;
+          return '{name|' + truncateModelName(name, 14) + '}{value|' + percent.toFixed(1) + '%}';
+        },
+      },
+      series: [{
+        name: modelShareCenterLabel(metric),
+        type: 'pie',
+        radius: ['47%', '65%'],
+        center: ['31%', '50%'],
+        minAngle: 3,
+        avoidLabelOverlap: true,
+        itemStyle: { borderColor: '#fff', borderWidth: 3, borderRadius: 4 },
+        label: {
+          show: true,
+          position: 'center',
+          formatter: '{total|' + formatModelShareCenter(metricTotal, metric) + '}\n{caption|' + modelShareCenterLabel(metric) + '}',
+          rich: {
+            total: { color: '#1f2922', fontSize: 22, fontWeight: 700, lineHeight: 28 },
+            caption: { color: '#5f6a61', fontSize: 11, fontWeight: 600, lineHeight: 17 },
+          },
+        },
+        labelLine: { show: false },
+        emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(31,41,34,.18)' } },
+        data: models.map(item => ({ name: item.model, value: modelShareMetricValue(item, metric), item })),
+      }],
+      media: [{
+        query: { maxWidth: 560 },
+        option: {
+          legend: {
+            orient: 'vertical',
+            left: '8%',
+            right: '8%',
+            top: '65%',
+            width: '84%',
+            itemWidth: 8,
+            itemHeight: 8,
+            itemGap: 8,
+            textStyle: {
+              fontSize: 11,
+              rich: {
+                name: { width: 156, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
+                value: { width: 48, align: 'right', color: '#5f6a61', fontWeight: 700 },
+              },
+            },
+          },
+          series: [{ center: ['50%', '31%'], radius: ['31%', '45%'] }],
+        },
+      }, {
+        query: { maxWidth: 420 },
+        option: {
+          legend: {
+            left: '5%',
+            right: '5%',
+            width: '90%',
+            textStyle: {
+              rich: {
+                name: { width: 130 },
+                value: { width: 46 },
+              },
+            },
+          },
+        },
+      }],
+    }, {
+      click: params => {
+        if (params.componentType === 'series' && params.data && params.data.item) drillOverviewModel(params.data.item.model);
+      },
     });
   }
 
@@ -2941,12 +2961,12 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     $('usageFilterState').textContent = filterLabels.length ? filterLabels.join(' · ') : '未设置筛选';
 
     const emptyState = message => '<div class="empty-state"><span>'+esc(message)+'</span></div>';
-    $('usageByKey').innerHTML = byKey.length ? '<table><thead><tr><th>Key</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
+    $('usageByKey').innerHTML = byKey.length ? '<div class="table-scroll"><table><thead><tr><th>Key</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
       byKey.map(x => '<tr><td><div><strong>'+esc(x.label||'(无标签)')+'</strong></div></td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
-      '</tbody></table>' : emptyState('当前筛选条件下暂无按 Key 汇总');
-    $('usageByModel').innerHTML = byModel.length ? '<table><thead><tr><th>模型</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
+      '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整汇总</p>' : emptyState('当前筛选条件下暂无按 Key 汇总');
+    $('usageByModel').innerHTML = byModel.length ? '<div class="table-scroll"><table><thead><tr><th>模型</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
       byModel.map(x => '<tr><td class="mono">'+esc(x.model)+'</td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
-      '</tbody></table>' : emptyState('当前筛选条件下暂无按模型汇总');
+      '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整汇总</p>' : emptyState('当前筛选条件下暂无按模型汇总');
     const formatOptional = (value, formatter) => value == null || value === '' ? '—' : formatter(value);
     const formatMilliseconds = value => formatOptional(value, v => {
       const n = Number(v);
@@ -2956,11 +2976,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       const n = Number(v);
       return Number.isFinite(n) ? n.toFixed(2) : '—';
     });
-    const cacheHit = u => {
-      const read = Number(u.cache_read_tokens || 0);
-      const related = Number(u.cached_tokens || 0) + read + Number(u.cache_creation_tokens || 0);
-      return related > 0 ? (read / related * 100).toFixed(1) + '%' : '—';
-    };
+    const cacheHit = u => Number(u.cache_read_tokens || 0) > 0 ? '是' : '否';
     const totalUsageTokens = u => u.total_tokens != null ? Number(u.total_tokens) :
       Number(u.input_tokens || 0) + Number(u.output_tokens || 0) + Number(u.reasoning_tokens || 0) + Number(u.cached_tokens || 0) + Number(u.cache_read_tokens || 0) + Number(u.cache_creation_tokens || 0);
     const usageAuthCell = u => {
@@ -2970,15 +2986,15 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       return '<td class="usage-key" title="'+esc(display)+'"><div class="usage-key-label"><strong>'+esc(display)+'</strong></div></td>';
     };
 
-    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>Tier</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>预估费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
+    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>预估费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
       items.map(u => {
         const estimatedCost = u.estimated_cost_micro_usd != null ? u.estimated_cost_micro_usd : u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
         return '<tr><td class="mono">'+esc(u.created_at)+'</td>'+usageAuthCell(u)+
-          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.tier || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
+          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
           '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(estimatedCost))+'">'+esc(formatMoney(estimatedCost))+'</td></tr>';
-      }).join('') + '</tbody></table></div>' : emptyState('当前筛选条件下暂无使用明细');
+      }).join('') + '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整明细</p>' : emptyState('当前筛选条件下暂无使用明细');
     renderUsagePagination(pageData);
   }
 
@@ -3139,6 +3155,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
     btn.addEventListener('click', () => setModelShareMetric(btn.dataset.modelMetric));
   });
+  window.addEventListener('resize', resizeOverviewCharts);
   $('usdCnyRate').addEventListener('change', () => setUsdCnyRate($('usdCnyRate').value));
   $('usdCnyRate').addEventListener('keydown', event => {
     if (event.key === 'Enter') {
