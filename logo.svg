@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">CPA Credit Manager</title>
+  <desc id="desc">A minimal CM monogram for CPA Credit Manager.</desc>
+
+  <rect width="512" height="512" rx="72" fill="#F7F5F0"/>
+  <g fill="none" stroke="#26313D" stroke-linecap="round" stroke-linejoin="round" stroke-width="16">
+    <path d="M230 180c-63 0-102 32-102 76s39 76 102 76"/>
+    <path d="M276 332V180l60 94 60-94v152"/>
+  </g>
+</svg>

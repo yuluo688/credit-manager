@@ -17,7 +17,7 @@ func consolePage() pluginapi.ManagementResponse {
 // consoleHTML is a self-contained admin UI. Mutations call host-authenticated
 // /v0/management/credit-manager/* with a management token stored in sessionStorage.
 const consoleHTML = `<!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="auto" data-palette="white">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -60,7 +60,7 @@ h1 { margin:0; font-size:1.7rem; line-height:1.15; letter-spacing:-.035em; font-
 h1::before { content:""; display:inline-block; width:7px; height:7px; margin:0 9px 4px 0; background:var(--accent); border-radius:50%; }
 .sub { color: var(--muted); margin-top:7px; font-size:.86rem; }
 .card {
-  background: rgba(255,255,255,.9);
+   background: var(--card-bg, rgba(255,255,255,.9));
   border:1px solid var(--line);
   border-radius:14px;
   padding:18px;
@@ -87,7 +87,7 @@ h1::before { content:""; display:inline-block; width:7px; height:7px; margin:0 9
 .tab, button, .btn {
   appearance:none;
   border:1px solid var(--line);
-  background: #fff;
+   background: var(--panel);
   color:var(--text);
   border-radius:8px;
   padding:8px 13px;
@@ -108,7 +108,7 @@ label { display:flex; flex-direction:column; gap:6px; font-size:.78rem; color:va
 input, select, textarea {
   width:100%;
   border:1px solid #e2e7e1;
-  background:#fcfdfb;
+   background:var(--control, #fcfdfb);
   color:var(--text);
   border-radius:8px;
   padding:9px 10px;
@@ -118,7 +118,7 @@ input, select, textarea {
 }
 input:not(:disabled):hover, select:not(:disabled):hover, textarea:not(:disabled):hover {
   border-color:#c8d6cb;
-  background:#fff;
+   background:var(--control-hover, #fff);
 }
 select {
   appearance:none;
@@ -347,6 +347,14 @@ table .mono.muted { color:var(--table-muted); font-size:.84rem; font-weight:500;
 .empty-state { display:grid; place-items:center; min-height:112px; padding:22px 16px; text-align:center; color:var(--muted); background:linear-gradient(135deg, #fbfdfb, #f6faf7); border:1px dashed #dce7de; border-radius:10px; font-size:.82rem; }
 .empty-state::before { content:""; width:22px; height:2px; margin-bottom:9px; border-radius:2px; background:var(--accent); }
 .empty-state span { display:block; }
+.chart-empty-state { min-height:184px; padding:28px; }
+.tab-empty-state { min-height:156px; margin:2px 0; }
+.tab-empty-state .chart-empty-copy { max-width:360px; }
+.chart-empty-state::before { display:none; }
+.chart-empty-icon { display:grid; place-items:center; width:38px; height:38px; margin:0 auto 12px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2); color:var(--accent); font-size:1.12rem; }
+.chart-empty-title { margin:0; color:var(--text); font-size:.92rem; font-weight:720; }
+.chart-empty-copy { max-width:290px; margin:7px auto 16px; line-height:1.55; }
+.chart-empty-state .btn { min-width:108px; }
 .actions { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
 .tabpane { width:100%; max-width:none; animation: pane-in .18s ease both; }
 @keyframes pane-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
@@ -399,7 +407,7 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
   padding:3px;
   border:1px solid var(--line);
   border-radius:9px;
-  background:rgba(255,255,255,.72);
+  background:var(--panel-2);
   box-shadow:0 2px 8px rgba(41,57,46,.04);
 }
 .unit-switch-label {
@@ -421,10 +429,10 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
   letter-spacing:.02em;
   box-shadow:none;
 }
-.unit-switch button:hover { background:#f3f6f3; border:none; box-shadow:none; color:var(--text); }
+.unit-switch button:hover { background:var(--control-hover); border:none; box-shadow:none; color:var(--text); }
 .unit-switch button.active {
   background:var(--accent-soft);
-  color:#087d5a;
+  color:var(--text);
   box-shadow:none;
 }
 .rate-field {
@@ -437,7 +445,7 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
   padding:3px 8px 3px 10px;
   border:1px solid var(--line);
   border-radius:9px;
-  background:rgba(255,255,255,.72);
+  background:var(--panel-2);
   box-shadow:0 2px 8px rgba(41,57,46,.04);
   color:var(--muted);
   font-size:.72rem;
@@ -549,6 +557,97 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 }
 @media (max-width: 520px) { .topbar { display:block; } .topbar-actions { margin-top:14px; } .modal-backdrop { padding:12px; } .modal-header, .modal-body { padding-left:16px; padding-right:16px; } }
 .workspace-content { width:100%; max-width:none; }
+html[data-palette="white"] {
+  color-scheme:light;
+  --bg:#ffffff; --panel:#ffffff; --panel-2:#f8f8f8; --card-bg:rgba(255,255,255,.94);
+  --control:#ffffff; --control-hover:#ffffff; --table-head:#f7f7f7; --line:#e6e6e6;
+  --text:#242424; --muted:#686868; --table-text:#282828; --table-muted:#5f5f5f;
+  --accent:#5c8776; --accent-soft:#e8f3ef; --accent-2:#8274c9; --purple-soft:#f0edfa;
+  --warn:#b77b1d; --danger:#c15b52; --ok:#4d9475; --shadow:0 8px 28px rgba(30,30,30,.07);
+}
+html[data-palette="light"] {
+  color-scheme:light;
+  --bg:#f0eee8; --panel:#fffdf9; --panel-2:#f6f4ee; --card-bg:rgba(255,253,249,.92);
+  --control:#fffdf9; --control-hover:#ffffff; --table-head:#f6f4ee; --line:#e3e1db;
+  --text:#2d2a26; --muted:#6d6760; --table-text:#2d2a26; --table-muted:#6d6760;
+  --accent:#8b8680; --accent-soft:#ebe8e1; --accent-2:#8573bd; --purple-soft:#eeebf5;
+  --warn:#d97706; --danger:#c65746; --ok:#168b63; --shadow:0 10px 24px rgba(70,63,55,.09);
+}
+html[data-palette="dark"] {
+  color-scheme:dark;
+  --bg:#151412; --panel:#1d1b18; --panel-2:#25221f; --card-bg:rgba(29,27,24,.96);
+  --control:#25221f; --control-hover:#302d29; --table-head:#282521; --line:#3a3530;
+  --text:#f6f4f1; --muted:#b6afa3; --table-text:#f6f4f1; --table-muted:#c2bbb2;
+  --accent:#b3aaa0; --accent-soft:#36312d; --accent-2:#b5a5e9; --purple-soft:#312c40;
+  --warn:#efb860; --danger:#ef8779; --ok:#58be91; --shadow:0 12px 30px rgba(0,0,0,.3);
+}
+html[data-palette="light"] body { background:radial-gradient(740px 300px at 45% -8%, rgba(139,134,128,.13), transparent 72%),radial-gradient(600px 300px at 100% 8%, rgba(133,115,189,.06), transparent 76%),var(--bg); }
+html[data-palette="dark"] body { background:radial-gradient(740px 300px at 45% -8%, rgba(148,134,119,.12), transparent 72%),radial-gradient(600px 300px at 100% 8%, rgba(181,165,233,.07), transparent 76%),var(--bg); }
+html[data-palette="light"] .stat { background:linear-gradient(135deg, #fffdf9, #f6f4ee); }
+html[data-palette="dark"] .stat { background:linear-gradient(135deg, #282521, #1d1b18); }
+html[data-palette="light"] .tab, html[data-palette="light"] button, html[data-palette="light"] .btn, html[data-palette="light"] select option, html[data-palette="light"] .custom-control-panel, html[data-palette="light"] .flash, html[data-palette="light"] .table-scroll,
+html[data-palette="dark"] .tab, html[data-palette="dark"] button, html[data-palette="dark"] .btn, html[data-palette="dark"] select option, html[data-palette="dark"] .custom-control-panel, html[data-palette="dark"] .flash, html[data-palette="dark"] .table-scroll { background:var(--panel); color:var(--text); }
+html[data-palette="light"] input, html[data-palette="light"] select, html[data-palette="light"] textarea, html[data-palette="light"] .custom-control-trigger,
+html[data-palette="dark"] input, html[data-palette="dark"] select, html[data-palette="dark"] textarea, html[data-palette="dark"] .custom-control-trigger { background:var(--control); color:var(--text); border-color:var(--line); }
+html[data-palette="light"] th, html[data-palette="light"] .keys-table th, html[data-palette="dark"] th, html[data-palette="dark"] .keys-table th { background:var(--table-head); color:var(--table-muted); }
+html[data-palette="light"] tbody tr:hover td, html[data-palette="light"] .keys-table tbody tr:hover td { background:#f4f1eb; }
+html[data-palette="dark"] tbody tr:hover td, html[data-palette="dark"] .keys-table tbody tr:hover td { background:#2d2925; }
+html[data-palette="light"] .modal-section, html[data-palette="light"] .custom-date-panel { background:linear-gradient(180deg, #fffdf9, #f6f4ee); border-color:var(--line); }
+html[data-palette="dark"] .modal-section, html[data-palette="dark"] .custom-date-panel { background:linear-gradient(180deg, #282521, #1d1b18); border-color:var(--line); }
+html[data-palette="light"] .tab.active, html[data-palette="light"] .unit-switch button.active, html[data-palette="light"] .filter-state, html[data-palette="light"] .overview-filter-state { color:#57524c; border-color:#d8d3ca; }
+html[data-palette="dark"] .tab.active, html[data-palette="dark"] .unit-switch button.active, html[data-palette="dark"] .filter-state, html[data-palette="dark"] .overview-filter-state { color:#f0ece6; border-color:#504940; }
+html[data-palette="light"] .unit-switch { background:#eeece6; border-color:#d8d4cc; box-shadow:none; }
+html[data-palette="light"] .unit-switch button:hover { background:#e2dfd8; }
+html[data-palette="light"] .unit-switch button.active { background:#817b73; color:#fffdf9; }
+html[data-palette="light"] .rate-field { background:#eeece6; border-color:#d8d4cc; box-shadow:none; color:#756e66; }
+html[data-palette="light"] .rate-field input { background:#fffdf9; border-color:#d8d4cc; }
+html[data-palette="dark"] .unit-switch { background:#282521; border-color:#49433c; box-shadow:none; }
+html[data-palette="dark"] .unit-switch-label { color:#b9b1a7; }
+html[data-palette="dark"] .unit-switch button { color:#c8c0b6; }
+html[data-palette="dark"] .unit-switch button:hover { background:#37322d; color:#f6f4f1; }
+html[data-palette="dark"] .unit-switch button.active { background:#6f675f; color:#fffdf9; }
+html[data-palette="dark"] .rate-field { background:#282521; border-color:#49433c; box-shadow:none; color:#b9b1a7; }
+html[data-palette="dark"] .rate-field input { background:#1d1b18 !important; color:#f6f4f1 !important; border-color:#4a443c !important; }
+html[data-palette="dark"] .rate-field input:focus { background:#2d2925 !important; border-color:#797066 !important; box-shadow:0 0 0 3px rgba(179,170,160,.16) !important; }
+html[data-palette="dark"] select {
+  background-color:#25221f !important;
+  color:#f6f4f1 !important;
+  border-color:#4a443c !important;
+  color-scheme:dark;
+}
+html[data-palette="dark"] select:hover { background-color:#2d2925 !important; }
+html[data-palette="dark"] select:focus {
+  background-color:#2d2925 !important;
+  border-color:#797066 !important;
+  box-shadow:0 0 0 3px rgba(179,170,160,.16) !important;
+  outline:none;
+}
+html[data-palette="dark"] select option { background:#25221f; color:#f6f4f1; }
+html[data-palette="dark"] .custom-control-trigger,
+html[data-palette="dark"] .custom-control-trigger:hover:not(:disabled) {
+  background:#25221f !important;
+  color:#f6f4f1 !important;
+  border-color:#4a443c !important;
+}
+html[data-palette="dark"] .custom-control.open > .custom-control-trigger {
+  background:#2d2925 !important;
+  border-color:#797066 !important;
+  box-shadow:0 0 0 3px rgba(179,170,160,.16) !important;
+}
+html[data-palette="dark"] .custom-control-trigger::after { filter:brightness(0) invert(1) opacity(.7); }
+html[data-palette="dark"] .custom-select-panel,
+html[data-palette="dark"] .custom-date-panel { background:#25221f !important; border-color:#4a443c !important; }
+html[data-palette="dark"] .custom-select-option { color:#f6f4f1 !important; }
+html[data-palette="dark"] .custom-select-option:hover,
+html[data-palette="dark"] .custom-select-option.selected { background:#37322d !important; color:#fffdf9 !important; }
+html[data-palette="dark"] .badge, html[data-palette="dark"] .model-chip, html[data-palette="dark"] .quota-bar { background:#2b2824; border-color:#48423b; color:var(--text); }
+html[data-palette="dark"] .badge.ok, html[data-palette="dark"] .model-chip.all { background:#203b30; border-color:#35614f; color:#94dfbb; }
+html[data-palette="dark"] .badge.bad, html[data-palette="dark"] .btn.danger { background:#422522; border-color:#70413b; color:#ffb5aa; }
+html[data-palette="dark"] .badge.warn { background:#44341e; border-color:#70582f; color:#f4ca80; }
+html[data-palette="dark"] .empty-state { background:linear-gradient(135deg, #24211e, #1c1a17); border-color:#49433c; }
+html[data-palette="dark"] .chart-empty-icon { background:#2a2723; border-color:#49433c; color:#b9b1a7; }
+html[data-palette="light"] .chart-empty-icon { background:#eeece6; border-color:#d8d4cc; color:#756e66; }
+html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #211e1b, #39332d); border-color:#39332d; }
 .page-intro { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:18px; }
 .page-intro h2 { margin:0; font-size:1.25rem; letter-spacing:-.025em; }
 .page-intro p { margin:5px 0 0; color:var(--muted); font-size:.82rem; }
@@ -777,7 +876,6 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
             <label>宿主管理密钥（Bearer）
               <input id="mgmtToken" type="password" placeholder="remote-management secret" autocomplete="off"/>
             </label>
-            <p class="connection-status mono" id="lastUrl">尚未发起管理请求</p>
             <div class="modal-actions">
               <button class="btn ghost" id="btnClearToken">清除本地信息</button>
               <button class="btn primary" id="btnSaveToken">连接并加载</button>
@@ -1147,7 +1245,32 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   const TOKEN_UNIT_KEY = 'credit_manager_token_unit';
   const CURRENCY_KEY = 'credit_manager_currency';
   const USD_CNY_RATE_KEY = 'credit_manager_usd_cny_rate';
+  const CPA_LOCALE_KEY = 'cli-proxy-language';
+  const CPA_THEME_KEY = 'cli-proxy-theme';
   const DEFAULT_USD_CNY_RATE = 7.2;
+  const LOCALES = ['zh-CN', 'zh-TW', 'en', 'ru'];
+  const THEMES = ['auto', 'white', 'light', 'dark'];
+  const COPY = {
+    '语言': { 'zh-TW':'語言', en:'Language', ru:'Язык' }, '主题': { 'zh-TW':'主題', en:'Theme', ru:'Тема' },
+    '跟随系统': { 'zh-TW':'跟隨系統', en:'System', ru:'Системная' }, '纯白': { 'zh-TW':'純白', en:'White', ru:'Белая' }, '羊毛纸': { 'zh-TW':'羊毛紙', en:'Parchment', ru:'Пергамент' }, '暗色': { 'zh-TW':'暗色', en:'Dark', ru:'Тёмная' },
+    '额度仪表盘': { 'zh-TW':'額度儀表板', en:'Credit Dashboard', ru:'Панель лимитов' }, '连接设置': { 'zh-TW':'連線設定', en:'Connection settings', ru:'Настройки подключения' }, '刷新数据': { 'zh-TW':'重新整理資料', en:'Refresh data', ru:'Обновить данные' },
+    '概览': { 'zh-TW':'概覽', en:'Overview', ru:'Обзор' }, 'Key 管理': { 'zh-TW':'Key 管理', en:'Keys', ru:'Ключи' }, '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '使用统计': { 'zh-TW':'使用統計', en:'Usage analytics', ru:'Статистика использования' },
+    '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
+    '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；时间按 UTC 解析。': { 'zh-TW':'篩選僅影響概覽指標和圖表；時間按 UTC 解析。', en:'Filters affect overview metrics and charts only; times use UTC.', ru:'Фильтры влияют только на метрики и диаграммы; время в UTC.' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
+    '时间范围': { 'zh-TW':'時間範圍', en:'Time range', ru:'Период' }, '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '时间范围（UTC）': { 'zh-TW':'時間範圍（UTC）', en:'Time range (UTC)', ru:'Период (UTC)' }, '至': { 'zh-TW':'至', en:'to', ru:'до' },
+    'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
+    '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' }, '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' },
+    '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有 Key': { 'zh-TW':'已有 Key', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
+    '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '维护模型匹配规则与每百万 Token 的计费价格。': { 'zh-TW':'維護模型比對規則與每百萬 Token 的計費價格。', en:'Manage model matching rules and prices per million tokens.', ru:'Управляйте правилами сопоставления моделей и ценами за миллион токенов.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
+    '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按 Key 汇总': { 'zh-TW':'依 Key 彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
+    '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
+    'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
+    '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
+    'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
+  };
+  const textSources = new WeakMap();
+  const attributeSources = new WeakMap();
+  let translationObserver;
   const TOKEN_UNITS = {
     raw: { div: 1, suffix: '', maxFrac: 0 },
     k: { div: 1e3, suffix: 'k', maxFrac: 2 },
@@ -1171,9 +1294,112 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     tabLoadSeq: 0,
     modelShareMetric: 'requests',
     charts: {},
+    locale: 'zh-CN',
+    theme: 'auto',
   };
 
   const $ = (id) => document.getElementById(id);
+  function parseStoredPreference(value) {
+    if (!value) return '';
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed.state || parsed).language || (parsed.state || parsed).theme || '' : parsed;
+    } catch (_) { return value; }
+  }
+
+  function localeFromCPA() {
+    const raw = parseStoredPreference(localStorage.getItem(CPA_LOCALE_KEY)) || navigator.language || 'zh-CN';
+    const normalized = String(raw).replace('_', '-').toLowerCase();
+    if (normalized.startsWith('zh-tw') || normalized.startsWith('zh-hant')) return 'zh-TW';
+    if (normalized.startsWith('ru')) return 'ru';
+    if (normalized.startsWith('en')) return 'en';
+    return 'zh-CN';
+  }
+
+  function themeFromCPA() {
+    const theme = String(parseStoredPreference(localStorage.getItem(CPA_THEME_KEY)) || 'auto').toLowerCase();
+    return THEMES.includes(theme) ? theme : 'auto';
+  }
+
+  function t(source) {
+    const locale = state.locale || 'zh-CN';
+    return locale === 'zh-CN' ? source : ((COPY[source] && COPY[source][locale]) || source);
+  }
+
+  function translateElement(element) {
+    if (!element || element.closest('[data-no-i18n]')) return;
+    const attrs = ['title', 'placeholder', 'aria-label'];
+    attrs.forEach(name => {
+      if (!element.hasAttribute(name)) return;
+      let values = attributeSources.get(element);
+      if (!values) { values = {}; attributeSources.set(element, values); }
+      if (!(name in values)) values[name] = element.getAttribute(name);
+      element.setAttribute(name, t(values[name]));
+    });
+    const textNodes = [...element.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && node.nodeValue.trim());
+    if (textNodes.length) {
+      let values = textSources.get(element);
+      if (!values) { values = new Map(); textSources.set(element, values); }
+      textNodes.forEach(node => {
+        if (!values.has(node)) values.set(node, node.nodeValue);
+        const source = values.get(node);
+        const leading = source.match(/^\s*/)[0];
+        const trailing = source.match(/\s*$/)[0];
+        node.nodeValue = leading + t(source.trim()) + trailing;
+      });
+    }
+  }
+
+  function translateTree(root) {
+    if (!root) return;
+    if (root.nodeType === Node.ELEMENT_NODE) translateElement(root);
+    if (root.querySelectorAll) root.querySelectorAll('*').forEach(translateElement);
+  }
+
+  function applyLocale(locale) {
+    state.locale = LOCALES.includes(locale) ? locale : 'zh-CN';
+    document.documentElement.lang = state.locale;
+    document.title = t('CPA 额度管理');
+    translateTree(document.body);
+    refreshCustomControls();
+    refreshDisplayUnits();
+  }
+
+  function applyTheme(theme) {
+    state.theme = THEMES.includes(theme) ? theme : 'auto';
+    const palette = state.theme === 'auto'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : state.theme;
+    document.documentElement.dataset.theme = state.theme;
+    document.documentElement.dataset.palette = palette;
+    Object.values(state.charts).forEach(chart => chart.resize());
+  }
+
+  function initPreferences() {
+    state.locale = localeFromCPA();
+    state.theme = themeFromCPA();
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (state.theme === 'auto') applyTheme('auto');
+    });
+    window.addEventListener('storage', event => {
+      if (event.key === CPA_LOCALE_KEY) applyLocale(localeFromCPA());
+      if (event.key === CPA_THEME_KEY) applyTheme(themeFromCPA());
+    });
+    // CPA and this resource page share an origin, but storage events do not fire
+    // in the document that makes a change. Polling also covers same-tab updates.
+    window.setInterval(() => {
+      const locale = localeFromCPA();
+      const theme = themeFromCPA();
+      if (locale !== state.locale) applyLocale(locale);
+      if (theme !== state.theme) applyTheme(theme);
+    }, 250);
+    translationObserver = new MutationObserver(records => {
+      records.forEach(record => record.addedNodes.forEach(node => translateTree(node)));
+    });
+    translationObserver.observe(document.body, { childList:true, subtree:true });
+    applyTheme(state.theme);
+    applyLocale(state.locale);
+  }
   let flashTimer = 0;
   const clearFlash = () => {
     const el = $('flash');
@@ -1411,7 +1637,6 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     const t = token();
     if (!t) throw new Error('请先填写并保存宿主管理密钥');
     const url = managementURL(path);
-    if ($('lastUrl')) $('lastUrl').textContent = '请求: GET ' + url;
     let res;
     try {
       res = await fetch(url, {
@@ -1481,7 +1706,6 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     const t = token();
     if (!t) throw new Error('请先填写并保存宿主管理密钥');
     const url = managementURL(path);
-    if ($('lastUrl')) $('lastUrl').textContent = '请求: ' + method + ' ' + url;
     const opts = {
       method,
       headers: {
@@ -1557,8 +1781,8 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     }
     const date = parseDateTimeLocal(control.value);
     trigger.querySelector('.custom-control-value').textContent = date
-      ? new Intl.DateTimeFormat('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(date)
-      : '选择日期和时间';
+      ? new Intl.DateTimeFormat(state.locale || 'zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(date)
+      : t('选择日期和时间');
   }
 
   function closeCustomControls(except) {
@@ -1670,10 +1894,10 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       const title = document.createElement('button');
       title.type = 'button';
       title.className = 'custom-date-title';
-      title.textContent = year + '年' + (month + 1) + '月';
+      title.textContent = new Intl.DateTimeFormat(state.locale || 'zh-CN', { year:'numeric', month:'long' }).format(new Date(year, month, 1));
       const nav = document.createElement('div');
       nav.className = 'custom-date-nav';
-      [['‹', -1, '上个月'], ['›', 1, '下个月']].forEach(([text, offset, label]) => {
+      [['‹', -1, t('上个月')], ['›', 1, t('下个月')]].forEach(([text, offset, label]) => {
         const button = document.createElement('button');
         button.type = 'button';
         button.textContent = text;
@@ -1688,7 +1912,8 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       header.append(title, nav);
       const weekdays = document.createElement('div');
       weekdays.className = 'custom-date-weekdays';
-      ['日','一','二','三','四','五','六'].forEach(day => { const item = document.createElement('span'); item.textContent = day; weekdays.append(item); });
+      const weekdayNames = new Intl.DateTimeFormat(state.locale || 'zh-CN', { weekday:'short' });
+      Array.from({ length:7 }, (_, day) => weekdayNames.format(new Date(2024, 0, 7 + day))).forEach(day => { const item = document.createElement('span'); item.textContent = day; weekdays.append(item); });
       const dayGrid = document.createElement('div');
       dayGrid.className = 'custom-date-days';
       days.forEach(date => {
@@ -1717,14 +1942,14 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
         const decrement = document.createElement('button');
         decrement.type = 'button';
         decrement.textContent = '−';
-        decrement.setAttribute('aria-label', part === 'hours' ? '减少小时' : '减少分钟');
+        decrement.setAttribute('aria-label', part === 'hours' ? t('减少小时') : t('减少分钟'));
         decrement.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, -amount); });
         const text = document.createElement('span');
         text.textContent = padDatePart(value);
         const increment = document.createElement('button');
         increment.type = 'button';
         increment.textContent = '+';
-        increment.setAttribute('aria-label', part === 'hours' ? '增加小时' : '增加分钟');
+        increment.setAttribute('aria-label', part === 'hours' ? t('增加小时') : t('增加分钟'));
         increment.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, amount); });
         field.append(decrement, text, increment);
         return field;
@@ -1732,7 +1957,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       const time = document.createElement('div');
       time.className = 'custom-date-time';
       const timeLabel = document.createElement('span');
-      timeLabel.textContent = '时间';
+      timeLabel.textContent = t('时间');
       const fields = document.createElement('div');
       fields.className = 'custom-time-fields';
       const timeValue = selected || new Date(year, month, 1);
@@ -1745,11 +1970,11 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
       footer.className = 'custom-date-footer';
       const clear = document.createElement('button');
       clear.type = 'button';
-      clear.textContent = '清除';
+      clear.textContent = t('清除');
       clear.addEventListener('click', () => { input.value = ''; dispatchControlChange(input); refreshCustomControl(input); renderCalendar(); });
       const now = document.createElement('button');
       now.type = 'button';
-      now.textContent = '此刻';
+      now.textContent = t('此刻');
       now.addEventListener('click', () => { const date = new Date(); viewDate = new Date(date); setDateValue(date); renderCalendar(); });
       footer.append(clear, now);
       panel.append(header, weekdays, dayGrid, time, footer);
@@ -1777,6 +2002,9 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 
   document.addEventListener('click', event => {
     if (!event.target.closest('.custom-control')) closeCustomControls();
+  });
+  document.addEventListener('click', event => {
+    if (event.target.closest('.chart-connect-action')) openConnectionModal();
   });
 
   function setTab(name) {
@@ -1994,12 +2222,53 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
     delete state.charts[id];
   }
 
+  function chartEmptyState(message, disconnected) {
+    const title = disconnected ? '尚未连接到 CPA' : '暂无可展示的数据';
+    const copy = disconnected
+      ? '连接 CPA 管理接口后，即可查看 Token、费用和模型调用趋势。'
+      : message;
+    const action = disconnected ? '<button type="button" class="btn ghost chart-connect-action">连接设置</button>' : '';
+    return '<div class="empty-state chart-empty-state">' +
+      '<div><div class="chart-empty-icon" aria-hidden="true">'+(disconnected ? '↗' : '—')+'</div>' +
+      '<p class="chart-empty-title">'+esc(title)+'</p>' +
+      '<p class="chart-empty-copy">'+esc(copy)+'</p>'+action+'</div></div>';
+  }
+
+  function renderDisconnectedOverview() {
+    ['overviewTrend', 'overviewCostTrend', 'overviewModelShare'].forEach(id => {
+      const target = $(id);
+      disposeOverviewChart(id);
+      target.className = '';
+      target.innerHTML = chartEmptyState('', true);
+    });
+    ['overviewTrendTotal', 'overviewCostTrendTotal', 'overviewModelShareTotal'].forEach(id => {
+      const target = $(id);
+      if (target) target.textContent = '未连接';
+    });
+  }
+
+  function renderDisconnectedTabStates() {
+    const content = chartEmptyState('', true).replace('chart-empty-state', 'chart-empty-state tab-empty-state');
+    ['keysTable', 'pricingTable', 'usageByKey', 'usageByModel', 'usageRecent'].forEach(id => {
+      const target = $(id);
+      if (target) target.innerHTML = content;
+    });
+    const stats = $('usageStats');
+    if (stats) stats.innerHTML = content;
+    const pagination = $('usagePagination');
+    if (pagination) pagination.innerHTML = '';
+    [['keysCount', '未连接'], ['modelCatalogCount', '未连接'], ['usageByKeyCount', '未连接'], ['usageByModelCount', '未连接'], ['usageRecentCount', '未连接']].forEach(([id, text]) => {
+      const target = $(id);
+      if (target) target.textContent = text;
+    });
+  }
+
   function renderOverviewEChart(id, emptyText, option, handlers) {
     const target = $(id);
     disposeOverviewChart(id);
     if (!option || !window.echarts) {
       target.className = '';
-      target.innerHTML = '<div class="empty-state overview-no-data"><span>'+esc(window.echarts ? emptyText : '图表组件加载失败，请检查网络连接后刷新页面')+'</span></div>';
+      target.innerHTML = chartEmptyState(window.echarts ? emptyText : '图表组件加载失败，请检查网络连接后刷新页面', false);
       return;
     }
     target.innerHTML = '';
@@ -3320,6 +3589,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   syncCurrencySwitch();
   syncModelShareMetricSwitch();
   initCustomControls();
+  initPreferences();
   if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
@@ -3327,6 +3597,9 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   if (saved) {
     $('mgmtToken').value = saved;
     reloadWithModelCatalog().catch(e => flash(e.message, false));
+  } else {
+    renderDisconnectedOverview();
+    renderDisconnectedTabStates();
   }
 })();
 </script>

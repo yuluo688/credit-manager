@@ -1,6 +1,6 @@
 # Build (optional) and copy credit-manager.dll into CLIProxyAPI plugins dir.
 param(
-    [string]$DestDir = "D:\CLIProxyAPI\plugins\windows\amd64",
+    [string]$DestDir = "D:\fallingcliff\CLIProxyAPI\plugins\windows\amd64",
     [string]$OutDir = "dist",
     [string]$Name = "credit-manager",
     [switch]$SkipBuild
