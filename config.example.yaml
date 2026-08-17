@@ -32,3 +32,4 @@ settlement:
 
 stream:
   max_buffer_bytes: 4194304
+  stale_reservation_timeout: 2h

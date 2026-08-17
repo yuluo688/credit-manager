@@ -33,6 +33,10 @@ var (
 	ErrPluginKeyRevoked     = errors.New("plugin key is revoked")
 	ErrPluginKeyExpired     = errors.New("plugin key is expired")
 	ErrModelNotAllowed      = errors.New("model is not allowed for this key")
+	ErrDailyQuotaExceeded   = errors.New("daily quota exceeded")
+	ErrWeeklyQuotaExceeded  = errors.New("weekly quota exceeded")
+	ErrMonthlyQuotaExceeded = errors.New("monthly quota exceeded")
+	ErrConcurrentLimit      = errors.New("maximum concurrent requests reached")
 )
 
 // Store owns the SQLite connection pool. MaxOpenConns is intentionally one.
@@ -237,26 +241,30 @@ func (s *Store) SetCallerEnabled(ctx context.Context, callerID string, enabled b
 }
 
 type PluginKey struct {
-	ID                   string
-	CallerID             string
-	Kid                  string
-	KeyHash              []byte
-	EncryptedKeyMaterial []byte
-	PepperID             string
-	Fingerprint          string
-	Label                string
-	Principal            string
-	CallerScope          string
-	Enabled              bool
-	QuotaMicroUSD        *money.MicroUSD // 0 or nil = unlimited
-	SettledSpendMicroUSD money.MicroUSD
-	HeldAmountMicroUSD   money.MicroUSD
-	AllowedModels        []string // empty = all models
-	RevokedAt            *time.Time
-	ExpiresAt            *time.Time
-	LastUsedAt           *time.Time
-	CreatedAt            time.Time
-	UpdatedAt            time.Time
+	ID                    string
+	CallerID              string
+	Kid                   string
+	KeyHash               []byte
+	EncryptedKeyMaterial  []byte
+	PepperID              string
+	Fingerprint           string
+	Label                 string
+	Principal             string
+	CallerScope           string
+	Enabled               bool
+	QuotaMicroUSD         *money.MicroUSD // 0 or nil = unlimited
+	DailyQuotaMicroUSD    money.MicroUSD  // 0 = unlimited, UTC calendar day
+	WeeklyQuotaMicroUSD   money.MicroUSD  // 0 = unlimited, UTC calendar week starting Monday
+	MonthlyQuotaMicroUSD  money.MicroUSD  // 0 = unlimited, UTC calendar month
+	MaxConcurrentRequests int64           // 0 = unlimited
+	SettledSpendMicroUSD  money.MicroUSD
+	HeldAmountMicroUSD    money.MicroUSD
+	AllowedModels         []string // empty = all models
+	RevokedAt             *time.Time
+	ExpiresAt             *time.Time
+	LastUsedAt            *time.Time
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 // UnlimitedQuota reports whether the key has no spending cap (nil or 0).
@@ -272,31 +280,39 @@ func (k PluginKey) RemainingMicroUSD() money.MicroUSD {
 }
 
 type PluginKeySpec struct {
-	ID                   string
-	CallerID             string
-	Kid                  string
-	KeyHash              []byte
-	EncryptedKeyMaterial []byte
-	PepperID             string
-	Fingerprint          string
-	Label                string
-	Principal            string
-	CallerScope          string
-	Enabled              bool
-	ExpiresAt            *time.Time
-	QuotaMicroUSD        money.MicroUSD
-	AllowedModels        []string
+	ID                    string
+	CallerID              string
+	Kid                   string
+	KeyHash               []byte
+	EncryptedKeyMaterial  []byte
+	PepperID              string
+	Fingerprint           string
+	Label                 string
+	Principal             string
+	CallerScope           string
+	Enabled               bool
+	ExpiresAt             *time.Time
+	QuotaMicroUSD         money.MicroUSD
+	DailyQuotaMicroUSD    money.MicroUSD
+	WeeklyQuotaMicroUSD   money.MicroUSD
+	MonthlyQuotaMicroUSD  money.MicroUSD
+	MaxConcurrentRequests int64
+	AllowedModels         []string
 }
 
 // PluginKeyPolicyUpdate patches mutable admin fields on a key.
 type PluginKeyPolicyUpdate struct {
-	ID             string
-	Label          *string
-	Enabled        *bool
-	QuotaMicroUSD  *money.MicroUSD
-	AllowedModels  *[]string
-	ExpiresAt      *time.Time
-	ClearExpiresAt bool
+	ID                    string
+	Label                 *string
+	Enabled               *bool
+	QuotaMicroUSD         *money.MicroUSD
+	DailyQuotaMicroUSD    *money.MicroUSD
+	WeeklyQuotaMicroUSD   *money.MicroUSD
+	MonthlyQuotaMicroUSD  *money.MicroUSD
+	MaxConcurrentRequests *int64
+	AllowedModels         *[]string
+	ExpiresAt             *time.Time
+	ClearExpiresAt        bool
 }
 
 func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (PluginKey, error) {
@@ -311,8 +327,8 @@ func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (Plugin
 	if strings.TrimSpace(spec.Fingerprint) == "" {
 		return PluginKey{}, fmt.Errorf("%w: fingerprint is required", ErrInvalidArgument)
 	}
-	if spec.QuotaMicroUSD < 0 {
-		return PluginKey{}, fmt.Errorf("%w: key quota must not be negative", ErrInvalidArgument)
+	if err := validatePluginKeyLimits(spec.QuotaMicroUSD, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests); err != nil {
+		return PluginKey{}, err
 	}
 	modelsJSON, err := marshalAllowedModels(spec.AllowedModels)
 	if err != nil {
@@ -327,11 +343,12 @@ func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (Plugin
 	_, err = s.db.ExecContext(ctx, `INSERT INTO plugin_keys(
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
-		quota_micro_usd, settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, quota, modelsJSON)
+		boolInt(spec.Enabled), expires, now, now, quota, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create plugin key: %w", err)
 	}
@@ -350,8 +367,8 @@ func (s *Store) RotatePluginKey(ctx context.Context, oldKeyID string, spec Plugi
 	if strings.TrimSpace(spec.Fingerprint) == "" {
 		return PluginKey{}, fmt.Errorf("%w: fingerprint is required", ErrInvalidArgument)
 	}
-	if spec.QuotaMicroUSD < 0 {
-		return PluginKey{}, fmt.Errorf("%w: key quota must not be negative", ErrInvalidArgument)
+	if err := validatePluginKeyLimits(spec.QuotaMicroUSD, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests); err != nil {
+		return PluginKey{}, err
 	}
 	modelsJSON, err := marshalAllowedModels(spec.AllowedModels)
 	if err != nil {
@@ -370,11 +387,12 @@ func (s *Store) RotatePluginKey(ctx context.Context, oldKeyID string, spec Plugi
 	_, err = tx.ExecContext(ctx, `INSERT INTO plugin_keys(
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
-		quota_micro_usd, settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), modelsJSON)
+		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create replacement plugin key: %w", err)
 	}
@@ -471,6 +489,21 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 		q := *update.QuotaMicroUSD
 		key.QuotaMicroUSD = &q
 	}
+	if update.DailyQuotaMicroUSD != nil {
+		key.DailyQuotaMicroUSD = *update.DailyQuotaMicroUSD
+	}
+	if update.WeeklyQuotaMicroUSD != nil {
+		key.WeeklyQuotaMicroUSD = *update.WeeklyQuotaMicroUSD
+	}
+	if update.MonthlyQuotaMicroUSD != nil {
+		key.MonthlyQuotaMicroUSD = *update.MonthlyQuotaMicroUSD
+	}
+	if update.MaxConcurrentRequests != nil {
+		key.MaxConcurrentRequests = *update.MaxConcurrentRequests
+	}
+	if err := validatePluginKeyLimits(derefQuota(key.QuotaMicroUSD), key.DailyQuotaMicroUSD, key.WeeklyQuotaMicroUSD, key.MonthlyQuotaMicroUSD, key.MaxConcurrentRequests); err != nil {
+		return PluginKey{}, err
+	}
 	if update.AllowedModels != nil {
 		key.AllowedModels = append([]string(nil), (*update.AllowedModels)...)
 	}
@@ -495,10 +528,12 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 	}
 	now := nowUnixMilli()
 	result, err := s.db.ExecContext(ctx, `UPDATE plugin_keys SET
-		label = ?, enabled = ?, quota_micro_usd = ?, allowed_models_json = ?,
+		label = ?, enabled = ?, quota_micro_usd = ?, daily_quota_micro_usd = ?, weekly_quota_micro_usd = ?,
+		monthly_quota_micro_usd = ?, max_concurrent_requests = ?, allowed_models_json = ?,
 		expires_at_unix_ms = ?, updated_at_unix_ms = ?
 		WHERE id = ?`,
-		key.Label, boolInt(key.Enabled), quota, modelsJSON, expires, now, update.ID)
+		key.Label, boolInt(key.Enabled), quota, key.DailyQuotaMicroUSD, key.WeeklyQuotaMicroUSD,
+		key.MonthlyQuotaMicroUSD, key.MaxConcurrentRequests, modelsJSON, expires, now, update.ID)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("update plugin key policy: %w", err)
 	}
@@ -582,7 +617,8 @@ func ModelAllowed(key PluginKey, model string) bool {
 
 const pluginKeySelect = `SELECT id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 	enabled, revoked_at_unix_ms, expires_at_unix_ms, last_used_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
-	quota_micro_usd, settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
+	quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
+	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
 	FROM plugin_keys`
 
 type MatchKind string
@@ -804,9 +840,12 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	var keyEnabled int
 	var revoked, expires sql.NullInt64
 	var allowedJSON string
-	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json
+	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent int64
+	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json,
+		daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests
 		FROM plugin_keys WHERE id = ? AND caller_id = ?`,
-		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON); err != nil {
+		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON,
+		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Reservation{}, ErrPluginKeyNotFound
 		}
@@ -830,6 +869,36 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	}
 
 	now := nowUnixMilli()
+	if maxConcurrent > 0 {
+		var active int64
+		if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM reservations
+			WHERE plugin_key_id = ? AND status = 'held'`, request.PluginKeyID).Scan(&active); err != nil {
+			return Reservation{}, fmt.Errorf("count active reservations: %w", err)
+		}
+		if active >= maxConcurrent {
+			return Reservation{}, ErrConcurrentLimit
+		}
+	}
+	for _, limit := range []struct {
+		quota money.MicroUSD
+		start int64
+		err   error
+	}{
+		{money.MicroUSD(dailyQuota), utcDayStart(now), ErrDailyQuotaExceeded},
+		{money.MicroUSD(weeklyQuota), utcWeekStart(now), ErrWeeklyQuotaExceeded},
+		{money.MicroUSD(monthlyQuota), utcMonthStart(now), ErrMonthlyQuotaExceeded},
+	} {
+		if limit.quota == 0 {
+			continue
+		}
+		used, err := reservedSpendSince(ctx, tx, request.PluginKeyID, limit.start)
+		if err != nil {
+			return Reservation{}, err
+		}
+		if used > limit.quota-request.AmountMicroUSD {
+			return Reservation{}, limit.err
+		}
+	}
 	// Key quota is the only spend limit. Caller records are retained for
 	// ownership and historical attribution, but do not participate in accounting.
 	// quota_micro_usd NULL or 0 means unlimited.
@@ -864,6 +933,97 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 		return Reservation{}, err
 	}
 	return s.GetReservation(ctx, request.ReservationID)
+}
+
+// KeyUsageOverview contains self-service usage figures for one plugin key.
+// Period amounts include current holds because they also consume usable quota.
+type KeyUsageOverview struct {
+	RequestCount       int64
+	CostMicroUSD       money.MicroUSD
+	InputTokens        int64
+	OutputTokens       int64
+	ActiveReservations int64
+	DailyMicroUSD      money.MicroUSD
+	WeeklyMicroUSD     money.MicroUSD
+	MonthlyMicroUSD    money.MicroUSD
+}
+
+func (s *Store) GetKeyUsageOverview(ctx context.Context, keyID string, now time.Time) (KeyUsageOverview, error) {
+	if strings.TrimSpace(keyID) == "" {
+		return KeyUsageOverview{}, fmt.Errorf("%w: plugin key id is required", ErrInvalidArgument)
+	}
+	var overview KeyUsageOverview
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(1), COALESCE(SUM(cost_micro_usd), 0),
+		COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0)
+		FROM usage_ledger WHERE plugin_key_id = ?`, keyID).Scan(
+		&overview.RequestCount, &overview.CostMicroUSD, &overview.InputTokens, &overview.OutputTokens,
+	); err != nil {
+		return KeyUsageOverview{}, fmt.Errorf("summarize key usage: %w", err)
+	}
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM reservations
+		WHERE plugin_key_id = ? AND status = 'held'`, keyID).Scan(&overview.ActiveReservations); err != nil {
+		return KeyUsageOverview{}, fmt.Errorf("count active key reservations: %w", err)
+	}
+	var err error
+	if overview.DailyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcDayStart(now.UTC().UnixMilli())); err != nil {
+		return KeyUsageOverview{}, err
+	}
+	if overview.WeeklyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcWeekStart(now.UTC().UnixMilli())); err != nil {
+		return KeyUsageOverview{}, err
+	}
+	if overview.MonthlyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcMonthStart(now.UTC().UnixMilli())); err != nil {
+		return KeyUsageOverview{}, err
+	}
+	return overview, nil
+}
+
+func reservedSpendSince(ctx context.Context, tx *sql.Tx, keyID string, startUnixMilli int64) (money.MicroUSD, error) {
+	return keyPeriodSpend(ctx, tx, keyID, startUnixMilli)
+}
+
+type queryRower interface {
+	QueryRowContext(context.Context, string, ...any) *sql.Row
+}
+
+func keyPeriodSpend(ctx context.Context, db queryRower, keyID string, startUnixMilli int64) (money.MicroUSD, error) {
+	var settled, held int64
+	if err := db.QueryRowContext(ctx, `SELECT
+		COALESCE((SELECT SUM(cost_micro_usd) FROM usage_ledger WHERE plugin_key_id = ? AND created_at_unix_ms >= ?), 0),
+		COALESCE((SELECT SUM(held_micro_usd) FROM reservations WHERE plugin_key_id = ? AND status = 'held' AND created_at_unix_ms >= ?), 0)`,
+		keyID, startUnixMilli, keyID, startUnixMilli).Scan(&settled, &held); err != nil {
+		return 0, fmt.Errorf("sum period spend: %w", err)
+	}
+	return money.MicroUSD(settled + held), nil
+}
+
+func utcDayStart(nowUnixMilli int64) int64 {
+	now := time.UnixMilli(nowUnixMilli).UTC()
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).UnixMilli()
+}
+
+func utcWeekStart(nowUnixMilli int64) int64 {
+	now := time.UnixMilli(nowUnixMilli).UTC()
+	daysSinceMonday := (int(now.Weekday()) + 6) % 7
+	return time.Date(now.Year(), now.Month(), now.Day()-daysSinceMonday, 0, 0, 0, 0, time.UTC).UnixMilli()
+}
+
+func utcMonthStart(nowUnixMilli int64) int64 {
+	now := time.UnixMilli(nowUnixMilli).UTC()
+	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).UnixMilli()
+}
+
+func validatePluginKeyLimits(total, daily, weekly, monthly money.MicroUSD, maxConcurrent int64) error {
+	if total < 0 || daily < 0 || weekly < 0 || monthly < 0 || maxConcurrent < 0 {
+		return fmt.Errorf("%w: key limits must not be negative", ErrInvalidArgument)
+	}
+	return nil
+}
+
+func derefQuota(quota *money.MicroUSD) money.MicroUSD {
+	if quota == nil {
+		return 0
+	}
+	return *quota
 }
 
 func (s *Store) GetReservation(ctx context.Context, reservationID string) (Reservation, error) {
@@ -1038,6 +1198,78 @@ func (s *Store) Release(ctx context.Context, reservationID string, reason string
 		return Reservation{}, err
 	}
 	return s.GetReservation(ctx, reservationID)
+}
+
+// ReleaseStaleReservations releases abandoned holds left by a terminated host or
+// plugin process so they cannot consume concurrency indefinitely.
+func (s *Store) ReleaseStaleReservations(ctx context.Context, olderThan time.Time) (int64, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM reservations
+		WHERE status = 'held' AND updated_at_unix_ms < ?`, olderThan.UTC().UnixMilli())
+	if err != nil {
+		return 0, fmt.Errorf("list stale reservations: %w", err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return 0, fmt.Errorf("scan stale reservation: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, err
+	}
+	var released int64
+	for _, id := range ids {
+		reservation, err := getReservation(ctx, tx, id)
+		if err != nil {
+			return 0, err
+		}
+		now := nowUnixMilli()
+		if _, err := tx.ExecContext(ctx, `UPDATE plugin_keys SET
+			held_amount_micro_usd = CASE WHEN held_amount_micro_usd >= ? THEN held_amount_micro_usd - ? ELSE 0 END,
+			updated_at_unix_ms = ? WHERE id = ?`, reservation.HeldMicroUSD, reservation.HeldMicroUSD, now, reservation.PluginKeyID); err != nil {
+			return 0, fmt.Errorf("release stale key hold: %w", err)
+		}
+		result, err := tx.ExecContext(ctx, `UPDATE reservations SET status = 'released', released_at_unix_ms = ?,
+			settlement_summary = 'stale_timeout', updated_at_unix_ms = ? WHERE id = ? AND status = 'held'`, now, now, id)
+		if err != nil {
+			return 0, fmt.Errorf("release stale reservation: %w", err)
+		}
+		changed, err := result.RowsAffected()
+		if err != nil || changed != 1 {
+			return 0, ErrReservationFinalized
+		}
+		if err := insertAudit(ctx, tx, reservation.CallerID, reservation.PluginKeyID, reservation.ID, "quota_released", reservation.HeldMicroUSD, `{"reason":"stale_timeout"}`, now); err != nil {
+			return 0, err
+		}
+		released++
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return released, nil
+}
+
+func (s *Store) TouchReservation(ctx context.Context, reservationID string) error {
+	if strings.TrimSpace(reservationID) == "" {
+		return fmt.Errorf("%w: reservation id is required", ErrInvalidArgument)
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE reservations SET updated_at_unix_ms = ?
+		WHERE id = ? AND status = 'held'`, nowUnixMilli(), reservationID)
+	if err != nil {
+		return fmt.Errorf("touch reservation: %w", err)
+	}
+	if changed, err := result.RowsAffected(); err != nil || changed != 1 {
+		return ErrReservationFinalized
+	}
+	return nil
 }
 
 type UsageMetrics struct {
@@ -1290,12 +1522,36 @@ type UsageModelSummary struct {
 	CostMicroUSD money.MicroUSD `json:"cost_micro_usd"`
 	InputTokens  int64          `json:"input_tokens"`
 	OutputTokens int64          `json:"output_tokens"`
+	TotalTokens  int64          `json:"total_tokens"`
+}
+
+// UsageDailySummary is a UTC calendar-day usage rollup for dashboard trends.
+type UsageDailySummary struct {
+	Date                string         `json:"date"`
+	InputTokens         int64          `json:"input_tokens"`
+	OutputTokens        int64          `json:"output_tokens"`
+	CachedTokens        int64          `json:"cached_tokens"`
+	CacheReadTokens     int64          `json:"cache_read_tokens"`
+	CacheCreationTokens int64          `json:"cache_creation_tokens"`
+	CostMicroUSD        money.MicroUSD `json:"cost_micro_usd"`
 }
 
 type UsageOverviewSummary struct {
 	RequestCount          int64          `json:"request_count"`
 	TotalTokens           int64          `json:"total_tokens"`
 	EstimatedCostMicroUSD money.MicroUSD `json:"estimated_cost_micro_usd"`
+}
+
+// UsageFilteredSummary is the aggregate for an arbitrary usage filter.
+type UsageFilteredSummary struct {
+	RequestCount        int64          `json:"request_count"`
+	InputTokens         int64          `json:"input_tokens"`
+	OutputTokens        int64          `json:"output_tokens"`
+	ReasoningTokens     int64          `json:"reasoning_tokens"`
+	CachedTokens        int64          `json:"cached_tokens"`
+	CacheReadTokens     int64          `json:"cache_read_tokens"`
+	CacheCreationTokens int64          `json:"cache_creation_tokens"`
+	CostMicroUSD        money.MicroUSD `json:"cost_micro_usd"`
 }
 
 type UsageTokenTrendPoint struct {
@@ -1312,6 +1568,26 @@ func (s *Store) UsageOverviewSummary(ctx context.Context) (UsageOverviewSummary,
 	FROM usage_ledger`).Scan(&summary.RequestCount, &summary.TotalTokens, &summary.EstimatedCostMicroUSD)
 	if err != nil {
 		return UsageOverviewSummary{}, fmt.Errorf("summarize overview usage: %w", err)
+	}
+	return summary, nil
+}
+
+func (s *Store) SummarizeUsageFiltered(ctx context.Context, filter UsageFilter) (UsageFilteredSummary, error) {
+	query := `SELECT COUNT(1), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
+		COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cached_tokens), 0),
+		COALESCE(SUM(cache_read_tokens), 0), COALESCE(SUM(cache_creation_tokens), 0),
+		COALESCE(SUM(COALESCE(estimated_cost_micro_usd, cost_micro_usd)), 0)
+	FROM usage_ledger u`
+	where, args := usageWhere(filter, "u")
+	if where != "" {
+		query += ` WHERE ` + where
+	}
+	var summary UsageFilteredSummary
+	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
+		&summary.RequestCount, &summary.InputTokens, &summary.OutputTokens, &summary.ReasoningTokens,
+		&summary.CachedTokens, &summary.CacheReadTokens, &summary.CacheCreationTokens, &summary.CostMicroUSD,
+	); err != nil {
+		return UsageFilteredSummary{}, fmt.Errorf("summarize filtered usage: %w", err)
 	}
 	return summary, nil
 }
@@ -1383,8 +1659,9 @@ func (s *Store) SummarizeUsageByModel(ctx context.Context, callerID, pluginKeyID
 
 func (s *Store) SummarizeUsageByModelFiltered(ctx context.Context, filter UsageFilter) ([]UsageModelSummary, error) {
 	query := `
-SELECT u.model, COUNT(1), COALESCE(SUM(u.cost_micro_usd), 0),
-	COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0)
+	SELECT u.model, COUNT(1), COALESCE(SUM(u.cost_micro_usd), 0),
+	COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0),
+	COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens + u.cached_tokens + u.cache_read_tokens + u.cache_creation_tokens), 0)
 FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
@@ -1399,7 +1676,34 @@ FROM usage_ledger u`
 	var out []UsageModelSummary
 	for rows.Next() {
 		var item UsageModelSummary
-		if err := rows.Scan(&item.Model, &item.RequestCount, &item.CostMicroUSD, &item.InputTokens, &item.OutputTokens); err != nil {
+		if err := rows.Scan(&item.Model, &item.RequestCount, &item.CostMicroUSD, &item.InputTokens, &item.OutputTokens, &item.TotalTokens); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) SummarizeUsageDailyFiltered(ctx context.Context, filter UsageFilter) ([]UsageDailySummary, error) {
+	query := `SELECT strftime('%Y-%m-%d', u.created_at_unix_ms / 1000, 'unixepoch') AS day,
+		COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0), COALESCE(SUM(u.cached_tokens), 0),
+		COALESCE(SUM(u.cache_read_tokens), 0), COALESCE(SUM(u.cache_creation_tokens), 0),
+		COALESCE(SUM(COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd)), 0)
+	FROM usage_ledger u`
+	where, args := usageWhere(filter, "u")
+	if where != "" {
+		query += ` WHERE ` + where
+	}
+	query += ` GROUP BY day ORDER BY day`
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []UsageDailySummary
+	for rows.Next() {
+		var item UsageDailySummary
+		if err := rows.Scan(&item.Date, &item.InputTokens, &item.OutputTokens, &item.CachedTokens, &item.CacheReadTokens, &item.CacheCreationTokens, &item.CostMicroUSD); err != nil {
 			return nil, err
 		}
 		out = append(out, item)
@@ -1408,17 +1712,28 @@ FROM usage_ledger u`
 }
 
 type AuditEvent struct {
-	ID             int64
-	CallerID       *string
-	PluginKeyID    *string
-	ReservationID  *string
-	EventType      string
-	AmountMicroUSD *money.MicroUSD
-	DetailsJSON    string
-	CreatedAt      time.Time
+	ID             int64           `json:"id"`
+	CallerID       *string         `json:"caller_id"`
+	PluginKeyID    *string         `json:"plugin_key_id"`
+	ReservationID  *string         `json:"reservation_id"`
+	EventType      string          `json:"event_type"`
+	AmountMicroUSD *money.MicroUSD `json:"amount_micro_usd"`
+	DetailsJSON    string          `json:"details_json"`
+	CreatedAt      time.Time       `json:"created_at"`
+}
+
+type AuditFilter struct {
+	CallerID    string
+	PluginKeyID string
+	Limit       int
 }
 
 func (s *Store) ListAuditEvents(ctx context.Context, callerID string, limit int) ([]AuditEvent, error) {
+	return s.ListAuditEventsFiltered(ctx, AuditFilter{CallerID: callerID, Limit: limit})
+}
+
+func (s *Store) ListAuditEventsFiltered(ctx context.Context, filter AuditFilter) ([]AuditEvent, error) {
+	limit := filter.Limit
 	if limit <= 0 {
 		limit = 100
 	}
@@ -1426,10 +1741,21 @@ func (s *Store) ListAuditEvents(ctx context.Context, callerID string, limit int)
 		FROM audit_events`
 	var rows *sql.Rows
 	var err error
-	if strings.TrimSpace(callerID) == "" {
+	conds := make([]string, 0, 2)
+	args := make([]any, 0, 3)
+	if strings.TrimSpace(filter.CallerID) != "" {
+		conds = append(conds, "caller_id = ?")
+		args = append(args, filter.CallerID)
+	}
+	if strings.TrimSpace(filter.PluginKeyID) != "" {
+		conds = append(conds, "plugin_key_id = ?")
+		args = append(args, filter.PluginKeyID)
+	}
+	if len(conds) == 0 {
 		rows, err = s.db.QueryContext(ctx, query+` ORDER BY id DESC LIMIT ?`, limit)
 	} else {
-		rows, err = s.db.QueryContext(ctx, query+` WHERE caller_id = ? ORDER BY id DESC LIMIT ?`, callerID, limit)
+		args = append(args, limit)
+		rows, err = s.db.QueryContext(ctx, query+` WHERE `+strings.Join(conds, " AND ")+` ORDER BY id DESC LIMIT ?`, args...)
 	}
 	if err != nil {
 		return nil, err
@@ -1503,12 +1829,12 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	var key PluginKey
 	var enabled int
 	var revoked, expires, lastUsed, quota sql.NullInt64
-	var settled, held int64
+	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent, settled, held int64
 	var allowedJSON string
 	var created, updated int64
 	if err := row.Scan(&key.ID, &key.CallerID, &key.Kid, &key.KeyHash, &key.EncryptedKeyMaterial, &key.PepperID, &key.Fingerprint,
 		&key.Label, &key.Principal, &key.CallerScope, &enabled, &revoked, &expires, &lastUsed, &created, &updated,
-		&quota, &settled, &held, &allowedJSON); err != nil {
+		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PluginKey{}, ErrPluginKeyNotFound
 		}
@@ -1531,6 +1857,10 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 		value := money.MicroUSD(quota.Int64)
 		key.QuotaMicroUSD = &value
 	}
+	key.DailyQuotaMicroUSD = money.MicroUSD(dailyQuota)
+	key.WeeklyQuotaMicroUSD = money.MicroUSD(weeklyQuota)
+	key.MonthlyQuotaMicroUSD = money.MicroUSD(monthlyQuota)
+	key.MaxConcurrentRequests = maxConcurrent
 	key.SettledSpendMicroUSD = money.MicroUSD(settled)
 	key.HeldAmountMicroUSD = money.MicroUSD(held)
 	models, err := unmarshalAllowedModels(allowedJSON)

@@ -53,9 +53,10 @@ type PricingConfig struct {
 	Default       *PerMTokPricing      `yaml:"default,omitempty" json:"default,omitempty"`
 }
 
-// StreamConfig bounds in-memory buffering for streaming settlement.
+// StreamConfig controls streaming accounting and stale-hold recovery.
 type StreamConfig struct {
-	MaxBufferBytes int `yaml:"max_buffer_bytes" json:"max_buffer_bytes"`
+	MaxBufferBytes          int           `yaml:"max_buffer_bytes" json:"max_buffer_bytes"`
+	StaleReservationTimeout time.Duration `yaml:"stale_reservation_timeout" json:"stale_reservation_timeout"`
 }
 
 // SettlementConfig controls post-upstream accounting when usage is incomplete.
@@ -122,7 +123,8 @@ func Default() Config {
 			MissingUsage: MissingUsageSettleReserved,
 		},
 		Stream: StreamConfig{
-			MaxBufferBytes: 4 << 20,
+			MaxBufferBytes:          4 << 20,
+			StaleReservationTimeout: 2 * time.Hour,
 		},
 	}
 }
@@ -239,6 +241,9 @@ func (c Config) Validate() error {
 	}
 	if c.Stream.MaxBufferBytes <= 0 {
 		errs = append(errs, errors.New("stream.max_buffer_bytes must be greater than zero"))
+	}
+	if c.Stream.StaleReservationTimeout < time.Minute || c.Stream.StaleReservationTimeout > 24*time.Hour {
+		errs = append(errs, errors.New("stream.stale_reservation_timeout must be between 1 minute and 24 hours"))
 	}
 
 	switch c.Pricing.UnknownPolicy {

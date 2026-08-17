@@ -31,6 +31,8 @@ const (
 	CallerScopeMetadataKey = "caller_scope"
 )
 
+const staleCleanupInterval = time.Minute
+
 // Service is the process-wide plugin runtime.
 type Service struct {
 	cfg         config.Config
@@ -38,6 +40,8 @@ type Service struct {
 	store       *store.Store
 	authMu      sync.Mutex
 	authPending map[string]*pendingAuthCapture
+	cleanupMu   sync.Mutex
+	lastCleanup time.Time
 }
 
 var current atomic.Pointer[Service]
@@ -76,6 +80,10 @@ func Open(ctx context.Context, cfg config.Config) (*Service, error) {
 	if err := svc.ensureBootstrap(ctx); err != nil {
 		_ = svc.Close()
 		return nil, err
+	}
+	if _, err := svc.cleanupStaleReservations(ctx, true); err != nil {
+		_ = svc.Close()
+		return nil, fmt.Errorf("release stale reservations: %w", err)
 	}
 	return svc, nil
 }
@@ -124,6 +132,36 @@ func (s *Service) Authenticate(ctx context.Context, headers http.Header) (princi
 		"caller_id":   key.CallerID,
 		"fingerprint": key.Fingerprint,
 	}, true
+}
+
+// LookupPluginKey verifies a plaintext plugin key for its self-service usage page.
+// It intentionally returns one generic error for invalid, unavailable, or disabled
+// keys so the public endpoint does not expose key state to unauthenticated callers.
+func (s *Service) LookupPluginKey(ctx context.Context, raw string) (store.PluginKey, error) {
+	raw = strings.TrimSpace(raw)
+	kid, err := keys.Parse(raw)
+	if err != nil {
+		return store.PluginKey{}, keys.ErrInvalidKey
+	}
+	key, err := s.store.GetPluginKeyByKid(ctx, kid)
+	if err != nil {
+		return store.PluginKey{}, keys.ErrInvalidKey
+	}
+	if err := store.EnsurePluginKeyUsable(key, time.Now().UTC()); err != nil {
+		return store.PluginKey{}, keys.ErrInvalidKey
+	}
+	if _, ok := keys.Verify(raw, key.KeyHash, key.PepperID, s.peppers); !ok {
+		return store.PluginKey{}, keys.ErrInvalidKey
+	}
+	caller, err := s.store.GetCaller(ctx, key.CallerID)
+	if err != nil || !caller.Enabled {
+		return store.PluginKey{}, keys.ErrInvalidKey
+	}
+	return key, nil
+}
+
+func (s *Service) LookupPluginKeyFromHeaders(ctx context.Context, headers http.Header) (store.PluginKey, error) {
+	return s.LookupPluginKey(ctx, bearerToken(headers))
 }
 
 func bearerToken(headers http.Header) string {
@@ -252,6 +290,9 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 }
 
 func (s *Service) Reserve(ctx context.Context, key store.PluginKey, plan ReservePlan, idempotency string) (store.Reservation, error) {
+	if _, err := s.cleanupStaleReservations(ctx, false); err != nil {
+		return store.Reservation{}, fmt.Errorf("release stale reservations: %w", err)
+	}
 	if idempotency == "" {
 		idempotency = newIdempotency(key.ID, plan.Model, plan.TokenEstimate, plan.Amount)
 	}
@@ -264,6 +305,25 @@ func (s *Service) Reserve(ctx context.Context, key store.PluginKey, plan Reserve
 		AmountMicroUSD:       plan.Amount,
 		RequestSummary:       fmt.Sprintf("model=%s in=%d out=%d", plan.Model, plan.InputEstimate, plan.OutputEstimate),
 	})
+}
+
+func (s *Service) cleanupStaleReservations(ctx context.Context, force bool) (int64, error) {
+	s.cleanupMu.Lock()
+	defer s.cleanupMu.Unlock()
+	now := time.Now().UTC()
+	if !force && !s.lastCleanup.IsZero() && now.Sub(s.lastCleanup) < staleCleanupInterval {
+		return 0, nil
+	}
+	released, err := s.store.ReleaseStaleReservations(ctx, now.Add(-s.cfg.Stream.StaleReservationTimeout))
+	if err != nil {
+		return 0, err
+	}
+	s.lastCleanup = now
+	return released, nil
+}
+
+func (s *Service) TouchReservation(ctx context.Context, reservationID string) error {
+	return s.store.TouchReservation(ctx, reservationID)
 }
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
@@ -364,17 +424,21 @@ func (s *Service) MintKey(ctx context.Context, callerID, label string, quota mon
 }
 
 type MintKeyRequest struct {
-	CallerID      string
-	Label         string
-	ExpiresAt     *time.Time
-	QuotaMicroUSD money.MicroUSD
-	AllowedModels []string
-	KeyMaterial   string
+	CallerID              string
+	Label                 string
+	ExpiresAt             *time.Time
+	QuotaMicroUSD         money.MicroUSD
+	DailyQuotaMicroUSD    money.MicroUSD
+	WeeklyQuotaMicroUSD   money.MicroUSD
+	MonthlyQuotaMicroUSD  money.MicroUSD
+	MaxConcurrentRequests int64
+	AllowedModels         []string
+	KeyMaterial           string
 }
 
 func (s *Service) MintKeyWithPolicy(ctx context.Context, req MintKeyRequest) (store.PluginKey, keys.Material, error) {
-	if req.QuotaMicroUSD < 0 {
-		return store.PluginKey{}, keys.Material{}, fmt.Errorf("%w: key quota must not be negative", store.ErrInvalidArgument)
+	if req.QuotaMicroUSD < 0 || req.DailyQuotaMicroUSD < 0 || req.WeeklyQuotaMicroUSD < 0 || req.MonthlyQuotaMicroUSD < 0 || req.MaxConcurrentRequests < 0 {
+		return store.PluginKey{}, keys.Material{}, fmt.Errorf("%w: key limits must not be negative", store.ErrInvalidArgument)
 	}
 	if strings.TrimSpace(req.CallerID) == "" {
 		req.CallerID = BootstrapCallerID
@@ -396,19 +460,23 @@ func (s *Service) MintKeyWithPolicy(ctx context.Context, req MintKeyRequest) (st
 		return store.PluginKey{}, keys.Material{}, err
 	}
 	key, err := s.store.CreatePluginKey(ctx, store.PluginKeySpec{
-		CallerID:             req.CallerID,
-		Kid:                  material.Kid,
-		KeyHash:              material.KeyHash,
-		EncryptedKeyMaterial: encryptedMaterial,
-		PepperID:             material.PepperID,
-		Fingerprint:          material.Fingerprint,
-		Label:                req.Label,
-		Principal:            material.Principal,
-		CallerScope:          material.CallerScope,
-		Enabled:              true,
-		ExpiresAt:            req.ExpiresAt,
-		QuotaMicroUSD:        req.QuotaMicroUSD,
-		AllowedModels:        req.AllowedModels,
+		CallerID:              req.CallerID,
+		Kid:                   material.Kid,
+		KeyHash:               material.KeyHash,
+		EncryptedKeyMaterial:  encryptedMaterial,
+		PepperID:              material.PepperID,
+		Fingerprint:           material.Fingerprint,
+		Label:                 req.Label,
+		Principal:             material.Principal,
+		CallerScope:           material.CallerScope,
+		Enabled:               true,
+		ExpiresAt:             req.ExpiresAt,
+		QuotaMicroUSD:         req.QuotaMicroUSD,
+		DailyQuotaMicroUSD:    req.DailyQuotaMicroUSD,
+		WeeklyQuotaMicroUSD:   req.WeeklyQuotaMicroUSD,
+		MonthlyQuotaMicroUSD:  req.MonthlyQuotaMicroUSD,
+		MaxConcurrentRequests: req.MaxConcurrentRequests,
+		AllowedModels:         req.AllowedModels,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err
@@ -445,19 +513,23 @@ func (s *Service) RotateKey(ctx context.Context, keyID, keyMaterial string) (sto
 		return store.PluginKey{}, keys.Material{}, err
 	}
 	newKey, err := s.store.RotatePluginKey(ctx, oldKey.ID, store.PluginKeySpec{
-		CallerID:             oldKey.CallerID,
-		Kid:                  material.Kid,
-		KeyHash:              material.KeyHash,
-		EncryptedKeyMaterial: encryptedMaterial,
-		PepperID:             material.PepperID,
-		Fingerprint:          material.Fingerprint,
-		Label:                oldKey.Label,
-		Principal:            material.Principal,
-		CallerScope:          material.CallerScope,
-		Enabled:              true,
-		ExpiresAt:            oldKey.ExpiresAt,
-		QuotaMicroUSD:        quota,
-		AllowedModels:        oldKey.AllowedModels,
+		CallerID:              oldKey.CallerID,
+		Kid:                   material.Kid,
+		KeyHash:               material.KeyHash,
+		EncryptedKeyMaterial:  encryptedMaterial,
+		PepperID:              material.PepperID,
+		Fingerprint:           material.Fingerprint,
+		Label:                 oldKey.Label,
+		Principal:             material.Principal,
+		CallerScope:           material.CallerScope,
+		Enabled:               true,
+		ExpiresAt:             oldKey.ExpiresAt,
+		QuotaMicroUSD:         quota,
+		DailyQuotaMicroUSD:    oldKey.DailyQuotaMicroUSD,
+		WeeklyQuotaMicroUSD:   oldKey.WeeklyQuotaMicroUSD,
+		MonthlyQuotaMicroUSD:  oldKey.MonthlyQuotaMicroUSD,
+		MaxConcurrentRequests: oldKey.MaxConcurrentRequests,
+		AllowedModels:         oldKey.AllowedModels,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err
@@ -606,6 +678,9 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 		if err := next.ensureBootstrap(ctx); err != nil {
 			return err
 		}
+		if _, err := next.cleanupStaleReservations(ctx, true); err != nil {
+			return fmt.Errorf("release stale reservations: %w", err)
+		}
 		if !current.CompareAndSwap(old, next) {
 			return fmt.Errorf("service replaced concurrently during reconfigure")
 		}
@@ -626,6 +701,10 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 	if err := svc.ensureBootstrap(ctx); err != nil {
 		_ = svc.Close()
 		return err
+	}
+	if _, err := svc.cleanupStaleReservations(ctx, true); err != nil {
+		_ = svc.Close()
+		return fmt.Errorf("release stale reservations: %w", err)
 	}
 	current.Store(svc)
 	return nil

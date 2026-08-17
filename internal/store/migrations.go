@@ -182,6 +182,21 @@ var migrations = []migration{
 				ON usage_ledger(auth_id, created_at_unix_ms)`,
 		},
 	},
+	{
+		version: 7,
+		name:    "plugin key period and concurrency limits",
+		up: []string{
+			// Zero means the corresponding limit is unlimited.
+			`ALTER TABLE plugin_keys ADD COLUMN daily_quota_micro_usd INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE plugin_keys ADD COLUMN weekly_quota_micro_usd INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE plugin_keys ADD COLUMN monthly_quota_micro_usd INTEGER NOT NULL DEFAULT 0`,
+			`ALTER TABLE plugin_keys ADD COLUMN max_concurrent_requests INTEGER NOT NULL DEFAULT 0`,
+			`CREATE INDEX IF NOT EXISTS reservations_plugin_key_status_created_idx
+				ON reservations(plugin_key_id, status, created_at_unix_ms)`,
+			`CREATE INDEX IF NOT EXISTS usage_ledger_plugin_key_created_cost_idx
+				ON usage_ledger(plugin_key_id, created_at_unix_ms, cost_micro_usd)`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

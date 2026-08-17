@@ -278,6 +278,15 @@ func authenticate(raw []byte) ([]byte, error) {
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return okEnvelope(pluginapi.FrontendAuthResponse{Authenticated: false})
 	}
+	// CLIProxyAPI's management center queries the read-only model directory
+	// without a client Key. Keep model execution exclusively Key-authenticated.
+	if publicModelDirectoryRequest(req.Method, req.Path) {
+		return okEnvelope(pluginapi.FrontendAuthResponse{
+			Authenticated: true,
+			Principal:     "credit-manager:model-directory",
+			Metadata:      map[string]string{"plugin": service.PluginID, "public_models": "true"},
+		})
+	}
 	principal, meta, ok := svc.Authenticate(context.Background(), req.Headers)
 	if !ok {
 		return okEnvelope(pluginapi.FrontendAuthResponse{Authenticated: false})
@@ -287,6 +296,10 @@ func authenticate(raw []byte) ([]byte, error) {
 		Principal:     principal,
 		Metadata:      meta,
 	})
+}
+
+func publicModelDirectoryRequest(method, path string) bool {
+	return strings.EqualFold(strings.TrimSpace(method), http.MethodGet) && strings.TrimRight(strings.TrimSpace(path), "/") == "/v1/models"
 }
 
 func routeModel(raw []byte) ([]byte, error) {
@@ -335,9 +348,11 @@ func execute(raw []byte) ([]byte, error) {
 	}
 	reservation, err := svc.Reserve(ctx, key, plan, "")
 	if err != nil {
-		return errorEnvelope("insufficient_quota", err.Error()), nil
+		return errorEnvelope("limit_rejected", err.Error()), nil
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
+	defer stopHeartbeat()
 
 	startedAt := time.Now()
 	hostBody, headers, status, errHost := hostModelExecute(req.HostCallbackID, req.ExecutorRequest, body, false)
@@ -408,6 +423,8 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		return err
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
+	defer stopHeartbeat()
 
 	startedAt := time.Now()
 	body = requestBodyWithStreamUsage(body, req.SourceFormat, req.Format)
@@ -498,6 +515,23 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
 	return svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
 		usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "success"))
+}
+
+func startReservationHeartbeat(svc *service.Service, reservationID string) func() {
+	done := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				_ = svc.TouchReservation(context.Background(), reservationID)
+			}
+		}
+	}()
+	return func() { close(done) }
 }
 
 func hostModelExecute(hostCallbackID string, req pluginapi.ExecutorRequest, body []byte, stream bool) ([]byte, http.Header, int, error) {
