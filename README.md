@@ -2,6 +2,8 @@
 
 面向 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的原生 Go 插件，为模型代理请求提供独立鉴权、额度控制和基于实际 Token 用量的结算能力。
 
+[English README](README.en.md)
+
 插件 ID：`credit-manager`
 
 ## 核心能力
@@ -26,10 +28,13 @@ Authorization: Bearer tk-...
 1. 编译并部署动态库。Windows 可使用 `scripts\deploy.ps1` 部署至 `D:\CLIProxyAPI\plugins\windows\amd64`。
 2. 在 CLIProxyAPI 管理中心启用 `credit-manager`。宿主配置可为空；切换开关或重载配置通常无需重启。
 3. 仅在替换动态库文件后重启 CLIProxyAPI。Windows 已加载的 DLL 通常无法热替换。
-4. 在侧栏打开 **CPA 额度管理**，输入宿主管理密钥后，签发插件 Key 并设置独立额度、可用模型和模型计价规则；随后可查询按 Key 和模型聚合的用量统计。
+4. 在侧栏打开 **CPA 额度管理**，输入宿主管理密钥后，签发插件 Key 并设置总/日/周/月额度、最大并发、可用模型和模型计价规则；随后可查询按 Key 和模型聚合的用量统计。
 5. 客户端携带 `Authorization: Bearer tk-...` 调用模型接口。
+6. 可将 Key 自助查询链接提供给 Key 持有人，无需提供 CPA 管理密钥。
 
 > **重要：** 启用 `credit-manager` 后，插件会接管代理请求的前端鉴权。原先配置在 CPA 中的 `api-keys` 或其他宿主 Key 将无法用于模型请求；请在 **CPA 额度管理** 中签发 `tk-...` 格式的插件 Key，并将客户端改用该 Key。
+
+> 为兼容 CPA 管理中心的可用模型目录，插件允许匿名读取 `GET /v1/models`；该例外仅返回模型名称，不能调用模型或访问管理接口。
 
 首次启动时，插件会自动完成以下初始化：
 
@@ -38,7 +43,7 @@ Authorization: Bearer tk-...
 | pepper | `data_dir/key-peppers` 自动生成 |
 | 归属记录 | `default`，仅用于 Key 归属与使用统计 |
 | 价格 | 全模型规则 `.*`，费用 0；`unknown_policy=allow` |
-| 插件 Key | **不自动创建**；请通过侧栏或管理 API 手动签发，并提供 `quota_micro_usd` |
+| 插件 Key | **不自动创建**；请通过侧栏或管理 API 手动签发，并按需设置总/日/周/月额度及最大并发 |
 
 > 生产环境应配置实际价格，并为每个插件 Key 设置合理额度。以下章节说明编译、部署及可选高级配置。
 
@@ -162,7 +167,7 @@ export CREDIT_MANAGER_CONFIG_FILE=/path/to/config.yaml
 
 1. 确认宿主已启动且插件处于启用状态。
 2. 在侧栏打开 **CPA 额度管理**（资源页 `/console`），签发插件 Key 并设置额度。
-3. 也可调用 `POST /v0/management/credit-manager/keys`；`quota_micro_usd` 为必填字段。
+3. 也可调用 `POST /v0/management/credit-manager/keys`；可分别设置总、日、周、月额度和最大并发。
 4. 可选：通过以下接口进行健康检查。此处使用宿主管理密钥，而非插件 Key：
 
 ```bash
@@ -171,6 +176,28 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/health" \
 ```
 
 端口与管理鉴权头以宿主配置为准。若侧栏未显示菜单，请确认插件已启用、DLL 为包含 Resources 的最新构建，并在替换 DLL 后重启宿主。
+
+### Key 自助查询页面
+
+Key 持有人可通过以下独立页面查看**自己的**额度和使用统计，无需登录 CPA 管理面板或持有宿主管理密钥：
+
+```text
+http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup
+```
+
+页面会要求输入 `tk-...` 插件 Key，并仅查询该 Key 的数据。可查看：
+
+- 总/日/周/月额度、当前在途请求和最大并发进度。
+- 按时间范围与模型筛选的请求数、Token 和费用。
+- Token/费用趋势、模型调用占比和最近调用明细。
+- 最近调用的服务端分页。
+
+安全边界：
+
+- 页面不需要 CPA 管理登录，也不会显示在 CPA 管理侧栏中；请按需将上述 URL 分享给 Key 持有人。
+- Key 仅作为当前请求的 `Authorization: Bearer` 头发送，不写入 URL、页面持久存储或浏览器存储。
+- 公开响应不包含宿主账号、调用方 ID、插件 Key ID、认证文件路径或邮箱等内部字段。
+- 建议仅在受信任网络中暴露 CPA 的 `8317` 端口，并通过 HTTPS 反向代理对外提供访问。
 
 ### 管理 API：生产配置
 
@@ -250,7 +277,11 @@ curl -sS -D - -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys" 
   -d '{
     "caller_id": "team-a",
     "label": "ci-bot",
-    "quota_micro_usd": 10000000
+    "total_quota_micro_usd": 10000000,
+    "daily_quota_micro_usd": 1000000,
+    "weekly_quota_micro_usd": 5000000,
+    "monthly_quota_micro_usd": 10000000,
+    "max_concurrent_requests": 3
   }'
 ```
 
@@ -312,13 +343,20 @@ curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
 
 ## 日常运维
 
-### 调整插件 Key 额度
+### 调整插件 Key 限制
 
 ```bash
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/update" \
   -H "Authorization: Bearer MGMT_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"id":"<plugin_key_id>","quota_micro_usd":20000000}'
+  -d '{
+    "id":"<plugin_key_id>",
+    "total_quota_micro_usd":20000000,
+    "daily_quota_micro_usd":2000000,
+    "weekly_quota_micro_usd":10000000,
+    "monthly_quota_micro_usd":20000000,
+    "max_concurrent_requests":5
+  }'
 ```
 
 ### 禁用或启用插件 Key
@@ -361,9 +399,9 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | POST | `/v0/management/credit-manager/callers` | 创建插件 Key 归属记录 |
 | GET | `/v0/management/credit-manager/callers` | 列出插件 Key 归属记录 |
 | POST | `/v0/management/credit-manager/callers/enabled` | 启停归属记录 |
-| POST | `/v0/management/credit-manager/keys` | 签发插件 Key（`quota_micro_usd` 必填，可指定 `allowed_models`） |
+| POST | `/v0/management/credit-manager/keys` | 签发插件 Key（可设置总/日/周/月额度、最大并发和 `allowed_models`） |
 | GET | `/v0/management/credit-manager/keys` | 列出插件 Key（`caller_id` 可选） |
-| POST | `/v0/management/credit-manager/keys/update` | 更新 Key 标签、启用状态、额度或可用模型 |
+| POST | `/v0/management/credit-manager/keys/update` | 更新 Key 标签、启用状态、各额度、最大并发或可用模型 |
 | POST | `/v0/management/credit-manager/keys/revoke` | 撤销插件 Key |
 | POST | `/v0/management/credit-manager/pricing` | 新增/更新价格规则 |
 | GET | `/v0/management/credit-manager/pricing` | 列价格规则 |
@@ -392,6 +430,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | `pricing.unknown_policy` | 未匹配价格规则时的策略：`deny`、`allow` 或 `default`；零配置默认 `allow` |
 | `settlement.missing_usage` | 上游未返回 usage 时的处理策略：`settle_reserved` 或 `release` |
 | `stream.max_buffer_bytes` | 流式结算的本地缓冲区上限 |
+| `stream.stale_reservation_timeout` | 无心跳的在途预约自动释放阈值，默认 `2h`；正常流式请求会定期更新心跳 |
 
 ---
 
@@ -401,6 +440,8 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 - 价格单位为 **每 1M Token 的 micro-USD**。
 - 各 Token 类别的费用分别**向上取整**后相加。
 - **严格预占**：单个插件 Key 的可用额度不足时，请求直接拒绝；Key 之间不共享额度。
+- Key 可分别设置总、日、周、月额度与最大并发请求数；`0` 或省略表示该项不限制。日/周/月按 UTC 自然周期计算，周从周一开始。
+- 周期额度按已结算费用加当前周期内的在途预占计算；并发额度按未结算或未释放的请求数计算，所有检查均在同一个预占事务内完成。
 - **实际结算可能超过预占额**：为避免遗漏真实用量，结算额可大于预占额。此时 Key 余额可能为负，后续请求将继续遵循 fail-closed 策略，直至额度恢复。
 
 ### 价格字段
@@ -509,3 +550,7 @@ A：当实际 usage 超过预占额时，系统会按实际用量结算，以避
 **Q：客户端仍需使用原来的 `api-keys` 吗？**
 
 A：不需要。插件启用独占前端鉴权后，代理请求仅接受插件 Key。
+
+**Q：Key 持有人如何查看自己的额度和用量？**
+
+A：访问 `http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup`，输入自己的 `tk-...` Key。该页面无需 CPA 管理密钥，只返回当前 Key 的信息。
