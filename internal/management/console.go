@@ -225,6 +225,16 @@ input:focus, select:focus, textarea:focus { border-color:#76d7b8; background:#ff
 .custom-option.multi::before { content:""; flex:0 0 auto; width:14px; height:14px; margin-right:9px; border:1px solid #c9d5cc; border-radius:4px; background:#fff; }
 .custom-option.multi.selected::before { border-color:var(--accent); background:var(--accent) center / 11px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='m2.3 6.2 2.25 2.2L9.7 3.4' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .custom-option.multi.selected::after { display:none; }
+.key-search-control { position:relative; display:block; width:100%; }
+.key-search-control input { padding-right:34px; }
+.key-search-control::after { content:""; position:absolute; top:50%; right:11px; width:16px; height:16px; margin-top:-8px; pointer-events:none; background:center / 16px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='7' cy='7' r='4.25' stroke='%236d786f' stroke-width='1.55'/%3E%3Cpath d='m10.2 10.2 3 3' stroke='%236d786f' stroke-width='1.55' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.key-search-control.open input { border-color:#76d7b8; background:#fff; box-shadow:0 0 0 3px rgba(30,183,135,.12); }
+.key-search-panel { width:100%; min-width:100%; max-width:none; max-height:270px; overflow:auto; padding:6px; }
+.key-search-option { display:flex; align-items:center; width:100%; min-height:38px; padding:8px 10px; border:0; border-radius:7px; background:transparent; color:var(--text); font:inherit; text-align:left; box-shadow:none; }
+.key-search-option:hover, .key-search-option:focus-visible { border:0; background:#eff9f4; color:#087d5a; box-shadow:none; }
+.key-search-option .key-search-label { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.84rem; font-weight:650; }
+.key-search-option.revoked .key-search-label::after { content:"已删除"; display:inline-block; margin-left:7px; padding:1px 5px; border:1px solid #f1d3cf; border-radius:999px; background:#fff6f4; color:#bd443b; font-size:.66rem; font-weight:650; vertical-align:1px; }
+.key-search-empty { padding:12px 10px; color:var(--muted); font-size:.8rem; text-align:center; }
 .custom-date-panel { width:312px; padding:14px; border-color:#cfe7da; border-radius:14px; background:linear-gradient(180deg, #fff, #fbfdfb); box-shadow:0 20px 44px rgba(29, 49, 37, .17), 0 4px 12px rgba(29, 49, 37, .06); }
 .custom-date-header, .custom-date-footer, .custom-date-time { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .custom-date-header { min-height:32px; padding:0 1px; }
@@ -342,7 +352,22 @@ table .mono.muted { color:var(--table-muted); font-size:.84rem; font-weight:500;
 }
 .flash-close:hover { background: #f3f5f2; border: none; box-shadow: none; color: var(--text); }
 @media (max-width: 520px) {
-  .flash { top: 12px; right:auto; left:50%; width:calc(100vw - 24px); max-width:none; }
+  .flash {
+    top:calc(88px + env(safe-area-inset-top));
+    right:auto;
+    left:50%;
+    width:calc(100vw - 24px);
+    max-width:none;
+    max-height:min(42vh, 280px);
+    padding:14px 13px 14px 12px;
+    border-radius:14px;
+    font-size:.92rem;
+    line-height:1.55;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .flash-message { overflow-wrap:anywhere; word-break:break-word; }
+  .flash-close { position:sticky; top:0; margin-left:2px; background:inherit; }
 }
 .empty-state { display:grid; place-items:center; min-height:112px; padding:22px 16px; text-align:center; color:var(--muted); background:linear-gradient(135deg, #fbfdfb, #f6faf7); border:1px dashed #dce7de; border-radius:10px; font-size:.82rem; }
 .empty-state::before { content:""; width:22px; height:2px; margin-bottom:9px; border-radius:2px; background:var(--accent); }
@@ -636,10 +661,15 @@ html[data-palette="dark"] .custom-control.open > .custom-control-trigger {
 }
 html[data-palette="dark"] .custom-control-trigger::after { filter:brightness(0) invert(1) opacity(.7); }
 html[data-palette="dark"] .custom-select-panel,
-html[data-palette="dark"] .custom-date-panel { background:#25221f !important; border-color:#4a443c !important; }
+html[data-palette="dark"] .custom-date-panel,
+html[data-palette="dark"] .key-search-panel { background:#25221f !important; border-color:#4a443c !important; }
 html[data-palette="dark"] .custom-select-option { color:#f6f4f1 !important; }
 html[data-palette="dark"] .custom-select-option:hover,
-html[data-palette="dark"] .custom-select-option.selected { background:#37322d !important; color:#fffdf9 !important; }
+html[data-palette="dark"] .custom-select-option.selected,
+html[data-palette="dark"] .key-search-option:hover,
+html[data-palette="dark"] .key-search-option:focus-visible { background:#37322d !important; color:#fffdf9 !important; }
+html[data-palette="dark"] .key-search-option { color:#f6f4f1 !important; }
+html[data-palette="dark"] .key-search-control::after { filter:brightness(0) invert(1) opacity(.7); }
 html[data-palette="dark"] .badge, html[data-palette="dark"] .model-chip, html[data-palette="dark"] .quota-bar { background:#2b2824; border-color:#48423b; color:var(--text); }
 html[data-palette="dark"] .badge.ok, html[data-palette="dark"] .model-chip.all { background:#203b30; border-color:#35614f; color:#94dfbb; }
 html[data-palette="dark"] .badge.bad, html[data-palette="dark"] .btn.danger { background:#422522; border-color:#70413b; color:#ffb5aa; }
@@ -903,8 +933,20 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
                 <label>标签
                   <input id="keyModalLabel" placeholder="team-a / bot"/>
                 </label>
-                <label>最大使用额度（USD）
+                <label>总额度（USD）
                   <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>日额度（USD）
+                  <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>周额度（USD）
+                  <input id="keyModalWeeklyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>月额度（USD）
+                  <input id="keyModalMonthlyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>最大并发请求数
+                  <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>
                 <label class="field-span-2">可用模型（多选；不选=全部）
                   <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
@@ -1055,7 +1097,10 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
           </span>
         </label>
         <label>Key
-          <select id="overviewKeyFilter"><option value="">全部 Key</option></select>
+          <span class="key-search-control" id="overviewKeySearch">
+            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="overviewKeyOptions" hidden></span>
+          </span>
         </label>
         <label>模型
           <select id="overviewModelFilter"><option value="">全部已使用模型</option></select>
@@ -1170,7 +1215,10 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
           </span>
         </label>
         <label>Key
-          <select id="usageKeyFilter"><option value="">全部 Key</option></select>
+          <span class="key-search-control" id="usageKeySearch">
+            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="usageKeyOptions" hidden></span>
+          </span>
         </label>
         <label>模型
           <select id="usageModelFilter"><option value="">全部已使用模型</option></select>
@@ -1266,6 +1314,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
+    '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
   };
   const textSources = new WeakMap();
@@ -1280,6 +1329,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   const state = {
     overview: null,
     keys: [],
+    allKeys: [],
     modelPrices: {},
     availableModels: [],
     usagePage: 1,
@@ -2004,6 +2054,12 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     if (!event.target.closest('.custom-control')) closeCustomControls();
   });
   document.addEventListener('click', event => {
+    if (!event.target.closest('.key-search-control')) {
+      closeKeySearch('overview');
+      closeKeySearch('usage');
+    }
+  });
+  document.addEventListener('click', event => {
     if (event.target.closest('.chart-connect-action')) openConnectionModal();
   });
 
@@ -2106,7 +2162,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       ? { from: value('overviewFromFilter'), to: value('overviewToFilter') }
       : overviewRangeDates();
     const filter = {
-      plugin_key_id: value('overviewKeyFilter'),
+      plugin_key_id: resolveKeyFilter(value('overviewKeyFilter')),
       model: value('overviewModelFilter'),
       source: value('overviewSourceFilter'),
       from: range.from,
@@ -2654,19 +2710,16 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   }
 
   function renderKeys(keys) {
-    state.keys = (keys || []).filter(key => !key.revoked_at);
-    const selects = [
-      { element: $('usageKeyFilter'), empty: '全部 Key' },
-      { element: $('overviewKeyFilter'), empty: '全部 Key' },
-    ];
-    selects.forEach(({ element, empty }) => {
-      const current = element.value;
-      element.innerHTML = '<option value="">'+esc(empty)+'</option>' + state.keys.map(k =>
-        '<option value="'+esc(k.id)+'">'+esc((k.label || k.id).slice(0, 48) + (k.revoked_at ? '（已删除）' : ''))+'</option>'
-      ).join('');
-      if (current) element.value = current;
-      refreshCustomControl(element);
+    const allKeys = [...(keys || [])].sort((left, right) => {
+      if (Boolean(left.revoked_at) !== Boolean(right.revoked_at)) return left.revoked_at ? 1 : -1;
+      return String(right.created_at || '').localeCompare(String(left.created_at || ''));
     });
+    // Keep revoked keys available for historical usage filters, but hide them
+    // from the active Key management table.
+    state.keys = allKeys.filter(key => !key.revoked_at);
+    state.allKeys = allKeys;
+    renderKeySearchOptions('usage');
+    renderKeySearchOptions('overview');
 
     if ($('keysCount')) {
       $('keysCount').textContent = state.keys.length ? (state.keys.length + ' 个 Key') : '暂无 Key';
@@ -2686,20 +2739,22 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       return '<div class="model-chip-row">' + shown + more + '</div>';
     };
 
+    const limitText = (value) => Number(value || 0) > 0 ? money(value) : '不限制';
     const quotaBlock = (k) => {
       const quota = Number(k.quota_micro_usd || 0);
       const used = Number(k.settled_spend_micro_usd || 0);
+      const periodLimits = '<span class="muted">日 '+esc(limitText(k.daily_quota_micro_usd))+' · 周 '+esc(limitText(k.weekly_quota_micro_usd))+' · 月 '+esc(limitText(k.monthly_quota_micro_usd))+' · 并发 '+esc(Number(k.max_concurrent_requests || 0) || '不限制')+'</span>';
       if (quota <= 0) {
         return '<div class="quota-cell">' +
           '<div class="quota-line"><strong>不限制</strong><span class="muted">限额</span></div>' +
-          '<div class="quota-bar"><span style="width:0%"></span></div>' +
+          '<div class="quota-bar"><span style="width:0%"></span></div>' + periodLimits +
           '</div>';
       }
       const pct = Math.min(100, Math.max(0, (used / quota) * 100));
       const tone = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : '');
       return '<div class="quota-cell">' +
         '<div class="quota-line"><strong>'+esc(money(quota))+'</strong><span class="muted">限额</span></div>' +
-        '<div class="quota-bar '+tone+'"><span style="width:'+pct.toFixed(1)+'%"></span></div>' +
+        '<div class="quota-bar '+tone+'"><span style="width:'+pct.toFixed(1)+'%"></span></div>' + periodLimits +
         '</div>';
     };
 
@@ -2724,8 +2779,84 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     $('keysTable').querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => openDeleteKeyModal(btn.dataset.delete)));
   }
 
+  function keyFilterLabel(key) {
+    return (key.label || '(无标签)') + (key.revoked_at ? '（已删除）' : '') + ' · ' + key.id;
+  }
+
+  function keySearchMatches(query) {
+    query = String(query || '').trim().toLocaleLowerCase();
+    if (!query) return state.allKeys;
+    return state.allKeys.filter(key => key.id.toLocaleLowerCase().includes(query) || keyFilterLabel(key).toLocaleLowerCase().includes(query));
+  }
+
+  function renderKeySearchOptions(kind) {
+    const input = $(kind + 'KeyFilter');
+    const panel = $(kind + 'KeyOptions');
+    const matches = keySearchMatches(input.value);
+    panel.innerHTML = matches.length ? matches.map(key =>
+      '<button class="key-search-option'+(key.revoked_at ? ' revoked' : '')+'" type="button" data-key-id="'+esc(key.id)+'" title="'+esc(key.id)+'">' +
+        '<span class="key-search-label">'+esc(key.label || '(无标签)')+'</span>' +
+      '</button>'
+    ).join('') : '<div class="key-search-empty">未找到匹配的 Key</div>';
+    panel.querySelectorAll('[data-key-id]').forEach(button => button.addEventListener('click', () => {
+      const key = state.allKeys.find(item => item.id === button.dataset.keyId);
+      if (!key) return;
+      input.value = keyFilterLabel(key);
+      closeKeySearch(kind);
+    }));
+  }
+
+  function openKeySearch(kind) {
+    closeKeySearch(kind === 'overview' ? 'usage' : 'overview');
+    renderKeySearchOptions(kind);
+    const wrapper = $(kind + 'KeySearch');
+    const panel = $(kind + 'KeyOptions');
+    wrapper.classList.add('open');
+    panel.hidden = false;
+  }
+
+  function closeKeySearch(kind) {
+    const wrapper = $(kind + 'KeySearch');
+    const panel = $(kind + 'KeyOptions');
+    if (!wrapper || !panel) return;
+    wrapper.classList.remove('open');
+    panel.hidden = true;
+  }
+
+  function resolveKeyFilter(raw) {
+    raw = String(raw || '').trim();
+    if (!raw) return '';
+    const exact = state.allKeys.find(key => key.id === raw || keyFilterLabel(key) === raw);
+    if (exact) return exact.id;
+    const needle = raw.toLocaleLowerCase();
+    const matches = state.allKeys.filter(key =>
+      key.id.toLocaleLowerCase().includes(needle) || keyFilterLabel(key).toLocaleLowerCase().includes(needle)
+    );
+    if (matches.length === 1) return matches[0].id;
+    if (matches.length > 1) throw new Error('匹配多个 Key，请从搜索建议中选择完整项');
+    throw new Error('未找到匹配的 Key');
+  }
+
   async function copyText(text) {
-    await navigator.clipboard.writeText(text || '');
+    const value = String(text || '');
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(value);
+        return;
+      } catch (_) {
+        // Some mobile browsers expose the API but deny clipboard permission.
+      }
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, value.length);
+    const copied = document.execCommand && document.execCommand('copy');
+    textarea.remove();
+    if (!copied) throw new Error('复制失败，请手动复制');
   }
 
   async function copyKeyByID(id) {
@@ -2804,11 +2935,19 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     $('keyModalHint').textContent = hints[mode];
     $('keyModalLabel').value = key ? (key.label || '') : '';
     $('keyModalQuotaUSD').value = key ? Number(key.quota_micro_usd || 0) / 1e6 : '';
+    $('keyModalDailyQuotaUSD').value = key ? Number(key.daily_quota_micro_usd || 0) / 1e6 : '';
+    $('keyModalWeeklyQuotaUSD').value = key ? Number(key.weekly_quota_micro_usd || 0) / 1e6 : '';
+    $('keyModalMonthlyQuotaUSD').value = key ? Number(key.monthly_quota_micro_usd || 0) / 1e6 : '';
+    $('keyModalMaxConcurrent').value = key ? (Number(key.max_concurrent_requests || 0) || '') : '';
     const allowedModels = key ? (key.allowed_models || []) : [];
     setKeyModels(allowedModels);
     $('keyModalEnabled').value = key && !key.enabled ? 'false' : 'true';
     $('keyModalLabel').disabled = isRotation;
     $('keyModalQuotaUSD').disabled = isRotation;
+    $('keyModalDailyQuotaUSD').disabled = isRotation;
+    $('keyModalWeeklyQuotaUSD').disabled = isRotation;
+    $('keyModalMonthlyQuotaUSD').disabled = isRotation;
+    $('keyModalMaxConcurrent').disabled = isRotation;
     $('keyModalModels').disabled = isRotation;
     $('keyModalEnabledWrap').classList.toggle('hidden', mode !== 'manage');
     $('keyMaterialWrap').classList.toggle('hidden', mode === 'manage');
@@ -2870,11 +3009,23 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     const id = $('keyModalId').value;
     // empty or 0 = unlimited; always send a non-negative micro-USD amount
     const quota = mode === 'rotate' ? null : (microFromUSD($('keyModalQuotaUSD').value) ?? 0);
+    const dailyQuota = mode === 'rotate' ? null : (microFromUSD($('keyModalDailyQuotaUSD').value) ?? 0);
+    const weeklyQuota = mode === 'rotate' ? null : (microFromUSD($('keyModalWeeklyQuotaUSD').value) ?? 0);
+    const monthlyQuota = mode === 'rotate' ? null : (microFromUSD($('keyModalMonthlyQuotaUSD').value) ?? 0);
+    const maxConcurrentRaw = $('keyModalMaxConcurrent').value.trim();
+    const maxConcurrent = mode === 'rotate' ? null : (maxConcurrentRaw === '' ? 0 : Number(maxConcurrentRaw));
+    if (maxConcurrent !== null && (!Number.isInteger(maxConcurrent) || maxConcurrent < 0)) {
+      throw new Error('最大并发请求数必须是非负整数');
+    }
     let result;
     if (mode === 'create') {
       result = await api('POST', 'credit-manager/keys', {
         label: $('keyModalLabel').value.trim(),
-        quota_micro_usd: quota,
+        total_quota_micro_usd: quota,
+        daily_quota_micro_usd: dailyQuota,
+        weekly_quota_micro_usd: weeklyQuota,
+        monthly_quota_micro_usd: monthlyQuota,
+        max_concurrent_requests: maxConcurrent,
         allowed_models: selectedKeyModels(),
         key_material: keyMaterial,
       });
@@ -2882,7 +3033,11 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       result = await api('POST', 'credit-manager/keys/update', {
         id,
         label: $('keyModalLabel').value,
-        quota_micro_usd: quota,
+        total_quota_micro_usd: quota,
+        daily_quota_micro_usd: dailyQuota,
+        weekly_quota_micro_usd: weeklyQuota,
+        monthly_quota_micro_usd: monthlyQuota,
+        max_concurrent_requests: maxConcurrent,
         enabled: $('keyModalEnabled').value === 'true',
         set_allowed_models: true,
         allowed_models: selectedKeyModels(),
@@ -3318,7 +3473,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       ? { from: value('usageFromFilter'), to: value('usageToFilter') }
       : usageRangeDates();
     const filter = {
-      plugin_key_id: value('usageKeyFilter'),
+      plugin_key_id: resolveKeyFilter(value('usageKeyFilter')),
       model: value('usageModelFilter'),
       source: value('usageSourceFilter'),
       from: range.from,
@@ -3442,6 +3597,8 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
       closeCustomControls();
+      closeKeySearch('overview');
+      closeKeySearch('usage');
       clearFlash();
       closeConnectionModal();
       closeKeyModal();
@@ -3473,6 +3630,21 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   });
   $('overviewRangeFilter').addEventListener('change', setOverviewRangeVisibility);
   $('usageRangeFilter').addEventListener('change', setUsageRangeVisibility);
+  ['overview', 'usage'].forEach(kind => {
+    const input = $(kind + 'KeyFilter');
+    input.addEventListener('focus', () => openKeySearch(kind));
+    input.addEventListener('input', () => {
+      renderKeySearchOptions(kind);
+      openKeySearch(kind);
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeKeySearch(kind);
+        input.blur();
+      }
+      if (event.key === 'Enter') closeKeySearch(kind);
+    });
+  });
   $('btnLoadOverview').addEventListener('click', async () => {
     try {
       await reload();
@@ -3482,6 +3654,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   $('btnResetOverview').addEventListener('click', async () => {
     $('overviewRangeFilter').value = '30';
     $('overviewKeyFilter').value = '';
+    closeKeySearch('overview');
     $('overviewModelFilter').value = '';
     $('overviewSourceFilter').value = '';
     $('overviewFromFilter').value = '';
@@ -3572,6 +3745,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   $('btnClearUsageFilters').addEventListener('click', async () => {
     $('usageRangeFilter').value = 'all';
     ['usageKeyFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
+    closeKeySearch('usage');
     refreshCustomControls();
     setUsageRangeVisibility();
     try {

@@ -24,6 +24,9 @@ func Routes() []pluginapi.ManagementRoute {
 	}{
 		{http.MethodGet, "credit-manager/health"},
 		{http.MethodGet, "credit-manager/overview"},
+		{http.MethodPost, "credit-manager/callers"},
+		{http.MethodGet, "credit-manager/callers"},
+		{http.MethodPost, "credit-manager/callers/enabled"},
 		{http.MethodPost, "credit-manager/keys"},
 		{http.MethodGet, "credit-manager/keys"},
 		{http.MethodPost, "credit-manager/keys/update"},
@@ -58,6 +61,12 @@ func Resources() []pluginapi.ResourceRoute {
 			Menu:        "CPA 额度管理",
 			Description: "Key / 模型 / 限额 / 使用统计可视化管理",
 		},
+		{
+			Path: "/lookup",
+		},
+		{
+			Path: "/lookup/data",
+		},
 	}
 }
 
@@ -66,6 +75,16 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 	if resourcePath, ok := resourceRelativePath(req.Path); ok {
 		if req.Method == http.MethodGet && (resourcePath == "console" || resourcePath == "") {
 			return consolePage(), nil
+		}
+		if req.Method == http.MethodGet && resourcePath == "lookup" {
+			return lookupPage(), nil
+		}
+		if req.Method == http.MethodGet && resourcePath == "lookup/data" {
+			svc := service.Current()
+			if svc == nil {
+				return jsonErr(http.StatusServiceUnavailable, "service not configured"), nil
+			}
+			return lookupKey(ctx, svc, req.Headers, req.Query)
 		}
 		return htmlErr(http.StatusNotFound, "unknown resource"), nil
 	}
@@ -84,6 +103,12 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		}), nil
 	case req.Method == http.MethodGet && path == "credit-manager/overview":
 		return getOverview(ctx, svc, req.Query)
+	case req.Method == http.MethodPost && path == "credit-manager/callers":
+		return createCaller(ctx, svc, req.Body)
+	case req.Method == http.MethodGet && path == "credit-manager/callers":
+		return listCallers(ctx, svc, req.Query)
+	case req.Method == http.MethodPost && path == "credit-manager/callers/enabled":
+		return setEnabled(ctx, svc, req.Body)
 	case req.Method == http.MethodPost && path == "credit-manager/keys":
 		return createKey(ctx, svc, req.Body)
 	case req.Method == http.MethodGet && path == "credit-manager/keys":
@@ -114,6 +139,217 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return getBalance(ctx, svc, req.Query)
 	default:
 		return jsonErr(http.StatusNotFound, "unknown management route"), nil
+	}
+}
+
+func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, query map[string][]string) (pluginapi.ManagementResponse, error) {
+	key, err := svc.LookupPluginKeyFromHeaders(ctx, headers)
+	if err != nil {
+		return jsonErr(http.StatusUnauthorized, "invalid or unavailable plugin key"), nil
+	}
+	filter, err := lookupUsageFilter(query, key.ID)
+	if err != nil {
+		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
+	recentOnly := firstQuery(query, "recent_only") == "1"
+	if recentOnly {
+		return lookupRecentUsage(ctx, svc, filter, query)
+	}
+	overview, err := svc.Store().GetKeyUsageOverview(ctx, key.ID, time.Now().UTC())
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	byModel, err := svc.Store().SummarizeUsageByModelFiltered(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	dailyTrend, err := svc.Store().SummarizeUsageDailyFiltered(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	usageSummary, err := svc.Store().SummarizeUsageFiltered(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	pageSize := queryInt(query, "page_size", 50)
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	page := queryInt(query, "page", 1)
+	if page < 1 {
+		page = 1
+	}
+	filter.Limit = pageSize
+	total, err := svc.Store().CountUsage(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+	if totalPages == 0 {
+		page = 1
+	} else if int64(page) > totalPages {
+		page = int(totalPages)
+	}
+	filter.Offset = (page - 1) * pageSize
+	recent, err := svc.Store().ListUsage(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	recentView := make([]map[string]any, 0, len(recent))
+	for _, item := range recent {
+		recentView = append(recentView, publicUsageView(item))
+	}
+	response := pluginapi.ManagementResponse{
+		StatusCode: http.StatusOK,
+		Headers:    http.Header{"Cache-Control": []string{"no-store"}},
+		Body: mustJSON(map[string]any{
+			"key": map[string]any{
+				"label":                   key.Label,
+				"fingerprint":             key.Fingerprint,
+				"quota_micro_usd":         keyQuota(key),
+				"daily_quota_micro_usd":   key.DailyQuotaMicroUSD,
+				"weekly_quota_micro_usd":  key.WeeklyQuotaMicroUSD,
+				"monthly_quota_micro_usd": key.MonthlyQuotaMicroUSD,
+				"max_concurrent_requests": key.MaxConcurrentRequests,
+				"settled_spend_micro_usd": key.SettledSpendMicroUSD,
+				"held_amount_micro_usd":   key.HeldAmountMicroUSD,
+				"remaining_micro_usd":     key.RemainingMicroUSD(),
+				"allowed_models":          key.AllowedModels,
+				"expires_at":              key.ExpiresAt,
+			},
+			"overview":      lookupOverviewView(overview),
+			"by_model":      byModel,
+			"daily_trend":   dailyTrend,
+			"usage_summary": lookupUsageSummaryView(usageSummary),
+			"recent_usage":  recentView,
+			"recent_pagination": map[string]any{
+				"page":        page,
+				"page_size":   pageSize,
+				"total":       total,
+				"total_pages": totalPages,
+			},
+		}),
+	}
+	return response, nil
+}
+
+func lookupRecentUsage(ctx context.Context, svc *service.Service, filter store.UsageFilter, query map[string][]string) (pluginapi.ManagementResponse, error) {
+	pageSize := queryInt(query, "page_size", 50)
+	if pageSize < 1 {
+		pageSize = 50
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	page := queryInt(query, "page", 1)
+	if page < 1 {
+		page = 1
+	}
+	filter.Limit = pageSize
+	total, err := svc.Store().CountUsage(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+	if totalPages == 0 {
+		page = 1
+	} else if int64(page) > totalPages {
+		page = int(totalPages)
+	}
+	filter.Offset = (page - 1) * pageSize
+	recent, err := svc.Store().ListUsage(ctx, filter)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	recentView := make([]map[string]any, 0, len(recent))
+	for _, item := range recent {
+		recentView = append(recentView, publicUsageView(item))
+	}
+	return pluginapi.ManagementResponse{
+		StatusCode: http.StatusOK,
+		Headers:    http.Header{"Cache-Control": []string{"no-store"}},
+		Body: mustJSON(map[string]any{
+			"recent_usage": recentView,
+			"recent_pagination": map[string]any{
+				"page":        page,
+				"page_size":   pageSize,
+				"total":       total,
+				"total_pages": totalPages,
+			},
+		}),
+	}, nil
+}
+
+func lookupUsageSummaryView(summary store.UsageFilteredSummary) map[string]any {
+	return map[string]any{
+		"request_count":         summary.RequestCount,
+		"input_tokens":          summary.InputTokens,
+		"output_tokens":         summary.OutputTokens,
+		"reasoning_tokens":      summary.ReasoningTokens,
+		"cached_tokens":         summary.CachedTokens,
+		"cache_read_tokens":     summary.CacheReadTokens,
+		"cache_creation_tokens": summary.CacheCreationTokens,
+		"cost_micro_usd":        summary.CostMicroUSD,
+	}
+}
+
+func lookupUsageFilter(query map[string][]string, keyID string) (store.UsageFilter, error) {
+	filter, err := usageFilterFromQuery(query, 50)
+	if err != nil {
+		return store.UsageFilter{}, err
+	}
+	// The public endpoint always scopes filters to the authenticated Key.
+	filter.PluginKeyID = keyID
+	filter.CallerID = ""
+	filter.Source = ""
+	filter.MinCostMicroUSD = nil
+	filter.MaxCostMicroUSD = nil
+	filter.MinTokens = nil
+	filter.MaxTokens = nil
+	return filter, nil
+}
+
+func keyQuota(key store.PluginKey) money.MicroUSD {
+	if key.QuotaMicroUSD == nil {
+		return 0
+	}
+	return *key.QuotaMicroUSD
+}
+
+func lookupOverviewView(overview store.KeyUsageOverview) map[string]any {
+	return map[string]any{
+		"request_count":       overview.RequestCount,
+		"cost_micro_usd":      overview.CostMicroUSD,
+		"input_tokens":        overview.InputTokens,
+		"output_tokens":       overview.OutputTokens,
+		"active_reservations": overview.ActiveReservations,
+		"daily_micro_usd":     overview.DailyMicroUSD,
+		"weekly_micro_usd":    overview.WeeklyMicroUSD,
+		"monthly_micro_usd":   overview.MonthlyMicroUSD,
+	}
+}
+
+func publicUsageView(entry store.UsageEntry) map[string]any {
+	return map[string]any{
+		"model":                    entry.Model,
+		"input_tokens":             entry.Usage.Input,
+		"output_tokens":            entry.Usage.Output,
+		"reasoning_tokens":         entry.Usage.Reasoning,
+		"cached_tokens":            entry.Usage.Cached,
+		"cache_read_tokens":        entry.Usage.CacheRead,
+		"cache_creation_tokens":    entry.Usage.CacheCreation,
+		"cost_micro_usd":           entry.CostMicroUSD,
+		"estimated_cost_micro_usd": entry.EstimatedCostMicroUSD,
+		"source":                   entry.Source,
+		"result":                   entry.Metrics.Result,
+		"first_token_latency_ms":   durationMilliseconds(entry.Metrics.FirstTokenLatency),
+		"generation_duration_ms":   durationMilliseconds(entry.Metrics.GenerationDuration),
+		"tokens_per_second":        entry.Metrics.TokensPerSecond,
+		"thinking_intensity":       entry.Metrics.ThinkingIntensity,
+		"created_at":               entry.CreatedAt,
 	}
 }
 
@@ -168,11 +404,17 @@ func setEnabled(ctx context.Context, svc *service.Service, body []byte) (plugina
 
 func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
 	var req struct {
-		Label         string   `json:"label"`
-		KeyMaterial   string   `json:"key_material"`
-		ExpiresAt     string   `json:"expires_at"`
-		QuotaMicroUSD *int64   `json:"quota_micro_usd"`
-		AllowedModels []string `json:"allowed_models"`
+		CallerID              string   `json:"caller_id"`
+		Label                 string   `json:"label"`
+		KeyMaterial           string   `json:"key_material"`
+		ExpiresAt             string   `json:"expires_at"`
+		QuotaMicroUSD         *int64   `json:"quota_micro_usd"`
+		TotalQuotaMicroUSD    *int64   `json:"total_quota_micro_usd"`
+		DailyQuotaMicroUSD    *int64   `json:"daily_quota_micro_usd"`
+		WeeklyQuotaMicroUSD   *int64   `json:"weekly_quota_micro_usd"`
+		MonthlyQuotaMicroUSD  *int64   `json:"monthly_quota_micro_usd"`
+		MaxConcurrentRequests *int64   `json:"max_concurrent_requests"`
+		AllowedModels         []string `json:"allowed_models"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
@@ -193,12 +435,26 @@ func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 		}
 		quota = money.MicroUSD(*req.QuotaMicroUSD)
 	}
+	if req.TotalQuotaMicroUSD != nil {
+		if *req.TotalQuotaMicroUSD < 0 {
+			return jsonErr(http.StatusBadRequest, "total_quota_micro_usd must not be negative"), nil
+		}
+		quota = money.MicroUSD(*req.TotalQuotaMicroUSD)
+	}
+	if err := validateKeyLimitFields(req.DailyQuotaMicroUSD, req.WeeklyQuotaMicroUSD, req.MonthlyQuotaMicroUSD, req.MaxConcurrentRequests); err != nil {
+		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
 	key, material, err := svc.MintKeyWithPolicy(ctx, service.MintKeyRequest{
-		Label:         req.Label,
-		KeyMaterial:   req.KeyMaterial,
-		ExpiresAt:     expires,
-		QuotaMicroUSD: quota,
-		AllowedModels: req.AllowedModels,
+		CallerID:              req.CallerID,
+		Label:                 req.Label,
+		KeyMaterial:           req.KeyMaterial,
+		ExpiresAt:             expires,
+		QuotaMicroUSD:         quota,
+		DailyQuotaMicroUSD:    optionalMicroUSD(req.DailyQuotaMicroUSD),
+		WeeklyQuotaMicroUSD:   optionalMicroUSD(req.WeeklyQuotaMicroUSD),
+		MonthlyQuotaMicroUSD:  optionalMicroUSD(req.MonthlyQuotaMicroUSD),
+		MaxConcurrentRequests: optionalInt64(req.MaxConcurrentRequests),
+		AllowedModels:         req.AllowedModels,
 	})
 	if err != nil {
 		return jsonErr(http.StatusBadRequest, err.Error()), nil
@@ -264,14 +520,19 @@ func listKeys(ctx context.Context, svc *service.Service, query map[string][]stri
 
 func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
 	var req struct {
-		ID               string   `json:"id"`
-		Label            *string  `json:"label"`
-		Enabled          *bool    `json:"enabled"`
-		QuotaMicroUSD    *int64   `json:"quota_micro_usd"`
-		AllowedModels    []string `json:"allowed_models"`
-		SetAllowedModels bool     `json:"set_allowed_models"`
-		ExpiresAt        string   `json:"expires_at"`
-		ClearExpiresAt   bool     `json:"clear_expires_at"`
+		ID                    string   `json:"id"`
+		Label                 *string  `json:"label"`
+		Enabled               *bool    `json:"enabled"`
+		QuotaMicroUSD         *int64   `json:"quota_micro_usd"`
+		TotalQuotaMicroUSD    *int64   `json:"total_quota_micro_usd"`
+		DailyQuotaMicroUSD    *int64   `json:"daily_quota_micro_usd"`
+		WeeklyQuotaMicroUSD   *int64   `json:"weekly_quota_micro_usd"`
+		MonthlyQuotaMicroUSD  *int64   `json:"monthly_quota_micro_usd"`
+		MaxConcurrentRequests *int64   `json:"max_concurrent_requests"`
+		AllowedModels         []string `json:"allowed_models"`
+		SetAllowedModels      bool     `json:"set_allowed_models"`
+		ExpiresAt             string   `json:"expires_at"`
+		ClearExpiresAt        bool     `json:"clear_expires_at"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
@@ -285,6 +546,29 @@ func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 	if req.QuotaMicroUSD != nil {
 		q := money.MicroUSD(*req.QuotaMicroUSD)
 		update.QuotaMicroUSD = &q
+	}
+	if req.TotalQuotaMicroUSD != nil {
+		q := money.MicroUSD(*req.TotalQuotaMicroUSD)
+		update.QuotaMicroUSD = &q
+	}
+	if err := validateKeyLimitFields(req.DailyQuotaMicroUSD, req.WeeklyQuotaMicroUSD, req.MonthlyQuotaMicroUSD, req.MaxConcurrentRequests); err != nil {
+		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
+	if req.DailyQuotaMicroUSD != nil {
+		q := money.MicroUSD(*req.DailyQuotaMicroUSD)
+		update.DailyQuotaMicroUSD = &q
+	}
+	if req.WeeklyQuotaMicroUSD != nil {
+		q := money.MicroUSD(*req.WeeklyQuotaMicroUSD)
+		update.WeeklyQuotaMicroUSD = &q
+	}
+	if req.MonthlyQuotaMicroUSD != nil {
+		q := money.MicroUSD(*req.MonthlyQuotaMicroUSD)
+		update.MonthlyQuotaMicroUSD = &q
+	}
+	if req.MaxConcurrentRequests != nil {
+		q := *req.MaxConcurrentRequests
+		update.MaxConcurrentRequests = &q
 	}
 	if req.SetAllowedModels {
 		models := append([]string(nil), req.AllowedModels...)
@@ -649,11 +933,19 @@ func getOverview(ctx context.Context, svc *service.Service, query map[string][]s
 }
 
 func listAudit(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
-	items, err := svc.Store().ListAuditEvents(ctx, firstQuery(query, "caller_id"), queryInt(query, "limit", 100))
+	items, err := svc.Store().ListAuditEventsFiltered(ctx, store.AuditFilter{
+		CallerID:    firstQuery(query, "caller_id"),
+		PluginKeyID: firstQuery(query, "plugin_key_id"),
+		Limit:       queryInt(query, "limit", 100),
+	})
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
-	return jsonOK(map[string]any{"items": items}), nil
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		out = append(out, auditView(item))
+	}
+	return jsonOK(map[string]any{"items": out}), nil
 }
 
 func getBalance(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
@@ -678,6 +970,19 @@ func callerView(caller store.Caller) map[string]any {
 	}
 }
 
+func auditView(event store.AuditEvent) map[string]any {
+	return map[string]any{
+		"id":               event.ID,
+		"caller_id":        event.CallerID,
+		"plugin_key_id":    event.PluginKeyID,
+		"reservation_id":   event.ReservationID,
+		"event_type":       event.EventType,
+		"amount_micro_usd": event.AmountMicroUSD,
+		"details_json":     event.DetailsJSON,
+		"created_at":       event.CreatedAt,
+	}
+}
+
 func keyView(key store.PluginKey) map[string]any {
 	quota := money.MicroUSD(0)
 	if key.QuotaMicroUSD != nil {
@@ -690,6 +995,11 @@ func keyView(key store.PluginKey) map[string]any {
 		"label":                   key.Label,
 		"enabled":                 key.Enabled,
 		"quota_micro_usd":         quota,
+		"total_quota_micro_usd":   quota,
+		"daily_quota_micro_usd":   key.DailyQuotaMicroUSD,
+		"weekly_quota_micro_usd":  key.WeeklyQuotaMicroUSD,
+		"monthly_quota_micro_usd": key.MonthlyQuotaMicroUSD,
+		"max_concurrent_requests": key.MaxConcurrentRequests,
 		"settled_spend_micro_usd": key.SettledSpendMicroUSD,
 		"held_amount_micro_usd":   key.HeldAmountMicroUSD,
 		"remaining_micro_usd":     key.RemainingMicroUSD(),
@@ -699,6 +1009,29 @@ func keyView(key store.PluginKey) map[string]any {
 		"last_used_at":            key.LastUsedAt,
 		"created_at":              key.CreatedAt,
 	}
+}
+
+func validateKeyLimitFields(limits ...*int64) error {
+	for _, limit := range limits {
+		if limit != nil && *limit < 0 {
+			return errors.New("key limits must not be negative")
+		}
+	}
+	return nil
+}
+
+func optionalMicroUSD(value *int64) money.MicroUSD {
+	if value == nil {
+		return 0
+	}
+	return money.MicroUSD(*value)
+}
+
+func optionalInt64(value *int64) int64 {
+	if value == nil {
+		return 0
+	}
+	return *value
 }
 
 func usageView(entry store.UsageEntry) map[string]any {
