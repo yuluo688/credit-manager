@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/yuluo688/credit-manager/internal/config"
 	"github.com/yuluo688/credit-manager/internal/money"
@@ -18,6 +19,7 @@ func TestApplyHostUsageRepricesReservedFallback(t *testing.T) {
 	cfg.DataDir = dir
 	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
 	cfg.Keys.ActivePepperID = "active"
+	cfg.Settlement.HostUsageWait = 0
 	svc, err := Open(ctx, cfg)
 	if err != nil {
 		t.Fatalf("open service: %v", err)
@@ -87,6 +89,7 @@ func TestApplyHostUsageDoesNotDoubleCountOpenAICache(t *testing.T) {
 	cfg.DataDir = dir
 	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
 	cfg.Keys.ActivePepperID = "active"
+	cfg.Settlement.HostUsageWait = 0
 	svc, err := Open(ctx, cfg)
 	if err != nil {
 		t.Fatalf("open service: %v", err)
@@ -136,5 +139,55 @@ func TestApplyHostUsageDoesNotDoubleCountOpenAICache(t *testing.T) {
 	}
 	if updated.CostMicroUSD != want {
 		t.Fatalf("settled cost = %d, want %d (double-counted cache?)", updated.CostMicroUSD, want)
+	}
+}
+
+func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	cfg.Settlement.HostUsageWait = 400 * time.Millisecond
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 3_000_000},
+	}); err != nil {
+		t.Fatalf("put pricing: %v", err)
+	}
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "test", 10_000_000, nil)
+	if err != nil {
+		t.Fatalf("mint key: %v", err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "grok-4.6", []byte(`{"model":"grok-4.6","max_tokens":16,"messages":[{"role":"user","content":"hi"}]}`))
+	if err != nil {
+		t.Fatalf("build plan: %v", err)
+	}
+	reservation, err := svc.Reserve(ctx, key, plan, "wait-host")
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	go func() {
+		time.Sleep(40 * time.Millisecond)
+		svc.ObserveHostUsage(time.Now(), store.AuthIdentity{AuthID: "auth-x", Provider: "xai", Label: "ops"}, money.TokenUsage{Input: 9, Output: 3}, "grok-4.6")
+	}()
+	if err := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, "openai", store.UsageMetrics{}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 1})
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if entries[0].Source != "host_usage" || entries[0].Usage.Input != 9 || entries[0].Auth.Label != "ops" {
+		t.Fatalf("settled entry = %#v", entries[0])
 	}
 }

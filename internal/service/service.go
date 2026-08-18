@@ -39,6 +39,7 @@ type Service struct {
 	peppers            config.PepperSet
 	store              *store.Store
 	authMu             sync.Mutex
+	authCond           *sync.Cond
 	authPending        map[string]*pendingAuthCapture
 	cleanupMu          sync.Mutex
 	lastCleanup        time.Time
@@ -80,6 +81,7 @@ func Open(ctx context.Context, cfg config.Config) (*Service, error) {
 		return nil, err
 	}
 	svc := &Service{cfg: cfg, peppers: peppers, store: st}
+	svc.authCond = sync.NewCond(&svc.authMu)
 	if err := svc.ensureBootstrap(ctx); err != nil {
 		_ = svc.Close()
 		return nil, err
@@ -342,46 +344,15 @@ func (s *Service) TouchReservation(ctx context.Context, reservationID string) er
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
 	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
-		cost, err := money.CostFor(hostUsage, plan.Price, plan.Model, "")
-		if err != nil {
-			return err
-		}
-		if plan.AllowUnpriced {
-			cost = 0
-		}
-		metrics.TokensPerSecond = tokensPerSecond(hostUsage.Output, metrics.GenerationDuration)
-		return s.settleWithAuth(ctx, store.Settlement{
-			ReservationID:         reservation.ID,
-			Model:                 plan.Model,
-			PricingRuleID:         plan.PricingRuleID,
-			Usage:                 hostUsage,
-			CostMicroUSD:          cost,
-			EstimatedCostMicroUSD: reservation.HeldMicroUSD,
-			Source:                "host_usage",
-			Metrics:               metrics,
-			SettlementSummary:     "host_usage_callback",
-		})
+		return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)
 	}
 	if parsed.Found {
-		cost, err := money.CostFor(parsed.Usage, plan.Price, plan.Model, "")
-		if err != nil {
-			return err
+		return s.settleResolvedUsage(ctx, reservation, plan, parsed.Usage, parsed.Source, fmt.Sprintf("format=%s source=%s", format, parsed.Source), metrics)
+	}
+	if s.cfg.Settlement.MissingUsage != config.MissingUsageRelease && s.cfg.Settlement.HostUsageWait > 0 {
+		if hostUsage, ok := s.WaitForHostUsage(ctx, reservation.ID, s.cfg.Settlement.HostUsageWait); ok {
+			return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)
 		}
-		if plan.AllowUnpriced {
-			cost = 0
-		}
-		metrics.TokensPerSecond = tokensPerSecond(parsed.Usage.Output, metrics.GenerationDuration)
-		return s.settleWithAuth(ctx, store.Settlement{
-			ReservationID:         reservation.ID,
-			Model:                 plan.Model,
-			PricingRuleID:         plan.PricingRuleID,
-			Usage:                 parsed.Usage,
-			CostMicroUSD:          cost,
-			EstimatedCostMicroUSD: reservation.HeldMicroUSD,
-			Source:                parsed.Source,
-			Metrics:               metrics,
-			SettlementSummary:     fmt.Sprintf("format=%s source=%s", format, parsed.Source),
-		})
 	}
 	switch s.cfg.Settlement.MissingUsage {
 	case config.MissingUsageRelease:
@@ -403,6 +374,28 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 			SettlementSummary:     "missing_usage_settle_reserved",
 		})
 	}
+}
+
+func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, usage money.TokenUsage, source, summary string, metrics store.UsageMetrics) error {
+	cost, err := money.CostFor(usage, plan.Price, plan.Model, "")
+	if err != nil {
+		return err
+	}
+	if plan.AllowUnpriced {
+		cost = 0
+	}
+	metrics.TokensPerSecond = tokensPerSecond(usage.Output, metrics.GenerationDuration)
+	return s.settleWithAuth(ctx, store.Settlement{
+		ReservationID:         reservation.ID,
+		Model:                 plan.Model,
+		PricingRuleID:         plan.PricingRuleID,
+		Usage:                 usage,
+		CostMicroUSD:          cost,
+		EstimatedCostMicroUSD: reservation.HeldMicroUSD,
+		Source:                source,
+		Metrics:               metrics,
+		SettlementSummary:     summary,
+	})
 }
 
 func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
@@ -760,6 +753,7 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 		return err
 	}
 	svc := &Service{cfg: cfg, peppers: peppers, store: st}
+	svc.authCond = sync.NewCond(&svc.authMu)
 	if err := svc.ensureBootstrap(ctx); err != nil {
 		_ = svc.Close()
 		return err
