@@ -330,6 +330,36 @@ func TestUpdateUsageDetailRepricesSettledSpend(t *testing.T) {
 	}
 }
 
+func TestFindRecentFallbackWithoutAuth(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	reservation, err := st.Reserve(ctx, reserveRequest(key, "fallback-auth", 1_000))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		ReservationID: reservation.ID,
+		Model:         "grok-4.6",
+		Usage:         money.TokenUsage{Input: 10, Output: 2},
+		CostMicroUSD:  1,
+		Source:        "reserved_fallback",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	entry, found, err := st.FindRecentFallbackWithoutAuth(ctx, []string{"grok-4.6"}, time.Minute)
+	if err != nil || !found || entry.Model != "grok-4.6" || !entry.Auth.Empty() {
+		t.Fatalf("find = (%#v, %v, %v)", entry, found, err)
+	}
+	if err := st.UpdateUsageAuth(ctx, entry.ID, AuthIdentity{AuthID: "auth-1", Provider: "xai", Label: "ops"}); err != nil {
+		t.Fatalf("update auth: %v", err)
+	}
+	if _, found, err = st.FindRecentFallbackWithoutAuth(ctx, []string{"grok-4.6"}, time.Minute); err != nil || found {
+		t.Fatalf("find after auth = (%v, %v)", found, err)
+	}
+}
+
 func TestAuthQuotaSnapshotMigrationAndPersistence(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)
@@ -363,6 +393,22 @@ func TestAuthQuotaSnapshotMigrationAndPersistence(t *testing.T) {
 		t.Fatalf("snapshot after failure = %#v, err = %v", failed, err)
 	}
 }
+func TestAuthQuotaWindowBaselinePersistsFirstObservation(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	if err := st.UpsertAuthQuotaWindowBaseline(ctx, "codex", "auth-1", "primary", "reset:1", 70); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpsertAuthQuotaWindowBaseline(ctx, "codex", "auth-1", "primary", "reset:1", 80); err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.GetAuthQuotaWindowBaseline(ctx, "codex", "auth-1", "primary", "reset:1")
+	if err != nil || got.BaselineUsed != 70 {
+		t.Fatalf("got=%#v err=%v", got, err)
+	}
+}
+
 func TestGetAuthQuotaUsageMatchesAuthAndLegacyIndex(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)
@@ -389,6 +435,36 @@ func TestGetAuthQuotaUsageMatchesAuthAndLegacyIndex(t *testing.T) {
 	usage, err := st.GetAuthQuotaUsage(ctx, AuthQuotaUsageFilter{Provider: "antigravity", AuthID: "auth-1", AuthIndex: "index-1", From: from, To: to, Models: []string{"pool-a"}})
 	if err != nil || usage.RequestCount != 2 || usage.InputTokens != 17 || usage.OutputTokens != 13 || usage.ActualCostMicroUSD != 24 {
 		t.Fatalf("usage = %#v, err = %v", usage, err)
+	}
+}
+
+func TestUsageFilterMatchesAuthIdentity(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	at := time.Date(2026, time.August, 17, 12, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	insert := func(id, provider, authID, index string) {
+		t.Helper()
+		_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, auth_provider, auth_id, auth_index, auth_label, created_at_unix_ms) VALUES (?, ?, ?, ?, 'm', 1, 1, 0, 0, 0, 0, 1, 'usage', ?, ?, ?, 'acct', ?)`, id, "r-"+id, key.CallerID, key.ID, provider, authID, index, at.UnixMilli())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("exact", "openai", "auth-1", "index-1")
+	insert("legacy", "openai", "", "index-1")
+	insert("other", "openai", "auth-2", "index-2")
+	insert("alias", "chatgpt", "auth-1", "index-1")
+	count, err := st.CountUsage(ctx, UsageFilter{AuthProvider: "codex", AuthID: "auth-1", AuthIndex: "index-1"})
+	if err != nil || count != 3 {
+		t.Fatalf("auth filter count = %d, err = %v", count, err)
+	}
+	auths, err := st.ListUsedAuths(ctx)
+	if err != nil || len(auths) < 2 {
+		t.Fatalf("used auths = %#v, err = %v", auths, err)
 	}
 }
 

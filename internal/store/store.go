@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/url"
 	"path/filepath"
 	"regexp"
@@ -1068,6 +1069,17 @@ type AuthQuotaSnapshot struct {
 	LastError     string
 }
 
+// AuthQuotaWindowBaseline is the upstream used amount first observed for a
+// quota window cycle, before later local plugin usage.
+type AuthQuotaWindowBaseline struct {
+	Provider     string
+	AuthID       string
+	WindowID     string
+	CycleKey     string
+	BaselineUsed float64
+	CreatedAt    time.Time
+}
+
 // AuthQuotaUsageFilter selects usage attributed to an auth identity during a
 // local quota window. Models, when non-empty, limits the aggregate to exact names.
 type AuthQuotaUsageFilter struct {
@@ -1188,6 +1200,45 @@ func (s *Store) RecordAuthQuotaFailure(ctx context.Context, provider, authID str
 		last_error = excluded.last_error`, provider, authID, modTime, now, now, fetchErr.Error())
 	if err != nil {
 		return fmt.Errorf("record auth quota failure: %w", err)
+	}
+	return nil
+}
+
+// GetAuthQuotaWindowBaseline returns the first-seen used amount for one window cycle.
+func (s *Store) GetAuthQuotaWindowBaseline(ctx context.Context, provider, authID, windowID, cycleKey string) (AuthQuotaWindowBaseline, error) {
+	provider, authID, windowID, cycleKey = strings.TrimSpace(provider), strings.TrimSpace(authID), strings.TrimSpace(windowID), strings.TrimSpace(cycleKey)
+	if provider == "" || authID == "" || windowID == "" || cycleKey == "" {
+		return AuthQuotaWindowBaseline{}, fmt.Errorf("%w: provider, auth id, window id, and cycle key are required", ErrInvalidArgument)
+	}
+	var row AuthQuotaWindowBaseline
+	var created int64
+	err := s.db.QueryRowContext(ctx, `SELECT provider, auth_id, window_id, cycle_key, baseline_used, created_at_unix_ms
+		FROM auth_quota_window_baselines WHERE provider = ? AND auth_id = ? AND window_id = ? AND cycle_key = ?`,
+		provider, authID, windowID, cycleKey).Scan(&row.Provider, &row.AuthID, &row.WindowID, &row.CycleKey, &row.BaselineUsed, &created)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AuthQuotaWindowBaseline{}, fmt.Errorf("%w: auth quota window baseline not found", ErrInvalidArgument)
+	}
+	if err != nil {
+		return AuthQuotaWindowBaseline{}, fmt.Errorf("get auth quota window baseline: %w", err)
+	}
+	row.CreatedAt = time.UnixMilli(created).UTC()
+	return row, nil
+}
+
+// UpsertAuthQuotaWindowBaseline records the first-seen used amount for a window
+// cycle. Later observations keep the original baseline.
+func (s *Store) UpsertAuthQuotaWindowBaseline(ctx context.Context, provider, authID, windowID, cycleKey string, baselineUsed float64) error {
+	provider, authID, windowID, cycleKey = strings.TrimSpace(provider), strings.TrimSpace(authID), strings.TrimSpace(windowID), strings.TrimSpace(cycleKey)
+	if provider == "" || authID == "" || windowID == "" || cycleKey == "" || math.IsNaN(baselineUsed) || math.IsInf(baselineUsed, 0) || baselineUsed < 0 {
+		return fmt.Errorf("%w: provider, auth id, window id, cycle key, and a finite baseline are required", ErrInvalidArgument)
+	}
+	_, err := s.db.ExecContext(ctx, `INSERT INTO auth_quota_window_baselines(
+		provider, auth_id, window_id, cycle_key, baseline_used, created_at_unix_ms
+	) VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(provider, auth_id, window_id, cycle_key) DO NOTHING`,
+		provider, authID, windowID, cycleKey, baselineUsed, nowUnixMilli())
+	if err != nil {
+		return fmt.Errorf("upsert auth quota window baseline: %w", err)
 	}
 	return nil
 }
@@ -1639,6 +1690,57 @@ func (s *Store) UpdateUsageAuth(ctx context.Context, ledgerID string, auth AuthI
 	return nil
 }
 
+// FindRecentFallbackWithoutAuth returns the newest reserved_fallback row that
+// still has no auth identity, optionally restricted to the given models.
+func (s *Store) FindRecentFallbackWithoutAuth(ctx context.Context, models []string, window time.Duration) (UsageEntry, bool, error) {
+	if window <= 0 {
+		window = 15 * time.Minute
+	}
+	query := `SELECT id FROM usage_ledger
+		WHERE source = 'reserved_fallback'
+		  AND created_at_unix_ms >= ?
+		  AND TRIM(COALESCE(auth_id, '')) = ''
+		  AND TRIM(COALESCE(auth_index, '')) = ''
+		  AND TRIM(COALESCE(auth_label, '')) = ''
+		  AND TRIM(COALESCE(auth_email, '')) = ''
+		  AND TRIM(COALESCE(auth_name, '')) = ''`
+	args := []any{time.Now().Add(-window).UnixMilli()}
+	cleaned := make([]string, 0, len(models))
+	seen := make(map[string]struct{}, len(models))
+	for _, model := range models {
+		model = strings.ToLower(strings.TrimSpace(model))
+		if model == "" {
+			continue
+		}
+		if _, ok := seen[model]; ok {
+			continue
+		}
+		seen[model] = struct{}{}
+		cleaned = append(cleaned, model)
+	}
+	if len(cleaned) > 0 {
+		placeholders := make([]string, len(cleaned))
+		for i, model := range cleaned {
+			placeholders[i] = "?"
+			args = append(args, model)
+		}
+		query += ` AND LOWER(model) IN (` + strings.Join(placeholders, ",") + `)`
+	}
+	query += ` ORDER BY created_at_unix_ms DESC LIMIT 1`
+	var id string
+	if err := s.db.QueryRowContext(ctx, query, args...).Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return UsageEntry{}, false, nil
+		}
+		return UsageEntry{}, false, fmt.Errorf("find fallback without auth: %w", err)
+	}
+	entry, err := s.GetUsage(ctx, id)
+	if err != nil {
+		return UsageEntry{}, false, err
+	}
+	return entry, true, nil
+}
+
 // UpdateUsageDetail replaces fallback token estimates with the host's final
 // usage record and reprices the already-settled ledger row. Preserve
 // protocol-derived sources when they were already available; only relabel
@@ -1821,6 +1923,9 @@ type UsageFilter struct {
 	PluginKeyID     string
 	Model           string
 	Source          string
+	AuthID          string
+	AuthProvider    string
+	AuthIndex       string
 	From            *time.Time
 	To              *time.Time
 	MinCostMicroUSD *money.MicroUSD
@@ -1831,13 +1936,23 @@ type UsageFilter struct {
 	Offset          int
 }
 
+// UsageAuthSummary is a distinct auth identity observed in the usage ledger.
+type UsageAuthSummary struct {
+	AuthID    string `json:"auth_id"`
+	AuthIndex string `json:"auth_index"`
+	Provider  string `json:"auth_provider"`
+	Name      string `json:"auth_name"`
+	Label     string `json:"auth_label"`
+	Email     string `json:"auth_email"`
+}
+
 func usageWhere(filter UsageFilter, alias string) (string, []any) {
 	prefix := ""
 	if strings.TrimSpace(alias) != "" {
 		prefix = strings.TrimSpace(alias) + "."
 	}
-	conds := make([]string, 0, 11)
-	args := make([]any, 0, 11)
+	conds := make([]string, 0, 14)
+	args := make([]any, 0, 14)
 	if strings.TrimSpace(filter.LedgerID) != "" {
 		conds = append(conds, prefix+"id = ?")
 		args = append(args, filter.LedgerID)
@@ -1857,6 +1972,29 @@ func usageWhere(filter UsageFilter, alias string) (string, []any) {
 	if strings.TrimSpace(filter.Source) != "" {
 		conds = append(conds, prefix+"source = ?")
 		args = append(args, filter.Source)
+	}
+	authID := strings.TrimSpace(filter.AuthID)
+	authIndex := strings.TrimSpace(filter.AuthIndex)
+	authProvider := strings.TrimSpace(filter.AuthProvider)
+	if authProvider != "" {
+		providers := authQuotaProviderAliases(authProvider)
+		placeholders := strings.TrimRight(strings.Repeat("?,", len(providers)), ",")
+		conds = append(conds, "LOWER(TRIM(COALESCE("+prefix+"auth_provider, ''))) IN ("+placeholders+")")
+		for _, provider := range providers {
+			args = append(args, provider)
+		}
+	}
+	if authID != "" {
+		if authIndex == "" {
+			conds = append(conds, prefix+"auth_id = ?")
+			args = append(args, authID)
+		} else {
+			conds = append(conds, "("+prefix+"auth_id = ? OR (COALESCE("+prefix+"auth_id, '') = '' AND "+prefix+"auth_index = ?))")
+			args = append(args, authID, authIndex)
+		}
+	} else if authIndex != "" {
+		conds = append(conds, prefix+"auth_index = ?")
+		args = append(args, authIndex)
 	}
 	if filter.From != nil {
 		conds = append(conds, prefix+"created_at_unix_ms >= ?")
@@ -2055,6 +2193,30 @@ FROM usage_ledger u`
 	for rows.Next() {
 		var item UsageModelSummary
 		if err := rows.Scan(&item.Model, &item.RequestCount, &item.CostMicroUSD, &item.InputTokens, &item.OutputTokens, &item.TotalTokens); err != nil {
+			return nil, err
+		}
+		out = append(out, item)
+	}
+	return out, rows.Err()
+}
+
+// ListUsedAuths returns distinct auth identities that appear in the usage ledger.
+func (s *Store) ListUsedAuths(ctx context.Context) ([]UsageAuthSummary, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT COALESCE(auth_id, ''), COALESCE(auth_index, ''), COALESCE(auth_provider, ''),
+	COALESCE(MAX(auth_name), ''), COALESCE(MAX(auth_label), ''), COALESCE(MAX(auth_email), '')
+FROM usage_ledger
+WHERE COALESCE(TRIM(auth_id), '') != '' OR COALESCE(TRIM(auth_index), '') != ''
+GROUP BY 1, 2, 3
+ORDER BY 5 COLLATE NOCASE, 6 COLLATE NOCASE, 4 COLLATE NOCASE, 1 COLLATE NOCASE, 2 COLLATE NOCASE`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []UsageAuthSummary
+	for rows.Next() {
+		var item UsageAuthSummary
+		if err := rows.Scan(&item.AuthID, &item.AuthIndex, &item.Provider, &item.Name, &item.Label, &item.Email); err != nil {
 			return nil, err
 		}
 		out = append(out, item)

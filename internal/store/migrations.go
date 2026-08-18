@@ -233,6 +233,21 @@ var migrations = []migration{
 			`ALTER TABLE pricing_rules ADD COLUMN accounting_mode TEXT NOT NULL DEFAULT ''`,
 		},
 	},
+	{
+		version: 11,
+		name:    "auth quota window baselines",
+		up: []string{
+			`CREATE TABLE IF NOT EXISTS auth_quota_window_baselines (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				window_id TEXT NOT NULL,
+				cycle_key TEXT NOT NULL,
+				baseline_used REAL NOT NULL,
+				created_at_unix_ms INTEGER NOT NULL,
+				PRIMARY KEY (provider, auth_id, window_id, cycle_key)
+			)`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.
