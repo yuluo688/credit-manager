@@ -4,6 +4,7 @@ dist/
 *.dylib
 *.h
 *.exe
+.playwright-mcp
 
 # Local secrets and environment overrides.
 .env
