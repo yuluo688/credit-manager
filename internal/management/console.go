@@ -391,7 +391,7 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
 .filter-card { border-color:#ccebdd; box-shadow:0 8px 24px rgba(30,183,135,.06); }
 .filter-heading, .section-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .filter-state { color:#087d5a; background:var(--accent-soft); font-size:.76rem; padding:5px 9px; border:1px solid #c8eddd; border-radius:999px; white-space:nowrap; }
-.filter-grid { display:grid; grid-template-columns:repeat(4, minmax(150px, 1fr)); gap:12px; margin-top:14px; }
+.filter-grid { display:grid; grid-template-columns:repeat(5, minmax(140px, 1fr)); gap:12px; margin-top:14px; }
 .filter-actions { margin-top:14px; }
 .table-scroll { overflow-x:auto; border:1px solid #edf0eb; border-radius:10px; }
 .table-swipe-hint { display:none; }
@@ -765,26 +765,64 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .overview-date-range input { min-width:0; }
 .overview-actions { margin-top:14px; justify-content:flex-end; }
 .overview-filter-state { color:#087d5a; font-size:.76rem; }
-.overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.45fr) minmax(260px, .75fr); gap:16px; margin-top:16px; }
-.overview-dashboard { align-items:start; }
+.overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.35fr) minmax(300px, .88fr); grid-template-rows:auto auto; gap:16px; margin-top:16px; align-items:stretch; }
 .overview-dashboard .card { margin-bottom:0; }
-.overview-trends-column { display:grid; gap:16px; min-width:0; }
-.overview-trend-card { min-height:300px; }
+.overview-trends-column { display:contents; }
+.overview-trend-card { min-height:320px; }
+.overview-trend-card:first-child { grid-column:1; grid-row:1; }
+.overview-trend-card:last-child { grid-column:1; grid-row:2; }
+.overview-share-card { grid-column:2; grid-row:1 / span 2; min-width:0; min-height:0; }
 .overview-dashboard > .card,
 .overview-trends-column > .card { display:flex; flex-direction:column; }
-.overview-dashboard > .card > #overviewModelShare,
+.overview-share-card > .section-heading { flex:0 0 auto; }
 .overview-trends-column > .card > #overviewTrend,
-.overview-trends-column > .card > #overviewCostTrend { flex:1; min-height:224px; width:100%; }
-.overview-dashboard > .card > #overviewModelShare { min-height:286px; width:100%; }
-.overview-dashboard > .card > #overviewModelShare > .empty-state { min-height:196px; }
-.overview-echart { width:100%; height:224px; }
-#overviewModelShare.overview-echart { height:286px; }
+.overview-trends-column > .card > #overviewCostTrend { flex:1 1 auto; min-height:248px; width:100%; }
+.overview-share-card > #overviewModelShare { flex:1 1 0%; min-height:0; width:100%; }
+.overview-share-card > #overviewModelShare > .empty-state { min-height:196px; height:100%; }
+.overview-echart { width:100%; height:248px; }
+.overview-share-card > #overviewModelShare.overview-echart { flex:1 1 0%; min-height:0; height:auto; }
 .overview-model-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .overview-model-tools .unit-switch button { min-width:0; padding:6px 10px; font-size:.78rem; }
+.overview-trend-card .section-heading { align-items:flex-start; margin-bottom:10px; }
+.overview-trend-card .section-heading > div:first-child { min-width:0; flex:1 1 auto; }
+.overview-trend-card .trend-grain-switch { flex:0 0 auto; margin-top:1px; }
+.trend-grain-switch button { min-width:34px; }
+.trend-metric-row { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 8px; }
+.trend-metric-row:empty { display:none; }
+.trend-metric {
+  appearance:none;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin:0;
+  padding:5px 9px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel-2);
+  color:var(--muted);
+  box-shadow:none;
+  font:inherit;
+  font-size:.72rem;
+  line-height:1.2;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.trend-metric:hover { border-color:#c8d5cc; box-shadow:none; background:var(--control-hover); }
+.trend-metric i { width:7px; height:7px; border-radius:50%; flex:0 0 auto; }
+.trend-metric.dashed i { border-radius:1px; height:2px; width:10px; }
+.trend-metric b { color:var(--text); font-size:.8rem; font-weight:720; letter-spacing:-.02em; }
+.trend-metric.off { opacity:.42; }
+.trend-metric.off b { text-decoration:line-through; }
 .overview-no-data { min-height:184px; }
+html[data-palette="light"] .trend-metric { background:#f6f4ee; border-color:#e3e1db; }
+html[data-palette="dark"] .trend-metric { background:#24211e; border-color:#3a3530; }
+html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background:#2d2925; }
 @media (max-width: 1080px) {
-  .overview-dashboard { grid-template-columns:1fr; }
-  .overview-filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); }
+  .overview-dashboard { grid-template-columns:1fr; grid-template-rows:none; }
+  .overview-trends-column { display:grid; gap:16px; min-width:0; }
+  .overview-trend-card:first-child, .overview-trend-card:last-child, .overview-share-card { grid-column:auto; grid-row:auto; }
+  .overview-share-card > #overviewModelShare, .overview-share-card > #overviewModelShare.overview-echart { min-height:300px; }
+  .overview-filter-grid, .filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); }
   .page-intro { align-items:flex-start; flex-direction:column; gap:12px; }
   .auth-quota-toolbar { width:100%; justify-content:flex-start; gap:14px; }
 }
@@ -822,14 +860,15 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   .auth-quota-toolbar .auth-quota-filter select,
   .auth-quota-toolbar .auth-quota-filter input { min-width:0; width:100%; }
   #btnLoadAuthQuotas { width:100%; }
-  .auth-quota-header { padding:12px 12px 10px; }
+  .auth-quota-header { padding:14px 14px 12px; }
   .auth-quota-cost-grid { grid-template-columns:1fr; }
   .overview-trend-card { min-height:292px; }
   .section-heading { align-items:flex-start; flex-wrap:wrap; }
   .section-heading > .muted { margin-left:auto; }
+  .overview-trend-card .trend-grain-switch { margin-left:auto; }
+  .trend-metric-row { width:100%; }
   .overview-model-tools { width:100%; justify-content:space-between; }
-  #overviewModelShare.overview-echart { height:326px; }
-  .overview-dashboard > .card > #overviewModelShare { min-height:326px; }
+  .overview-share-card > #overviewModelShare.overview-echart { min-height:340px; height:340px; }
 }
 @media (max-width: 460px) {
   .overview-filter-grid, .filter-grid { grid-template-columns:1fr; }
@@ -895,40 +934,42 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 @media (max-width: 1080px) { .usage-grid { grid-template-columns:minmax(0, 1fr); } .usage-grid .usage-recent-card { grid-column:auto; } }
 @media (max-width: 760px) { .workspace { padding:20px 14px 36px; } .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
 .auth-quota-list { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:start; }
-.auth-quota-card { position:relative; overflow:hidden; padding:0; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.94)); box-shadow:0 8px 22px rgba(41,57,46,.045); }
-.auth-quota-card::before { content:""; position:absolute; top:0; right:0; left:0; height:2px; background:linear-gradient(90deg, var(--accent), #8de2c3 48%, var(--accent-2)); }
-.auth-quota-header { display:grid; gap:8px; padding:12px 12px 10px; }
-.auth-quota-identity { min-width:0; display:grid; gap:2px; }
+.auth-quota-card { position:relative; display:flex; flex-direction:column; margin:0; overflow:hidden; padding:0; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.94)); box-shadow:0 8px 20px rgba(41,57,46,.05); }
+.auth-quota-card::before { content:""; position:absolute; top:0; right:0; left:0; height:3px; background:linear-gradient(90deg, var(--accent), #8de2c3 48%, var(--accent-2)); }
+.auth-quota-header { display:grid; flex:0 0 auto; gap:10px; padding:16px 16px 14px; }
+.auth-quota-identity { min-width:0; display:grid; gap:3px; }
 .auth-quota-identity-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
-.auth-quota-provider { margin:0; color:var(--accent); font-size:.62rem; font-weight:760; letter-spacing:.08em; line-height:1.1; text-transform:uppercase; }
-.auth-quota-title { margin:0; overflow:hidden; color:var(--table-text); font-size:.86rem; font-weight:720; letter-spacing:-.016em; text-overflow:ellipsis; white-space:nowrap; }
-.auth-quota-sync { margin:0; color:var(--table-muted); font-size:.64rem; }
+.auth-quota-provider { margin:0; color:var(--accent); font-size:.78rem; font-weight:760; letter-spacing:.08em; line-height:1.2; text-transform:uppercase; }
+.auth-quota-title { margin:0; overflow:hidden; color:var(--table-text); font-size:1rem; font-weight:720; letter-spacing:-.016em; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-sync { margin:0; color:var(--table-muted); font-size:.74rem; }
 .auth-quota-header-tools { min-width:0; }
-.auth-quota-cost-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
-.auth-quota-cost { min-width:0; padding:6px 7px; border:1px solid #e4ece6; border-radius:9px; background:rgba(255,255,255,.72); }
-.auth-quota-cost span { display:block; color:var(--table-muted); font-size:.6rem; line-height:1.2; }
-.auth-quota-cost strong { display:block; overflow:hidden; margin-top:2px; color:var(--table-text); font-size:.72rem; font-weight:730; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
-.auth-quota-header .badge { flex:0 0 auto; }
+.auth-quota-cost-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+.auth-quota-cost { min-width:0; padding:8px 10px; border:1px solid #e4ece6; border-radius:10px; background:rgba(255,255,255,.72); }
+.auth-quota-cost span { display:block; color:var(--table-muted); font-size:.74rem; line-height:1.25; }
+.auth-quota-cost strong { display:block; overflow:hidden; margin-top:3px; color:var(--table-text); font-size:.92rem; font-weight:730; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-header .badge { flex:0 0 auto; font-size:.74rem; padding:4px 9px; }
 .auth-quota-header .auth-quota-filter { min-width:0; gap:0; }
 .auth-quota-header .auth-quota-filter span { display:none; }
-.auth-quota-header .auth-quota-filter select { min-width:0; width:100%; min-height:30px; padding:5px 26px 5px 8px; font-size:.7rem; background-position:right 8px center; }
-.auth-quota-error { margin:0 12px 8px; padding:7px 8px; border:1px solid #f1d3cf; border-radius:8px; background:#fff7f5; color:#bd443b; font-size:.7rem; line-height:1.35; overflow-wrap:anywhere; }
-.auth-quota-window-grid { display:grid; grid-template-columns:1fr; gap:6px; padding:8px 10px 10px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(247,250,247,.78), rgba(247,250,247,.48)); }
-.auth-quota-window-grid > .empty-state { grid-column:1 / -1; padding:14px 8px; font-size:.74rem; }
-.auth-quota-window-card { position:relative; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:8px; align-items:center; min-width:0; padding:8px 9px; border:1px solid #e4ece6; border-radius:11px; background:rgba(255,255,255,.86); box-shadow:0 1px 0 rgba(255,255,255,.7) inset; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
-.auth-quota-window-card:hover { transform:translateY(-1px); border-color:#bce9d5; box-shadow:0 6px 14px rgba(41,57,46,.07); }
-.auth-quota-progress { --quota-progress:0%; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:conic-gradient(var(--quota-color, var(--accent)) var(--quota-progress), #e8efea 0); }
-.auth-quota-progress::before { content:""; grid-area:1 / 1; width:30px; height:30px; border-radius:50%; background:var(--panel); box-shadow:0 0 0 1px rgba(232,239,234,.9) inset; }
-.auth-quota-progress span { z-index:1; grid-area:1 / 1; color:var(--table-text); font-size:.58rem; font-weight:760; font-variant-numeric:tabular-nums; }
+.auth-quota-header .auth-quota-filter select { min-width:0; width:100%; min-height:34px; padding:6px 28px 6px 10px; font-size:.8rem; background-position:right 8px center; }
+.auth-quota-error { flex:0 0 auto; margin:0 16px 10px; padding:8px 10px; border:1px solid #f1d3cf; border-radius:9px; background:#fff7f5; color:#bd443b; font-size:.78rem; line-height:1.4; overflow-wrap:anywhere; }
+.auth-quota-window-grid { display:grid; grid-template-columns:1fr; gap:8px; flex:0 0 auto; align-content:start; min-height:0; padding:12px 14px 14px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(247,250,247,.78), rgba(247,250,247,.48)); }
+.auth-quota-window-grid > .empty-state { grid-column:1 / -1; padding:12px 8px; font-size:.8rem; }
+.auth-quota-window-card { position:relative; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:10px; align-items:center; min-width:0; padding:10px 12px; border:1px solid #e4ece6; border-radius:10px; background:rgba(255,255,255,.86); box-shadow:0 1px 0 rgba(255,255,255,.7) inset; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.auth-quota-window-card:hover { transform:translateY(-1px); border-color:#bce9d5; box-shadow:0 4px 10px rgba(41,57,46,.06); }
+.auth-quota-progress { --quota-progress:0%; display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:conic-gradient(var(--quota-color, var(--accent)) var(--quota-progress), #e8efea 0); }
+.auth-quota-progress::before { content:""; grid-area:1 / 1; width:36px; height:36px; border-radius:50%; background:var(--panel); box-shadow:0 0 0 1px rgba(232,239,234,.9) inset; }
+.auth-quota-progress span { z-index:1; grid-area:1 / 1; color:var(--table-text); font-size:.68rem; font-weight:760; font-variant-numeric:tabular-nums; }
 .auth-quota-progress.warn { --quota-color:var(--warn); }
 .auth-quota-progress.danger { --quota-color:var(--danger); }
 .auth-quota-progress.unknown { --quota-color:#b8c4bb; background:conic-gradient(#dfe7e1 0 100%); }
 .auth-quota-window-content { display:grid; gap:3px; min-width:0; }
-.auth-quota-window-name { overflow:hidden; color:var(--table-text); font-size:.76rem; font-weight:720; text-overflow:ellipsis; white-space:nowrap; }
-.auth-quota-window-stats { display:flex; gap:8px; color:var(--table-muted); font-size:.64rem; line-height:1.2; }
+.auth-quota-window-name { display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden; color:var(--table-text); font-size:.88rem; font-weight:720; white-space:nowrap; }
+.auth-quota-period { flex:0 0 auto; padding:1px 7px; border:1px solid #d7e8de; border-radius:999px; background:#f4faf6; color:#3f6b56; font-size:.68rem; font-weight:700; letter-spacing:.02em; }
+html[data-palette="dark"] .auth-quota-period { border-color:#4a5c52; background:#24302a; color:#9dc4b2; }
+.auth-quota-window-stats { display:flex; gap:10px; color:var(--table-muted); font-size:.76rem; line-height:1.25; }
 .auth-quota-window-stats span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .auth-quota-window-stats strong { margin-left:3px; color:var(--table-text); font-weight:720; font-variant-numeric:tabular-nums; }
-.auth-quota-window-reset { overflow:hidden; color:var(--table-muted); font-size:.62rem; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-window-reset { overflow:hidden; color:var(--table-muted); font-size:.72rem; line-height:1.3; text-overflow:ellipsis; white-space:nowrap; }
 html[data-palette="dark"] .auth-quota-card { background:linear-gradient(180deg, #26231f, #1d1b18); box-shadow:0 10px 24px rgba(0,0,0,.18); }
 html[data-palette="dark"] .auth-quota-cost { border-color:#48423b; background:rgba(36,33,30,.86); }
 html[data-palette="dark"] .auth-quota-window-grid { background:linear-gradient(180deg, rgba(21,20,18,.5), rgba(21,20,18,.28)); }
@@ -963,9 +1004,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         <div class="unit-switch" id="tokenUnitSwitch" role="group" aria-label="Token 显示单位">
           <span class="unit-switch-label">Token</span>
           <button type="button" data-token-unit="raw" title="原始数量">个</button>
-          <button type="button" data-token-unit="k" title="千 (×1,000)">k</button>
-          <button type="button" data-token-unit="w" title="万 (×10,000)">w</button>
-          <button type="button" data-token-unit="m" title="百万 (×1,000,000)">m</button>
+          <button type="button" data-token-unit="k" title="千 (×1,000)">千</button>
+          <button type="button" data-token-unit="w" title="万 (×10,000)">万</button>
+          <button type="button" data-token-unit="m" title="百万 (×1,000,000)">百万</button>
         </div>
         <div class="unit-switch" id="currencySwitch" role="group" aria-label="费用显示货币">
           <span class="unit-switch-label">费用</span>
@@ -1170,7 +1211,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   <section id="tab-overview" class="tabpane">
     <div class="page-intro">
-      <div><h2>额度概览</h2><p>按时间、Key、模型和来源聚合账本数据。</p></div>
+      <div><h2>额度概览</h2><p>按时间、Key、账号、模型和来源聚合账本数据。</p></div>
       <span class="badge ok">账本运行中</span>
     </div>
     <div class="card filter-card overview-filter-card">
@@ -1205,6 +1246,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
             <span class="custom-control-panel key-search-panel" id="overviewKeyOptions" hidden></span>
           </span>
         </label>
+        <label>账号
+          <span class="key-search-control" id="overviewAuthSearch">
+            <input id="overviewAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="overviewAuthOptions" hidden></span>
+          </span>
+        </label>
         <label>模型
           <select id="overviewModelFilter"><option value="">全部已使用模型</option></select>
         </label>
@@ -1230,19 +1277,29 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         <div class="card overview-trend-card">
           <div class="section-heading">
             <div><h2 class="panel-title">Token 趋势</h2><p class="hint" id="overviewTrendHint">输入 / 输出 / 缓存读取 / 缓存命中率</p></div>
-            <span class="muted" id="overviewTrendTotal">—</span>
+            <div class="unit-switch trend-grain-switch" role="group" aria-label="趋势时间维度">
+              <button type="button" data-trend-grain="hour">时</button>
+              <button type="button" data-trend-grain="day" class="active">日</button>
+              <button type="button" data-trend-grain="month">月</button>
+            </div>
           </div>
+          <div class="trend-metric-row" id="overviewTrendTotal"></div>
           <div id="overviewTrend"></div>
         </div>
         <div class="card overview-trend-card">
           <div class="section-heading">
             <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总实际费用</p></div>
-            <span class="muted" id="overviewCostTrendTotal">—</span>
+            <div class="unit-switch trend-grain-switch" role="group" aria-label="趋势时间维度">
+              <button type="button" data-trend-grain="hour">时</button>
+              <button type="button" data-trend-grain="day" class="active">日</button>
+              <button type="button" data-trend-grain="month">月</button>
+            </div>
           </div>
+          <div class="trend-metric-row" id="overviewCostTrendTotal"></div>
           <div id="overviewCostTrend"></div>
         </div>
       </div>
-      <div class="card">
+      <div class="card overview-share-card">
         <div class="section-heading">
           <div><h2 class="panel-title">模型调用占比</h2><p class="hint">点击区块或模型名称下钻</p></div>
           <div class="overview-model-tools">
@@ -1323,6 +1380,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
             <span class="custom-control-panel key-search-panel" id="usageKeyOptions" hidden></span>
           </span>
         </label>
+        <label>账号
+          <span class="key-search-control" id="usageAuthSearch">
+            <input id="usageAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="usageAuthOptions" hidden></span>
+          </span>
+        </label>
         <label>模型
           <select id="usageModelFilter"><option value="">全部已使用模型</option></select>
         </label>
@@ -1374,7 +1437,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   <section id="tab-auth-quotas" class="tabpane hidden">
     <div class="page-intro">
-      <div><h2>认证额度</h2><p>每个认证按各自重置周期显示当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。</p></div>
+      <div><h2>认证额度</h2><p>每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。</p></div>
       <div class="auth-quota-toolbar">
         <div class="auth-quota-toolbar-filters">
           <label class="auth-quota-filter">
@@ -1426,11 +1489,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     '跟随系统': { 'zh-TW':'跟隨系統', en:'System', ru:'Системная' }, '纯白': { 'zh-TW':'純白', en:'White', ru:'Белая' }, '羊毛纸': { 'zh-TW':'羊毛紙', en:'Parchment', ru:'Пергамент' }, '暗色': { 'zh-TW':'暗色', en:'Dark', ru:'Тёмная' },
     '额度仪表盘': { 'zh-TW':'額度儀表板', en:'Credit Dashboard', ru:'Панель лимитов' }, '连接设置': { 'zh-TW':'連線設定', en:'Connection settings', ru:'Настройки подключения' }, '刷新数据': { 'zh-TW':'重新整理資料', en:'Refresh data', ru:'Обновить данные' },
     '概览': { 'zh-TW':'概覽', en:'Overview', ru:'Обзор' }, 'Key 管理': { 'zh-TW':'Key 管理', en:'Keys', ru:'Ключи' }, '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '使用统计': { 'zh-TW':'使用統計', en:'Usage analytics', ru:'Статистика использования' },
-    '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
+    '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、账号、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、帳號、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, account, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, аккаунту, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
     '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；时间按 UTC 解析。': { 'zh-TW':'篩選僅影響概覽指標和圖表；時間按 UTC 解析。', en:'Filters affect overview metrics and charts only; times use UTC.', ru:'Фильтры влияют только на метрики и диаграммы; время в UTC.' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
     '时间范围': { 'zh-TW':'時間範圍', en:'Time range', ru:'Период' }, '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '时间范围（UTC）': { 'zh-TW':'時間範圍（UTC）', en:'Time range (UTC)', ru:'Период (UTC)' }, '至': { 'zh-TW':'至', en:'to', ru:'до' },
-    'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
-    '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' }, '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' },
+    'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '账号': { 'zh-TW':'帳號', en:'Account', ru:'Аккаунт' }, '搜索账号名称或 ID': { 'zh-TW':'搜尋帳號名稱或 ID', en:'Search account name or ID', ru:'Поиск аккаунта или ID' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
+    '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' }, '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
+    '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
     '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有 Key': { 'zh-TW':'已有 Key', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
     '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '维护模型匹配规则与每百万 Token 的计费价格。': { 'zh-TW':'維護模型比對規則與每百萬 Token 的計費價格。', en:'Manage model matching rules and prices per million tokens.', ru:'Управляйте правилами сопоставления моделей и ценами за миллион токенов.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
     '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按 Key 汇总': { 'zh-TW':'依 Key 彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
@@ -1438,17 +1502,20 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
-    '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证按各自重置周期显示当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。': { 'zh-TW':'每個認證依各自重設週期顯示目前額度週，可在卡片內切換該帳號的其他額度週。重新整理最多每 15 分鐘查詢一次。', en:'Each auth shows its own current quota week and can switch weeks inside the card. Refresh is limited to once every 15 minutes.', ru:'У каждой авторизации своя текущая неделя квоты; неделю можно сменить в карточке. Обновление не чаще одного раза в 15 минут.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' },
+    '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。重新整理最多每 15 分鐘查詢一次。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card. Refresh is limited to once every 15 minutes.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке. Обновление не чаще одного раза в 15 минут.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
+    'Token 显示单位': { 'zh-TW':'Token 顯示單位', en:'Token display unit', ru:'Единица отображения токенов' }, '原始数量': { 'zh-TW':'原始數量', en:'Raw count', ru:'Исходное количество' },
+    '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' },
+    '个': { 'zh-TW':'個', en:'1', ru:'шт' }, '千': { 'zh-TW':'千', en:'k', ru:'k' }, '万': { 'zh-TW':'萬', en:'w', ru:'w' }, '百万': { 'zh-TW':'百萬', en:'m', ru:'m' },
   };
   const textSources = new WeakMap();
   const attributeSources = new WeakMap();
   let translationObserver;
   const TOKEN_UNITS = {
     raw: { div: 1, suffix: '', maxFrac: 0 },
-    k: { div: 1e3, suffix: 'k', maxFrac: 2 },
-    w: { div: 1e4, suffix: 'w', maxFrac: 2 },
-    m: { div: 1e6, suffix: 'm', maxFrac: 2 },
+    k: { div: 1e3, suffix: '千', maxFrac: 2 },
+    w: { div: 1e4, suffix: '万', maxFrac: 2 },
+    m: { div: 1e6, suffix: '百万', maxFrac: 2 },
   };
   const state = {
     overview: null,
@@ -1458,6 +1525,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     authQuotaProvider: '',
     authQuotaName: '',
     allKeys: [],
+    usedAuths: [],
     modelPrices: {},
     availableModels: [],
     usagePage: 1,
@@ -1471,7 +1539,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     currentTab: 'overview',
     tabLoadSeq: 0,
     modelShareMetric: 'requests',
+    trendGrain: 'day',
     charts: {},
+    overviewShareObserver: null,
     locale: 'zh-CN',
     theme: 'auto',
   };
@@ -1546,7 +1616,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   function applyTheme(theme) {
     state.theme = THEMES.includes(theme) ? theme : 'auto';
     const palette = state.theme === 'auto'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'white')
       : state.theme;
     document.documentElement.dataset.theme = state.theme;
     document.documentElement.dataset.palette = palette;
@@ -1617,7 +1687,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const abs = Math.abs(scaled);
     // Preserve small non-zero values when a large display unit is selected.
     const maxFrac = abs > 0 && abs < 0.01 ? 6 : (abs >= 100 ? 1 : cfg.maxFrac);
-    return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + cfg.suffix;
+    return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + t(cfg.suffix);
   }
 
   function tokenTitle(value) {
@@ -2185,6 +2255,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     if (!event.target.closest('.key-search-control')) {
       closeKeySearch('overview');
       closeKeySearch('usage');
+      closeAuthSearch('overview');
+      closeAuthSearch('usage');
     }
   });
   document.addEventListener('click', event => {
@@ -2200,6 +2272,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       pane.classList.toggle('hidden', pane.id !== 'tab-' + tab);
     });
     state.currentTab = tab;
+    if (tab === 'overview') requestAnimationFrame(resizeOverviewCharts);
     refreshActiveTab().catch(e => flash(e.message, false));
   }
 
@@ -2293,8 +2366,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const range = $('overviewRangeFilter').value === 'custom'
       ? { from: value('overviewFromFilter'), to: value('overviewToFilter') }
       : overviewRangeDates();
+    const auth = resolveAuthFilter(value('overviewAuthFilter'));
     const filter = {
       plugin_key_id: resolveKeyFilter(value('overviewKeyFilter')),
+      auth_id: auth.auth_id,
+      auth_provider: auth.auth_provider,
+      auth_index: auth.auth_index,
       model: value('overviewModelFilter'),
       source: value('overviewSourceFilter'),
       from: range.from,
@@ -2431,7 +2508,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     });
     ['overviewTrendTotal', 'overviewCostTrendTotal', 'overviewModelShareTotal'].forEach(id => {
       const target = $(id);
-      if (target) target.textContent = '未连接';
+      if (target) target.textContent = t('未连接');
     });
   }
 
@@ -2465,20 +2542,51 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     chart.setOption(option);
     Object.entries(handlers || {}).forEach(([event, handler]) => chart.on(event, handler));
     state.charts[id] = chart;
+    if (id === 'overviewModelShare' && window.ResizeObserver && !state.overviewShareObserver) {
+      state.overviewShareObserver = new ResizeObserver(() => {
+        const share = state.charts.overviewModelShare;
+        if (share) share.resize();
+      });
+      state.overviewShareObserver.observe(target);
+    }
+    requestAnimationFrame(resizeOverviewCharts);
   }
 
   function resizeOverviewCharts() {
     Object.values(state.charts).forEach(chart => chart.resize());
   }
 
-  function overviewDailySeries(items) {
-    const days = new Map();
+  function getTrendGrain() {
+    const grain = state.trendGrain || 'day';
+    return grain === 'hour' || grain === 'month' ? grain : 'day';
+  }
+
+  function trendGrainUnit(grain) {
+    if (grain === 'hour') return '小时';
+    if (grain === 'month') return '自然月';
+    return '自然日';
+  }
+
+  function overviewTrendBucket(date, grain) {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hour = String(date.getUTCHours()).padStart(2, '0');
+    if (grain === 'hour') return { key: year + '-' + month + '-' + day + 'T' + hour, label: month + '-' + day + ' ' + hour + ':00' };
+    if (grain === 'month') return { key: year + '-' + month, label: year + '-' + month };
+    return { key: year + '-' + month + '-' + day, label: month + '-' + day };
+  }
+
+  function overviewTrendSeries(items) {
+    const grain = getTrendGrain();
+    const buckets = new Map();
     (items || []).forEach(item => {
       const date = item.created_at ? new Date(item.created_at) : null;
       if (!date || Number.isNaN(date.getTime())) return;
-      const day = date.toISOString().slice(0, 10);
-      const current = days.get(day) || {
-        date: day,
+      const bucket = overviewTrendBucket(date, grain);
+      const current = buckets.get(bucket.key) || {
+        key: bucket.key,
+        date: bucket.label,
         input: 0,
         output: 0,
         cacheRead: 0,
@@ -2492,14 +2600,48 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       current.cacheRelated += usageCacheRelated(item);
       current.tokens += usageTokens(item);
       current.cost += usageCost(item);
-      days.set(day, current);
+      buckets.set(bucket.key, current);
     });
-    return [...days.values()]
-      .sort((a, b) => a.date.localeCompare(b.date))
+    return [...buckets.values()]
+      .sort((a, b) => a.key.localeCompare(b.key))
       .map(point => ({
         ...point,
         cacheHitRate: point.cacheRelated > 0 ? point.cacheRead / point.cacheRelated * 100 : 0,
       }));
+  }
+
+  function syncTrendGrainSwitch() {
+    const grain = getTrendGrain();
+    document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.trendGrain === grain);
+    });
+  }
+
+  function setTrendGrain(grain) {
+    state.trendGrain = grain === 'hour' || grain === 'month' ? grain : 'day';
+    syncTrendGrainSwitch();
+    if (!state.overview) return;
+    const items = state.overview.recent_usage || [];
+    renderOverviewTrend(items);
+    renderOverviewCostTrend(items);
+  }
+
+  function trendMetric(label, value, color, title, series, dashed) {
+    return '<button type="button" class="trend-metric'+(dashed?' dashed':'')+'" data-series="'+esc(series)+'"'+(title?' title="'+esc(title)+'"':'')+'><i style="background:'+color+'"></i>'+esc(t(label))+' <b>'+esc(value)+'</b></button>';
+  }
+
+  function bindTrendMetricToggles(rowID, chartID) {
+    const row = $(rowID);
+    if (!row || !state.charts[chartID]) return;
+    row.querySelectorAll('[data-series]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const chart = state.charts[chartID];
+        const name = chip.dataset.series;
+        if (!chart || !name) return;
+        chart.dispatchAction({ type: 'legendToggleSelect', name });
+        chip.classList.toggle('off');
+      });
+    });
   }
 
   function renderOverviewLineChart(options) {
@@ -2514,20 +2656,13 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       return;
     }
     const hasRightAxis = series.some(item => item.axis === 'right');
+    const sparse = points.length <= 6;
     renderOverviewEChart(targetID, emptyText, {
       color: series.map(item => item.color),
       animationDuration: 420,
       animationEasing: 'cubicOut',
-      grid: { top: 42, right: hasRightAxis ? 50 : 18, bottom: points.length > 10 ? 47 : 30, left: 60, containLabel: false },
-      legend: {
-        top: 2,
-        left: 0,
-        itemWidth: 12,
-        itemHeight: 3,
-        itemGap: 16,
-        textStyle: { color: '#4f5b53', fontSize: 12, fontWeight: 600 },
-        selectedMode: true,
-      },
+      grid: { top: 12, right: hasRightAxis ? 8 : 8, bottom: points.length > 10 ? 36 : 8, left: 8, containLabel: true },
+      legend: { show: false, data: series.map(item => item.label) },
       tooltip: {
         trigger: 'axis',
         backgroundColor: 'rgba(26, 31, 28, .94)',
@@ -2549,7 +2684,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         data: points.map(point => point.date),
         axisLine: { lineStyle: { color: '#dce5de' } },
         axisTick: { show: false },
-        axisLabel: { color: '#6a766e', fontSize: 11, hideOverlap: true, formatter: value => value.slice(5) },
+        axisLabel: { color: '#6a766e', fontSize: 11, hideOverlap: true, margin: 10 },
       },
       yAxis: [
         {
@@ -2557,20 +2692,20 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           min: 0,
           splitNumber: 3,
           axisLabel: { color: '#6a766e', fontSize: 11, formatter: value => options.formatLeft(value) },
-          splitLine: { lineStyle: { color: '#e8eeea' } },
+          splitLine: { lineStyle: { color: '#edf1ee', type: 'dashed' } },
           axisLine: { show: false },
           axisTick: { show: false },
         },
         ...(hasRightAxis ? [{
           type: 'value', min: 0, max: 100, splitNumber: 2,
-          axisLabel: { color: '#6a766e', fontSize: 11, formatter: value => options.formatRight(value) },
+          axisLabel: { color: '#c56b82', fontSize: 11, formatter: value => options.formatRight(value) },
           splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false },
         }] : []),
       ],
       dataZoom: points.length > 10 ? [{
         type: 'inside', start: 0, end: 100, zoomOnMouseWheel: 'shift', moveOnMouseMove: true,
       }, {
-        type: 'slider', height: 15, bottom: 6, start: 0, end: 100,
+        type: 'slider', height: 14, bottom: 2, start: 0, end: 100,
         borderColor: 'transparent', backgroundColor: '#f0f4f1', fillerColor: 'rgba(30,183,135,.20)',
         handleStyle: { color: '#1eb787', borderColor: '#1eb787' }, textStyle: { color: 'transparent' },
       }] : [],
@@ -2578,11 +2713,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         name: item.label,
         type: 'line',
         yAxisIndex: item.axis === 'right' ? 1 : 0,
-        smooth: true,
-        showSymbol: points.length <= 31,
+        z: item.dashed ? 1 : 3,
+        smooth: sparse ? false : 0.35,
+        showSymbol: points.length <= 24,
         symbol: 'circle',
-        symbolSize: 6,
-        lineStyle: { width: item.dashed ? 2 : 2.5, type: item.dashed ? 'dashed' : 'solid' },
+        symbolSize: item.dashed ? 4 : 6,
+        lineStyle: { width: item.dashed ? 1.6 : 2.4, type: item.dashed ? 'dashed' : 'solid', opacity: item.dashed ? 0.8 : 1 },
         itemStyle: { borderWidth: 2, borderColor: '#fff' },
         areaStyle: item.fill ? { color: item.fill } : undefined,
         emphasis: { focus: 'series', scale: true },
@@ -2591,12 +2727,11 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       media: [{
         query: { maxWidth: 560 },
         option: {
-          grid: { top: 45, right: hasRightAxis ? 38 : 10, bottom: points.length > 10 ? 45 : 28, left: 48 },
-          legend: { itemGap: 10, textStyle: { fontSize: 11 } },
+          grid: { top: 10, right: 4, bottom: points.length > 10 ? 34 : 6, left: 4, containLabel: true },
           xAxis: { axisLabel: { fontSize: 10 } },
           yAxis: [
             { axisLabel: { fontSize: 10, formatter: value => options.formatLeft(value) } },
-            ...(hasRightAxis ? [{ axisLabel: { fontSize: 10, formatter: value => options.formatRight(value) } }] : []),
+            ...(hasRightAxis ? [{ axisLabel: { fontSize: 10, color: '#c56b82', formatter: value => options.formatRight(value) } }] : []),
           ],
         },
       }],
@@ -2604,18 +2739,23 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function renderOverviewTrend(items) {
-    const points = overviewDailySeries(items);
+    const grain = getTrendGrain();
+    const points = overviewTrendSeries(items);
     const totalInput = points.reduce((sum, point) => sum + point.input, 0);
     const totalOutput = points.reduce((sum, point) => sum + point.output, 0);
     const totalCacheRead = points.reduce((sum, point) => sum + point.cacheRead, 0);
     const totalCacheRelated = points.reduce((sum, point) => sum + point.cacheRelated, 0);
     const avgHit = totalCacheRelated > 0 ? totalCacheRead / totalCacheRelated * 100 : 0;
-    $('overviewTrendTotal').textContent = points.length
-      ? '入 ' + formatTokens(totalInput) + ' · 出 ' + formatTokens(totalOutput) + ' · 缓存 ' + formatTokens(totalCacheRead) + (totalCacheRelated > 0 ? ' · 命中 ' + avgHit.toFixed(1) + '%' : '')
-      : '—';
+    $('overviewTrendTotal').innerHTML = points.length
+      ? trendMetric('入', formatTokens(totalInput), '#1eb787', tokenTitle(totalInput), '输入') +
+        trendMetric('出', formatTokens(totalOutput), '#7968ee', tokenTitle(totalOutput), '输出') +
+        trendMetric('缓存', formatTokens(totalCacheRead), '#f0a04b', tokenTitle(totalCacheRead), '缓存读取') +
+        (totalCacheRelated > 0 ? trendMetric('命中', avgHit.toFixed(1) + '%', '#e56b8a', '', '缓存命中率', true) : '')
+      : '';
     $('overviewTrendHint').textContent = points.length
-      ? points.length + ' 个有使用记录的自然日 · 输入 / 输出 / 缓存读取 / 缓存命中率'
+      ? points.length + ' 个有使用记录的' + trendGrainUnit(grain)
       : '输入 / 输出 / 缓存读取 / 缓存命中率';
+    syncTrendGrainSwitch();
     renderOverviewLineChart({
       targetID: 'overviewTrend',
       points,
@@ -2651,15 +2791,18 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         },
       ],
     });
+    bindTrendMetricToggles('overviewTrendTotal', 'overviewTrend');
   }
 
   function renderOverviewCostTrend(items) {
-    const points = overviewDailySeries(items);
+    const grain = getTrendGrain();
+    const points = overviewTrendSeries(items);
     const total = points.reduce((sum, point) => sum + point.cost, 0);
-    $('overviewCostTrendTotal').textContent = points.length ? formatMoney(total) : '—';
+    $('overviewCostTrendTotal').innerHTML = points.length ? trendMetric('费用', formatMoney(total), '#1eb787', '', '费用') : '';
     $('overviewCostTrendHint').textContent = points.length
-      ? points.length + ' 个有使用记录的自然日 · 实际费用'
-      : '按日汇总实际费用';
+      ? points.length + ' 个有使用记录的' + trendGrainUnit(grain)
+      : '按' + trendGrainUnit(grain) + '汇总实际费用';
+    syncTrendGrainSwitch();
     renderOverviewLineChart({
       targetID: 'overviewCostTrend',
       points,
@@ -2675,6 +2818,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         },
       ],
     });
+    bindTrendMetricToggles('overviewCostTrendTotal', 'overviewCostTrend');
   }
 
   function renderOverviewModels(items) {
@@ -2712,19 +2856,19 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       legend: {
         type: 'scroll',
         orient: 'vertical',
-        left: '57%',
+        left: '58%',
         right: 4,
         top: 'middle',
-        width: '39%',
+        width: '38%',
         itemWidth: 8,
         itemHeight: 8,
         itemGap: 12,
         textStyle: {
           color: '#344038',
-          fontSize: 11,
+          fontSize: 12,
           rich: {
-            name: { width: 88, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
-            value: { width: 46, align: 'right', color: '#5f6a61', fontWeight: 700 },
+            name: { width: 96, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
+            value: { width: 48, align: 'right', color: '#5f6a61', fontWeight: 700 },
           },
         },
         formatter(name) {
@@ -2737,8 +2881,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       series: [{
         name: modelShareCenterLabel(metric),
         type: 'pie',
-        radius: ['47%', '65%'],
-        center: ['31%', '50%'],
+        radius: ['42%', '58%'],
+        center: ['30%', '50%'],
         minAngle: 3,
         avoidLabelOverlap: true,
         itemStyle: { borderColor: '#fff', borderWidth: 3, borderRadius: 4 },
@@ -2768,14 +2912,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
             itemHeight: 8,
             itemGap: 8,
             textStyle: {
-              fontSize: 11,
+              fontSize: 12,
               rich: {
                 name: { width: 156, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
                 value: { width: 48, align: 'right', color: '#5f6a61', fontWeight: 700 },
               },
             },
           },
-          series: [{ center: ['50%', '31%'], radius: ['31%', '45%'] }],
+          series: [{ center: ['50%', '31%'], radius: ['28%', '40%'] }],
         },
       }, {
         query: { maxWidth: 420 },
@@ -2817,7 +2961,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   function renderOverview(data) {
     const keys = (data.keys || []).filter(key => !key.revoked_at);
     const items = data.recent_usage || [];
+    state.usedAuths = data.used_auths || [];
     renderOverviewModelFilter(data.used_models || []);
+    renderAuthSearchOptions('overview');
+    renderAuthSearchOptions('usage');
     const activeKeys = keys.filter(k => k.enabled && !k.revoked_at).length;
     const totalTokens = items.reduce((sum, item) => sum + usageTokens(item), 0);
     const totalSpend = items.reduce((sum, item) => sum + Number(item.cost_micro_usd || 0), 0);
@@ -2826,6 +2973,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const rangeText = $('overviewRangeFilter').selectedOptions[0].textContent;
     const labels = [rangeText];
     if (filter.plugin_key_id) labels.push('指定 Key');
+    if (filter.auth_id || filter.auth_index) labels.push('账号');
     if (filter.model) labels.push('模型: ' + filter.model);
     if (filter.source) labels.push('来源: ' + filter.source);
     $('overviewFilterState').textContent = labels.join(' · ');
@@ -2839,6 +2987,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     renderOverviewTrend(items);
     renderOverviewCostTrend(items);
     renderOverviewModels(items);
+    requestAnimationFrame(resizeOverviewCharts);
   }
 
   function renderKeys(keys) {
@@ -2940,6 +3089,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   function openKeySearch(kind) {
     closeKeySearch(kind === 'overview' ? 'usage' : 'overview');
+    closeAuthSearch('overview');
+    closeAuthSearch('usage');
     renderKeySearchOptions(kind);
     const wrapper = $(kind + 'KeySearch');
     const panel = $(kind + 'KeyOptions');
@@ -2967,6 +3118,103 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     if (matches.length === 1) return matches[0].id;
     if (matches.length > 1) throw new Error('匹配多个 Key，请从搜索建议中选择完整项');
     throw new Error('未找到匹配的 Key');
+  }
+
+  function authFilterValue(auth, key) {
+    if (!auth) return '';
+    const camel = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    for (const name of [key, camel]) if (auth[name] != null) return String(auth[name] || '').trim();
+    return '';
+  }
+
+  function authFilterLabel(auth) {
+    const provider = authFilterValue(auth, 'auth_provider') || authFilterValue(auth, 'provider');
+    const account = authFilterValue(auth, 'auth_label') || authFilterValue(auth, 'label')
+      || authFilterValue(auth, 'auth_email') || authFilterValue(auth, 'email')
+      || authFilterValue(auth, 'auth_name') || authFilterValue(auth, 'name')
+      || authFilterValue(auth, 'auth_id') || authFilterValue(auth, 'auth_index') || '未知账号';
+    return [provider, account].filter(Boolean).join(' · ');
+  }
+
+  function authFilterKey(auth) {
+    return [authFilterValue(auth, 'auth_provider') || authFilterValue(auth, 'provider'),
+      authFilterValue(auth, 'auth_id'), authFilterValue(auth, 'auth_index')].join('\t');
+  }
+
+  function authSearchMatches(query) {
+    query = String(query || '').trim().toLocaleLowerCase();
+    const items = state.usedAuths || [];
+    if (!query) return items;
+    return items.filter(auth => {
+      const haystack = [
+        authFilterLabel(auth),
+        authFilterValue(auth, 'auth_id'),
+        authFilterValue(auth, 'auth_index'),
+        authFilterValue(auth, 'auth_provider') || authFilterValue(auth, 'provider'),
+        authFilterValue(auth, 'auth_label') || authFilterValue(auth, 'label'),
+        authFilterValue(auth, 'auth_email') || authFilterValue(auth, 'email'),
+        authFilterValue(auth, 'auth_name') || authFilterValue(auth, 'name'),
+      ].join(' ').toLocaleLowerCase();
+      return haystack.includes(query);
+    });
+  }
+
+  function renderAuthSearchOptions(kind) {
+    const input = $(kind + 'AuthFilter');
+    const panel = $(kind + 'AuthOptions');
+    if (!input || !panel) return;
+    const matches = authSearchMatches(input.value);
+    panel.innerHTML = matches.length ? matches.map((auth, index) =>
+      '<button class="key-search-option" type="button" data-auth-pos="'+index+'" title="'+esc(authFilterValue(auth, 'auth_id') || authFilterValue(auth, 'auth_index'))+'">' +
+        '<span class="key-search-label">'+esc(authFilterLabel(auth))+'</span>' +
+      '</button>'
+    ).join('') : '<div class="key-search-empty">未找到匹配的账号</div>';
+    panel.querySelectorAll('[data-auth-pos]').forEach(button => button.addEventListener('mousedown', event => {
+      event.preventDefault();
+      const auth = matches[Number(button.dataset.authPos)];
+      if (!auth) return;
+      input.value = authFilterLabel(auth);
+      closeAuthSearch(kind);
+    }));
+  }
+
+  function openAuthSearch(kind) {
+    closeAuthSearch(kind === 'overview' ? 'usage' : 'overview');
+    closeKeySearch('overview');
+    closeKeySearch('usage');
+    renderAuthSearchOptions(kind);
+    const wrapper = $(kind + 'AuthSearch');
+    const panel = $(kind + 'AuthOptions');
+    if (!wrapper || !panel) return;
+    wrapper.classList.add('open');
+    panel.hidden = false;
+  }
+
+  function closeAuthSearch(kind) {
+    const wrapper = $(kind + 'AuthSearch');
+    const panel = $(kind + 'AuthOptions');
+    if (!wrapper || !panel) return;
+    wrapper.classList.remove('open');
+    panel.hidden = true;
+  }
+
+  function resolveAuthFilter(raw) {
+    raw = String(raw || '').trim();
+    if (!raw) return { auth_id: '', auth_provider: '', auth_index: '' };
+    const items = state.usedAuths || [];
+    const exact = items.find(auth => authFilterLabel(auth) === raw
+      || authFilterValue(auth, 'auth_id') === raw
+      || authFilterValue(auth, 'auth_index') === raw);
+    const pick = auth => ({
+      auth_id: authFilterValue(auth, 'auth_id'),
+      auth_provider: authFilterValue(auth, 'auth_provider') || authFilterValue(auth, 'provider'),
+      auth_index: authFilterValue(auth, 'auth_index'),
+    });
+    if (exact) return pick(exact);
+    const matches = authSearchMatches(raw);
+    if (matches.length === 1) return pick(matches[0]);
+    if (matches.length > 1) throw new Error('匹配多个账号，请从搜索建议中选择完整项');
+    throw new Error('未找到匹配的账号');
   }
 
   async function copyText(text) {
@@ -3513,6 +3761,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const rangeText = $('usageRangeFilter').selectedOptions[0].textContent;
     if (rangeText) filterLabels.push(rangeText);
     if (filter.plugin_key_id) filterLabels.push('Key');
+    if (filter.auth_id || filter.auth_index) filterLabels.push('账号');
     if (filter.model) filterLabels.push('模型: ' + filter.model);
     if (filter.source) filterLabels.push('来源: ' + filter.source);
     if (filter.min_cost_micro_usd || filter.max_cost_micro_usd) filterLabels.push('费用范围');
@@ -3540,7 +3789,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       Number(u.input_tokens || 0) + Number(u.output_tokens || 0) + Number(u.reasoning_tokens || 0) + Number(u.cached_tokens || 0) + Number(u.cache_read_tokens || 0) + Number(u.cache_creation_tokens || 0);
     const usageAuthCell = u => {
       const provider = String(u.auth_provider || u.auth_type || '').trim();
-      const account = String(u.auth_label || u.auth_email || u.auth_name || '').trim();
+      const account = String(u.auth_label || u.auth_email || u.auth_name || u.auth_id || u.auth_index || '').trim();
       const display = [provider, account].filter(Boolean).join(' · ') || '未知账号';
       return '<td class="usage-key" title="'+esc(display)+'"><div class="usage-key-label"><strong>'+esc(display)+'</strong></div></td>';
     };
@@ -3607,8 +3856,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const range = $('usageRangeFilter').value === 'custom'
       ? { from: value('usageFromFilter'), to: value('usageToFilter') }
       : usageRangeDates();
+    const auth = resolveAuthFilter(value('usageAuthFilter'));
     const filter = {
       plugin_key_id: resolveKeyFilter(value('usageKeyFilter')),
+      auth_id: auth.auth_id,
+      auth_provider: auth.auth_provider,
+      auth_index: auth.auth_index,
       model: value('usageModelFilter'),
       source: value('usageSourceFilter'),
       from: range.from,
@@ -3670,7 +3923,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const remaining = Number(authQuotaValue(window, 'remaining_ratio'));
     const known = Number.isFinite(used) || Number.isFinite(remaining);
     const ratio = Number.isFinite(used) ? used : (Number.isFinite(remaining) ? 1 - remaining : 0);
-    const percent = Math.max(0, Math.min(100, ratio * 100));
+    const percent = Math.round(Math.max(0, Math.min(100, ratio * 100)));
     const tone = percent >= 90 ? 'danger' : (percent >= 70 ? 'warn' : '');
     return { known, percent, tone };
   }
@@ -3683,11 +3936,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   function authQuotaIsWeekly(window) {
     const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
     const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
-    const mode = String(authQuotaValue(window, 'mode') || '').toLowerCase();
-    const unit = String(authQuotaValue(window, 'unit') || '').toLowerCase();
     const duration = Number(authQuotaValue(window, 'duration_seconds'));
-    if (id.includes('on-demand') || id.includes('ondemand') || id.includes('monthly') || label.includes('on demand') || label.includes('按需') || label.includes('month') || label.includes('月额') || mode === 'balance' || mode === 'fixed' || unit === 'currency') return false;
-    if (id.includes('weekly') || id.includes('seven_day') || id.includes('7d') || label.includes('week') || label.includes('周') || label.includes('週')) return true;
+    if (authQuotaIsExcluded(window)) return false;
+    if (id.includes('weekly') || id.includes('seven_day') || id.includes('7d') || id.includes('secondary') || id === 'summary' || label.includes('week') || label.includes('secondary') || label.includes('summary') || label.includes('周') || label.includes('週')) return true;
     if (Number.isFinite(duration) && duration >= 500000 && duration <= 700000) return true;
     const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
     const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
@@ -3696,6 +3947,46 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       return hours >= 120 && hours <= 200;
     }
     return false;
+  }
+
+  function authQuotaIsExcluded(window) {
+    const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
+    const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
+    const mode = String(authQuotaValue(window, 'mode') || '').toLowerCase();
+    const unit = String(authQuotaValue(window, 'unit') || '').toLowerCase();
+    return id.includes('on-demand') || id.includes('ondemand') || id.includes('monthly') || label.includes('on demand') || label.includes('按需') || label.includes('month') || label.includes('月额') || mode === 'balance' || mode === 'fixed' || unit === 'currency';
+  }
+
+  function authQuotaIsFiveHour(window) {
+    if (authQuotaIsExcluded(window) || authQuotaIsWeekly(window)) return false;
+    const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
+    const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
+    const duration = Number(authQuotaValue(window, 'duration_seconds'));
+    if (id.includes('five_hour') || id.includes('5h') || id.includes('5-hour') || id.includes('primary') || label.includes('five hour') || label.includes('5h') || label.includes('5 小时') || label.includes('五小时')) return true;
+    if (Number.isFinite(duration) && duration >= 10800 && duration <= 21600) return true;
+    const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (Number.isFinite(start) && Number.isFinite(reset)) {
+      const hours = (reset - start) / 36e5;
+      return hours >= 3 && hours <= 6;
+    }
+    return false;
+  }
+
+  function authQuotaPeriodLabel(window) {
+    if (authQuotaIsFiveHour(window)) return '5 小时';
+    if (authQuotaIsWeekly(window)) return '周额度';
+    return '';
+  }
+
+  function authQuotaDisplayWindows(windows, selected) {
+    const list = Array.isArray(windows) ? windows : [];
+    const weekly = list.filter(authQuotaIsWeekly);
+    const fiveHour = list.filter(authQuotaIsFiveHour);
+    const selectedWeekly = weekly.filter(window => authQuotaWeekKey(window) === selected);
+    if (fiveHour.length || weekly.length) return fiveHour.concat(selectedWeekly);
+    const rest = list.filter(window => !authQuotaIsExcluded(window));
+    return rest.length ? rest : list;
   }
 
   function authQuotaWeekKey(window) {
@@ -3761,35 +4052,71 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     return Number.isFinite(cost) && cost >= 0 ? cost : null;
   }
 
+  function authQuotaLimitValue(window) {
+    const limit = Number(authQuotaValue(window, 'limit'));
+    if (Number.isFinite(limit) && limit > 0) return limit;
+    return String(authQuotaValue(window, 'unit') || '') === 'percentage' ? 100 : NaN;
+  }
+
+  function authQuotaRemainingRatio(window) {
+    const ratio = Number(authQuotaValue(window, 'remaining_ratio'));
+    if (Number.isFinite(ratio) && ratio >= 0) return ratio;
+    const remaining = Number(authQuotaValue(window, 'remaining'));
+    const limit = authQuotaLimitValue(window);
+    if (Number.isFinite(remaining) && remaining >= 0 && Number.isFinite(limit) && limit > 0) return remaining / limit;
+    return NaN;
+  }
+
+  function authQuotaObservedRatio(window) {
+    const observed = Number(authQuotaValue(window, 'observed_used'));
+    if (!Number.isFinite(observed) || observed <= 0) return NaN;
+    const limit = authQuotaLimitValue(window);
+    if (Number.isFinite(limit) && limit > 0) return observed / limit;
+    const used = Number(authQuotaValue(window, 'used'));
+    const usedRatio = Number(authQuotaValue(window, 'used_ratio'));
+    if (Number.isFinite(used) && used > 0 && Number.isFinite(usedRatio) && usedRatio > 0) return observed * usedRatio / used;
+    return NaN;
+  }
+
   function authQuotaCostForecast(windows) {
-    let used = 0;
-    let remaining = 0;
+    const minObservedRatio = 0.005;
+    let usedMicro = 0;
+    let remainingMicro = 0;
     let remainingKnown = false;
     (Array.isArray(windows) ? windows : []).forEach(window => {
       const cost = authQuotaLocalCost(window);
       if (cost == null) return;
-      used += cost;
-      const usedValue = Number(authQuotaValue(window, 'used'));
-      const remainingValue = Number(authQuotaValue(window, 'remaining'));
-      if (cost > 0 && Number.isFinite(usedValue) && usedValue > 0 && Number.isFinite(remainingValue) && remainingValue >= 0) {
-        remaining += cost * remainingValue / usedValue;
-        remainingKnown = true;
-      }
+      usedMicro += cost;
+      if (!(cost > 0)) return;
+      const observedRatio = authQuotaObservedRatio(window);
+      const remainingRatio = authQuotaRemainingRatio(window);
+      if (!Number.isFinite(observedRatio) || observedRatio < minObservedRatio || !Number.isFinite(remainingRatio) || remainingRatio < 0) return;
+      remainingMicro += cost * remainingRatio / observedRatio;
+      remainingKnown = true;
     });
     return {
-      used: formatMoney(used),
-      remaining: remainingKnown ? formatMoney(remaining) : '—',
-      available: remainingKnown ? formatMoney(used + remaining) : '—'
+      used: formatMoney(usedMicro),
+      remaining: remainingKnown ? formatMoney(remainingMicro) : '—',
+      available: remainingKnown ? formatMoney(usedMicro + remainingMicro) : '—'
     };
   }
 
   function authQuotaAmount(window, key) {
+    if (key === 'used' || key === 'remaining') {
+      const ratioKey = key === 'used' ? 'used_ratio' : 'remaining_ratio';
+      const ratio = Number(authQuotaValue(window, ratioKey));
+      if (Number.isFinite(ratio)) return Math.round(Math.max(0, Math.min(100, ratio * 100))) + '%';
+      const limit = authQuotaLimitValue(window);
+      const raw = Number(authQuotaValue(window, key));
+      if (Number.isFinite(raw) && Number.isFinite(limit) && limit > 0) return Math.round(Math.max(0, Math.min(100, raw / limit * 100))) + '%';
+      if (String(authQuotaValue(window, 'unit') || '') === 'percentage' && Number.isFinite(raw)) return Math.round(Math.max(0, Math.min(100, raw))) + '%';
+    }
     const value = authQuotaValue(window, key);
     if (value == null || value === '') return '—';
     const unit = String(authQuotaValue(window, 'unit') || '');
     const number = Number(value);
     if (!Number.isFinite(number)) return authQuotaText(value);
-    if (unit === 'percentage') return number.toFixed(number % 1 ? 1 : 0) + '%';
+    if (unit === 'percentage') return Math.round(number) + '%';
     if (unit === 'currency') return formatMoney(Math.round(number * 1e6));
     return authQuotaText(value);
   }
@@ -3859,20 +4186,22 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       const status = authQuotaValue(item, 'status');
       const badge = authQuotaBadge(status);
       const error = authQuotaValue(item, 'error') ?? authQuotaValue(item, 'last_error');
-      const visible = Array.isArray(windows) ? windows.filter(window => authQuotaIsWeekly(window) && authQuotaWeekKey(window) === selected) : [];
+      const visible = authQuotaDisplayWindows(windows, selected);
       const cards = visible.length ? visible.map(window => {
         const ratio = authQuotaRatio(window);
         const label = authQuotaText(authQuotaValue(window, 'label'));
+        const period = authQuotaPeriodLabel(window);
         const used = authQuotaAmount(window, 'used');
         const remaining = authQuotaAmount(window, 'remaining');
-        const progress = ratio.known ? ratio.percent.toFixed(1)+'%' : '—';
+        const progress = ratio.known ? ratio.percent+'%' : '—';
         const progressClass = ratio.known ? ratio.tone : 'unknown';
         return '<section class="auth-quota-window-card">'+
-          '<div class="auth-quota-progress '+progressClass+'" style="--quota-progress:'+ratio.percent.toFixed(1)+'%" role="img" aria-label="'+esc(label)+' 已用 '+progress+'"><span>'+esc(progress)+'</span></div>'+
-          '<div class="auth-quota-window-content"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+'</div><div class="auth-quota-window-stats"><span>已用<strong>'+esc(used)+'</strong></span><span>剩余<strong>'+esc(remaining)+'</strong></span></div><div class="auth-quota-window-reset" title="重置时间 '+esc(authQuotaTime(authQuotaValue(window, 'resets_at')))+'">重置 '+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</div></div>'+
+          '<div class="auth-quota-progress '+progressClass+'" style="--quota-progress:'+ratio.percent+'%" role="img" aria-label="'+esc(label)+' 已用 '+progress+'"><span>'+esc(progress)+'</span></div>'+
+          '<div class="auth-quota-window-content"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+(period ? '<span class="auth-quota-period">'+esc(period)+'</span>' : '')+'</div><div class="auth-quota-window-stats"><span>已用<strong>'+esc(used)+'</strong></span><span>剩余<strong>'+esc(remaining)+'</strong></span></div><div class="auth-quota-window-reset" title="重置时间 '+esc(authQuotaTime(authQuotaValue(window, 'resets_at')))+'">重置 '+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</div></div>'+
           '</section>';
       }).join('') : '<div class="empty-state">该额度周暂无窗口</div>';
-      const costs = authQuotaCostForecast(visible);
+      const weeklyForCost = (Array.isArray(windows) ? windows : []).filter(window => authQuotaIsWeekly(window) && authQuotaWeekKey(window) === selected);
+      const costs = authQuotaCostForecast(weeklyForCost.length ? weeklyForCost : visible);
       const weekSelect = weeks.length
         ? '<label class="auth-quota-filter"><span>额度周</span><select class="auth-quota-week-select" data-auth-id="'+esc(itemKey)+'" title="额度周">'+weeks.map(week => '<option value="'+esc(week.key)+'"'+(week.key === selected ? ' selected' : '')+'>'+esc(week.label)+'</option>').join('')+'</select></label>'
         : '<label class="auth-quota-filter"><span>额度周</span><select disabled title="额度周"><option>暂无额度周</option></select></label>';
@@ -3950,6 +4279,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
     btn.addEventListener('click', () => setModelShareMetric(btn.dataset.modelMetric));
   });
+  document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(btn => {
+    btn.addEventListener('click', () => setTrendGrain(btn.dataset.trendGrain));
+  });
   window.addEventListener('resize', resizeOverviewCharts);
   $('usdCnyRate').addEventListener('change', () => setUsdCnyRate($('usdCnyRate').value));
   $('usdCnyRate').addEventListener('keydown', event => {
@@ -3970,6 +4302,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       closeCustomControls();
       closeKeySearch('overview');
       closeKeySearch('usage');
+      closeAuthSearch('overview');
+      closeAuthSearch('usage');
       clearFlash();
       closeConnectionModal();
       closeKeyModal();
@@ -4039,6 +4373,19 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       }
       if (event.key === 'Enter') closeKeySearch(kind);
     });
+    const authInput = $(kind + 'AuthFilter');
+    authInput.addEventListener('focus', () => openAuthSearch(kind));
+    authInput.addEventListener('input', () => {
+      renderAuthSearchOptions(kind);
+      openAuthSearch(kind);
+    });
+    authInput.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeAuthSearch(kind);
+        authInput.blur();
+      }
+      if (event.key === 'Enter') closeAuthSearch(kind);
+    });
   });
   $('btnLoadOverview').addEventListener('click', async () => {
     try {
@@ -4049,11 +4396,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   $('btnResetOverview').addEventListener('click', async () => {
     $('overviewRangeFilter').value = '30';
     $('overviewKeyFilter').value = '';
+    $('overviewAuthFilter').value = '';
     closeKeySearch('overview');
+    closeAuthSearch('overview');
     $('overviewModelFilter').value = '';
     $('overviewSourceFilter').value = '';
     $('overviewFromFilter').value = '';
     $('overviewToFilter').value = '';
+    setTrendGrain('day');
     refreshCustomControls();
     setOverviewRangeVisibility();
     try {
@@ -4140,8 +4490,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   });
   $('btnClearUsageFilters').addEventListener('click', async () => {
     $('usageRangeFilter').value = 'all';
-    ['usageKeyFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
+    ['usageKeyFilter', 'usageAuthFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
     closeKeySearch('usage');
+    closeAuthSearch('usage');
     refreshCustomControls();
     setUsageRangeVisibility();
     try {

@@ -786,11 +786,14 @@ func usageSummary(ctx context.Context, svc *service.Service, query map[string][]
 
 func usageFilterFromQuery(query map[string][]string, fallbackLimit int) (store.UsageFilter, error) {
 	filter := store.UsageFilter{
-		CallerID:    firstQuery(query, "caller_id"),
-		PluginKeyID: firstQuery(query, "plugin_key_id"),
-		Model:       firstQuery(query, "model"),
-		Source:      firstQuery(query, "source"),
-		Limit:       queryInt(query, "limit", fallbackLimit),
+		CallerID:     firstQuery(query, "caller_id"),
+		PluginKeyID:  firstQuery(query, "plugin_key_id"),
+		Model:        firstQuery(query, "model"),
+		Source:       firstQuery(query, "source"),
+		AuthID:       firstQuery(query, "auth_id"),
+		AuthProvider: firstQuery(query, "auth_provider"),
+		AuthIndex:    firstQuery(query, "auth_index"),
+		Limit:        queryInt(query, "limit", fallbackLimit),
 	}
 	var err error
 	if filter.From, err = queryTime(query, "from"); err != nil {
@@ -829,6 +832,9 @@ func usageFilterView(filter store.UsageFilter) map[string]any {
 		"plugin_key_id":      filter.PluginKeyID,
 		"model":              filter.Model,
 		"source":             filter.Source,
+		"auth_id":            filter.AuthID,
+		"auth_provider":      filter.AuthProvider,
+		"auth_index":         filter.AuthIndex,
 		"limit":              filter.Limit,
 		"min_tokens":         filter.MinTokens,
 		"max_tokens":         filter.MaxTokens,
@@ -910,6 +916,10 @@ func getOverview(ctx context.Context, svc *service.Service, query map[string][]s
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
+	usedAuths, err := svc.Store().ListUsedAuths(ctx)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
 	recent, err := svc.Store().ListUsage(ctx, filter)
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
@@ -932,6 +942,7 @@ func getOverview(ctx context.Context, svc *service.Service, query map[string][]s
 		"usage_by_key":   byKey,
 		"usage_by_model": byModel,
 		"used_models":    usedModels,
+		"used_auths":     usedAuths,
 		"filters":        usageFilterView(filter),
 		"recent_usage":   usageViews,
 	}), nil

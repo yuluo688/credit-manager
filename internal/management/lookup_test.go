@@ -46,7 +46,7 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 			t.Fatalf("lookup page is missing mobile-safe Key validation: %q", text)
 		}
 	}
-	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch"} {
+	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch", "data-token-unit=\"k\" title=\"千 (×1,000)\">千", "suffix:'千'", "suffix:'万'", "suffix:'百万'"} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing recent usage pagination or one-line headers: %q", text)
 		}
@@ -68,6 +68,45 @@ func TestLookupPathRecognition(t *testing.T) {
 	path, ok := resourceRelativePath("/v0/resource/plugins/" + service.PluginID + "/lookup")
 	if !ok || path != "lookup" {
 		t.Fatalf("resourceRelativePath lookup = %q, %t", path, ok)
+	}
+}
+
+func TestConsoleTokenUnitsUseChineseLabels(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`data-token-unit="k" title="千 (×1,000)">千`,
+		`data-token-unit="w" title="万 (×10,000)">万`,
+		`data-token-unit="m" title="百万 (×1,000,000)">百万`,
+		`suffix: '千'`,
+		`suffix: '万'`,
+		`suffix: '百万'`,
+		`t(cfg.suffix)`,
+		`'百万': { 'zh-TW':'百萬', en:'m', ru:'m' }`,
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing Chinese token units: %q", text)
+		}
+	}
+}
+
+func TestConsoleTrendGrainSwitch(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`data-trend-grain="hour"`,
+		`data-trend-grain="day"`,
+		`data-trend-grain="month"`,
+		"function overviewTrendSeries",
+		"function setTrendGrain",
+		"function trendMetric",
+		"trend-metric-row",
+		"趋势时间维度",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing trend grain switch: %q", text)
+		}
+	}
+	if strings.Contains(page, "function overviewDailySeries") {
+		t.Fatal("console page still uses daily-only trend aggregation")
 	}
 }
 
@@ -110,7 +149,8 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
 		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "刷新最多每 15 分钟查询一次", "auth-quota-window-card",
-		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'",
+		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'",
+		"align-items:start", "flex-direction:column",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console auth quota view is missing %q", text)
