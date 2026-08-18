@@ -294,6 +294,7 @@ func pluginRegistration() registration {
 				{Name: "limits.default_output_reserve", Type: pluginapi.ConfigFieldTypeInteger, Description: "Default output token reserve when body omits max_tokens."},
 				{Name: "pricing.unknown_policy", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"deny", "allow", "default"}, Description: "Behavior when no price rule matches."},
 				{Name: "settlement.missing_usage", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"settle_reserved", "release"}, Description: "Settlement when upstream returns no usage."},
+				{Name: "settlement.host_usage_wait", Type: pluginapi.ConfigFieldTypeString, Description: "How long to wait for usage.handle before reserved_fallback, e.g. 1500ms. 0 disables."},
 			},
 		},
 		Capabilities: registrationCapability{
@@ -391,7 +392,7 @@ func execute(raw []byte) ([]byte, error) {
 	if err != nil {
 		return errorEnvelope("limit_rejected", err.Error()), nil
 	}
-	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
 	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
 	defer stopHeartbeat()
 
@@ -463,7 +464,7 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	if err != nil {
 		return err
 	}
-	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
 	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
 	defer stopHeartbeat()
 
@@ -720,8 +721,8 @@ func handleUsage(raw []byte) ([]byte, error) {
 	if svc == nil || len(raw) == 0 {
 		return okEnvelope(map[string]any{})
 	}
-	var record pluginapi.UsageRecord
-	if err := json.Unmarshal(raw, &record); err != nil {
+	record, ok := decodeHostUsageRecord(raw)
+	if !ok {
 		return okEnvelope(map[string]any{})
 	}
 	auth := authIdentityFromUsage(record)
@@ -729,8 +730,16 @@ func handleUsage(raw []byte) ([]byte, error) {
 		auth = enrichAuthIdentity(auth)
 	}
 	usage := usageFromHostRecord(record)
-	ledgerID, ok := svc.ObserveHostUsage(record.RequestedAt, auth, usage, record.Model, record.Alias)
-	if ok && strings.TrimSpace(ledgerID) != "" {
+	ledgerID, matched := svc.ObserveHostUsage(record.RequestedAt, auth, usage, record.Model, record.Alias)
+	if matched && strings.TrimSpace(ledgerID) == "" {
+		return okEnvelope(map[string]any{})
+	}
+	if strings.TrimSpace(ledgerID) == "" {
+		if entry, found, err := svc.Store().FindRecentFallbackWithoutAuth(context.Background(), []string{record.Model, record.Alias}, 15*time.Minute); err == nil && found {
+			ledgerID = entry.ID
+		}
+	}
+	if strings.TrimSpace(ledgerID) != "" {
 		if !auth.Empty() {
 			_ = svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth)
 		}
