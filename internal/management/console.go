@@ -683,6 +683,14 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .page-intro p { margin:5px 0 0; color:var(--muted); font-size:.82rem; }
 .page-intro .actions { align-items:center; flex-shrink:0; }
 .page-intro .badge { white-space:nowrap; }
+.auth-quota-toolbar { display:flex; align-items:flex-end; gap:16px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+.auth-quota-toolbar-filters { display:flex; align-items:end; gap:10px; flex:0 1 auto; min-width:0; }
+#btnLoadAuthQuotas { width:auto; flex:0 0 auto; margin-left:2px; min-height:38px; padding:8px 14px; line-height:1.2; white-space:nowrap; }
+.auth-quota-filter { display:grid; gap:4px; min-width:0; }
+.auth-quota-filter span { color:var(--muted); font-size:.72rem; font-weight:650; letter-spacing:.04em; }
+.auth-quota-filter select, .auth-quota-filter input { min-width:0; width:100%; padding:8px 10px; }
+.auth-quota-toolbar .auth-quota-filter { width:168px; }
+.auth-quota-toolbar .auth-quota-filter select, .auth-quota-toolbar .auth-quota-filter input { width:100%; min-height:38px; }
 .btn.sm { padding:5px 10px; font-size:.78rem; border-radius:7px; line-height:1.25; }
 .btn.soft { background:var(--accent-soft); border-color:#c8eddd; color:#087d5a; }
 .btn.soft:hover { background:#d7f3e7; border-color:#b4e5d2; }
@@ -744,6 +752,9 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   .usage-grid > .card:not(.usage-recent-card) table { min-width:520px; }
   .table-scroll { -webkit-overflow-scrolling:touch; touch-action:pan-x; }
   .table-swipe-hint { display:block; margin:9px 2px 0; color:var(--muted); font-size:.72rem; }
+  .auth-quota-toolbar { width:100%; justify-content:flex-start; align-items:flex-end; gap:14px; }
+  .auth-quota-toolbar-filters { flex:1 1 auto; min-width:0; }
+  #btnLoadAuthQuotas { width:auto; flex:0 0 auto; white-space:nowrap; }
 }
 .overview-layout { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; }
 .overview-layout .stats { grid-template-columns:repeat(3, minmax(150px, 1fr)); align-content:start; }
@@ -771,12 +782,48 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .overview-model-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
 .overview-model-tools .unit-switch button { min-width:0; padding:6px 10px; font-size:.78rem; }
 .overview-no-data { min-height:184px; }
-@media (max-width: 1080px) { .overview-dashboard { grid-template-columns:1fr; } .overview-filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); } }
+@media (max-width: 1080px) {
+  .overview-dashboard { grid-template-columns:1fr; }
+  .overview-filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); }
+  .page-intro { align-items:flex-start; flex-direction:column; gap:12px; }
+  .auth-quota-toolbar { width:100%; justify-content:flex-start; gap:14px; }
+}
 @media (max-width: 760px) { .overview-filter-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } .overview-date-range-field { grid-column:1 / -1; } }
-@media (max-width: 560px) {
-  .workspace { padding:84px 14px 36px; }
-  .topbar { gap:12px; }
-  .topbar-actions { width:100%; padding-top:0; gap:7px; }
+@media (max-width: 560px) and (orientation: portrait) {
+  .workspace { padding:calc(72px + env(safe-area-inset-top, 0px)) 12px 28px; }
+  .workspace-top { margin-bottom:14px; }
+  .workspace-top > div:first-child { max-width:calc(100% - 168px); min-width:0; padding-right:8px; }
+  .eyebrow { margin-bottom:4px; font-size:.66rem; }
+  .workspace-top h1 { max-width:100%; font-size:1.28rem; line-height:1.18; }
+  .topbar { display:block; }
+  .topbar-actions { width:100%; padding-top:0; margin-top:10px; gap:8px; }
+  .unit-switch { flex:1 1 calc(50% - 8px); min-width:0; }
+  .unit-switch-label { padding:0 6px 0 4px; font-size:.68rem; }
+  .unit-switch button { min-width:0; flex:1 1 auto; padding:6px 7px; font-size:.76rem; }
+  .rate-field { width:100%; }
+  .connection-trigger, #btnRefresh { flex:1 1 calc(50% - 8px); min-width:0; justify-content:center; }
+  .tabs {
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    width:100%;
+    max-width:none;
+    margin:0 0 14px;
+    padding:0;
+    overflow:visible;
+    gap:6px;
+  }
+  .tab { width:100%; min-width:0; justify-content:center; padding:8px 6px; font-size:.74rem; }
+  .page-intro { margin-bottom:14px; }
+  .page-intro h2 { font-size:1.12rem; }
+  .page-intro p { font-size:.78rem; line-height:1.5; }
+  .auth-quota-toolbar { width:100%; align-items:stretch; }
+  .auth-quota-toolbar-filters { width:100%; display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr); gap:8px; }
+  .auth-quota-toolbar .auth-quota-filter { width:100%; }
+  .auth-quota-toolbar .auth-quota-filter select,
+  .auth-quota-toolbar .auth-quota-filter input { min-width:0; width:100%; }
+  #btnLoadAuthQuotas { width:100%; }
+  .auth-quota-header { padding:12px 12px 10px; }
+  .auth-quota-cost-grid { grid-template-columns:1fr; }
   .overview-trend-card { min-height:292px; }
   .section-heading { align-items:flex-start; flex-wrap:wrap; }
   .section-heading > .muted { margin-left:auto; }
@@ -847,10 +894,58 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .usage-grid .usage-recent-card { grid-column:1 / -1; }
 @media (max-width: 1080px) { .usage-grid { grid-template-columns:minmax(0, 1fr); } .usage-grid .usage-recent-card { grid-column:auto; } }
 @media (max-width: 760px) { .workspace { padding:20px 14px 36px; } .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
+.auth-quota-list { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:start; }
+.auth-quota-card { position:relative; overflow:hidden; padding:0; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.94)); box-shadow:0 8px 22px rgba(41,57,46,.045); }
+.auth-quota-card::before { content:""; position:absolute; top:0; right:0; left:0; height:2px; background:linear-gradient(90deg, var(--accent), #8de2c3 48%, var(--accent-2)); }
+.auth-quota-header { display:grid; gap:8px; padding:12px 12px 10px; }
+.auth-quota-identity { min-width:0; display:grid; gap:2px; }
+.auth-quota-identity-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
+.auth-quota-provider { margin:0; color:var(--accent); font-size:.62rem; font-weight:760; letter-spacing:.08em; line-height:1.1; text-transform:uppercase; }
+.auth-quota-title { margin:0; overflow:hidden; color:var(--table-text); font-size:.86rem; font-weight:720; letter-spacing:-.016em; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-sync { margin:0; color:var(--table-muted); font-size:.64rem; }
+.auth-quota-header-tools { min-width:0; }
+.auth-quota-cost-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+.auth-quota-cost { min-width:0; padding:6px 7px; border:1px solid #e4ece6; border-radius:9px; background:rgba(255,255,255,.72); }
+.auth-quota-cost span { display:block; color:var(--table-muted); font-size:.6rem; line-height:1.2; }
+.auth-quota-cost strong { display:block; overflow:hidden; margin-top:2px; color:var(--table-text); font-size:.72rem; font-weight:730; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-header .badge { flex:0 0 auto; }
+.auth-quota-header .auth-quota-filter { min-width:0; gap:0; }
+.auth-quota-header .auth-quota-filter span { display:none; }
+.auth-quota-header .auth-quota-filter select { min-width:0; width:100%; min-height:30px; padding:5px 26px 5px 8px; font-size:.7rem; background-position:right 8px center; }
+.auth-quota-error { margin:0 12px 8px; padding:7px 8px; border:1px solid #f1d3cf; border-radius:8px; background:#fff7f5; color:#bd443b; font-size:.7rem; line-height:1.35; overflow-wrap:anywhere; }
+.auth-quota-window-grid { display:grid; grid-template-columns:1fr; gap:6px; padding:8px 10px 10px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(247,250,247,.78), rgba(247,250,247,.48)); }
+.auth-quota-window-grid > .empty-state { grid-column:1 / -1; padding:14px 8px; font-size:.74rem; }
+.auth-quota-window-card { position:relative; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:8px; align-items:center; min-width:0; padding:8px 9px; border:1px solid #e4ece6; border-radius:11px; background:rgba(255,255,255,.86); box-shadow:0 1px 0 rgba(255,255,255,.7) inset; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+.auth-quota-window-card:hover { transform:translateY(-1px); border-color:#bce9d5; box-shadow:0 6px 14px rgba(41,57,46,.07); }
+.auth-quota-progress { --quota-progress:0%; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:conic-gradient(var(--quota-color, var(--accent)) var(--quota-progress), #e8efea 0); }
+.auth-quota-progress::before { content:""; grid-area:1 / 1; width:30px; height:30px; border-radius:50%; background:var(--panel); box-shadow:0 0 0 1px rgba(232,239,234,.9) inset; }
+.auth-quota-progress span { z-index:1; grid-area:1 / 1; color:var(--table-text); font-size:.58rem; font-weight:760; font-variant-numeric:tabular-nums; }
+.auth-quota-progress.warn { --quota-color:var(--warn); }
+.auth-quota-progress.danger { --quota-color:var(--danger); }
+.auth-quota-progress.unknown { --quota-color:#b8c4bb; background:conic-gradient(#dfe7e1 0 100%); }
+.auth-quota-window-content { display:grid; gap:3px; min-width:0; }
+.auth-quota-window-name { overflow:hidden; color:var(--table-text); font-size:.76rem; font-weight:720; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-window-stats { display:flex; gap:8px; color:var(--table-muted); font-size:.64rem; line-height:1.2; }
+.auth-quota-window-stats span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-window-stats strong { margin-left:3px; color:var(--table-text); font-weight:720; font-variant-numeric:tabular-nums; }
+.auth-quota-window-reset { overflow:hidden; color:var(--table-muted); font-size:.62rem; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
+html[data-palette="dark"] .auth-quota-card { background:linear-gradient(180deg, #26231f, #1d1b18); box-shadow:0 10px 24px rgba(0,0,0,.18); }
+html[data-palette="dark"] .auth-quota-cost { border-color:#48423b; background:rgba(36,33,30,.86); }
+html[data-palette="dark"] .auth-quota-window-grid { background:linear-gradient(180deg, rgba(21,20,18,.5), rgba(21,20,18,.28)); }
+html[data-palette="dark"] .auth-quota-window-card { border-color:#48423b; background:#24211e; box-shadow:none; }
+html[data-palette="dark"] .auth-quota-window-card:hover { border-color:#6c8979; box-shadow:0 8px 16px rgba(0,0,0,.22); }
+html[data-palette="dark"] .auth-quota-progress { background:conic-gradient(var(--quota-color, var(--ok)) var(--quota-progress), #3a403b 0); }
+html[data-palette="dark"] .auth-quota-progress::before { background:#24211e; box-shadow:0 0 0 1px rgba(72,66,59,.8) inset; }
+html[data-palette="dark"] .auth-quota-progress.unknown { background:conic-gradient(#3d433f 0 100%); }
+html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#422522; color:#ffb5aa; }
+@media (max-width: 1280px) {
+  .auth-quota-list { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .auth-quota-list { grid-template-columns:1fr; }
+}
 @media (max-width: 520px) {
   .connection-panel .token-box, .form-card .row { grid-template-columns:1fr; }
-  .tabs { width:100%; gap:5px; }
-  .tab { flex:1 1 0; justify-content:center; min-width:0; padding:8px 5px; font-size:.76rem; white-space:nowrap; }
   .tab::before { width:5px; height:5px; margin-right:5px; }
   .price-pairs { grid-template-columns:1fr; }
 }
@@ -1044,6 +1139,13 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
                 <label>缓存创建 USD/1M
                   <input id="priceCacheCreation" type="number" step="0.000001" value="0"/>
                 </label>
+                <label class="field-span-2">缓存会计
+                  <select id="priceAccountingMode">
+                    <option value="">按模型自动（OpenAI 含缓存 / Claude 不含）</option>
+                    <option value="input_includes_cache">input 含缓存（OpenAI）</option>
+                    <option value="input_excludes_cache">input 不含缓存（Claude）</option>
+                  </select>
+                </label>
               </div>
             </div>
             <p class="modal-status" id="modelPriceStatus">价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。</p>
@@ -1063,6 +1165,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
         <button class="tab" data-tab="keys">Key 管理</button>
         <button class="tab" data-tab="pricing">模型与价格</button>
         <button class="tab" data-tab="usage">使用统计</button>
+        <button class="tab" data-tab="auth-quotas">认证额度</button>
       </div>
 
   <section id="tab-overview" class="tabpane">
@@ -1133,7 +1236,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
         </div>
         <div class="card overview-trend-card">
           <div class="section-heading">
-            <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总预估费用</p></div>
+            <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总实际费用</p></div>
             <span class="muted" id="overviewCostTrendTotal">—</span>
           </div>
           <div id="overviewCostTrend"></div>
@@ -1269,6 +1372,26 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     </div>
   </section>
 
+  <section id="tab-auth-quotas" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>认证额度</h2><p>每个认证按各自重置周期显示当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。</p></div>
+      <div class="auth-quota-toolbar">
+        <div class="auth-quota-toolbar-filters">
+          <label class="auth-quota-filter">
+            <span>平台</span>
+            <select id="authQuotaProviderFilter"><option value="">全部平台</option></select>
+          </label>
+          <label class="auth-quota-filter">
+            <span>名称</span>
+            <input id="authQuotaNameFilter" autocomplete="off" placeholder="搜索账号或名称"/>
+          </label>
+        </div>
+        <button class="btn primary" id="btnLoadAuthQuotas">重新加载</button>
+      </div>
+    </div>
+    <div id="authQuotaList" class="auth-quota-list"></div>
+  </section>
+
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
     <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
       <div class="modal-header">
@@ -1315,6 +1438,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
+    '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证按各自重置周期显示当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。': { 'zh-TW':'每個認證依各自重設週期顯示目前額度週，可在卡片內切換該帳號的其他額度週。重新整理最多每 15 分鐘查詢一次。', en:'Each auth shows its own current quota week and can switch weeks inside the card. Refresh is limited to once every 15 minutes.', ru:'У каждой авторизации своя текущая неделя квоты; неделю можно сменить в карточке. Обновление не чаще одного раза в 15 минут.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
   };
   const textSources = new WeakMap();
@@ -1329,6 +1453,10 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   const state = {
     overview: null,
     keys: [],
+    authQuotas: null,
+    authQuotaWeeks: {},
+    authQuotaProvider: '',
+    authQuotaName: '',
     allKeys: [],
     modelPrices: {},
     availableModels: [],
@@ -2095,6 +2223,10 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       if (seq !== state.tabLoadSeq) return;
       return;
     }
+    if (tab === 'auth-quotas') {
+      await loadAuthQuotas();
+      return;
+    }
     if (tab === 'pricing') {
       await loadOverviewBundle();
       if (seq !== state.tabLoadSeq) return;
@@ -2196,7 +2328,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       const current = usage.get(name) || { model: name, tokens: 0, requests: 0, cost: 0 };
       current.tokens += usageTokens(item);
       current.requests += 1;
-      current.cost += Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0);
+      current.cost += Number(item.cost_micro_usd || 0);
       usage.set(name, current);
     });
     return [...usage.values()].sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
@@ -2265,7 +2397,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   }
 
   function usageCost(item) {
-    return Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0);
+    return Number(item.cost_micro_usd || 0);
   }
 
   function usageCacheRelated(item) {
@@ -2526,8 +2658,8 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     const total = points.reduce((sum, point) => sum + point.cost, 0);
     $('overviewCostTrendTotal').textContent = points.length ? formatMoney(total) : '—';
     $('overviewCostTrendHint').textContent = points.length
-      ? points.length + ' 个有使用记录的自然日 · 预估费用'
-      : '按日汇总预估费用';
+      ? points.length + ' 个有使用记录的自然日 · 实际费用'
+      : '按日汇总实际费用';
     renderOverviewLineChart({
       targetID: 'overviewCostTrend',
       points,
@@ -2688,7 +2820,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     renderOverviewModelFilter(data.used_models || []);
     const activeKeys = keys.filter(k => k.enabled && !k.revoked_at).length;
     const totalTokens = items.reduce((sum, item) => sum + usageTokens(item), 0);
-    const totalSpend = items.reduce((sum, item) => sum + Number(item.estimated_cost_micro_usd != null ? item.estimated_cost_micro_usd : item.cost_micro_usd || 0), 0);
+    const totalSpend = items.reduce((sum, item) => sum + Number(item.cost_micro_usd || 0), 0);
     const totalReq = items.length;
     const filter = getOverviewFilterValues();
     const rangeText = $('overviewRangeFilter').selectedOptions[0].textContent;
@@ -2988,6 +3120,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     $('priceOut').value = Number(priceValue(price, 'Output', 'output') || 0) / 1e6;
     $('priceCacheRead').value = Number(priceValue(price, 'CacheRead', 'cache_read') || 0) / 1e6;
     $('priceCacheCreation').value = Number(priceValue(price, 'CacheCreation', 'cache_creation') || 0) / 1e6;
+    $('priceAccountingMode').value = priceValue(price, 'AccountingMode', 'accounting_mode') || '';
     $('priceModelPicker').value = '';
     $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」。可同步并选择当前可用模型的 models.dev 价格进行回填。' : '价格来源：models.dev。仅匹配当前代理公开的模型；同步不会自动保存。';
     refreshCustomControls();
@@ -3184,6 +3317,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     $('priceOut').value = priceNumber(cost.output);
     $('priceCacheRead').value = priceNumber(cost.cache_read);
     $('priceCacheCreation').value = priceNumber(cost.cache_write);
+    $('priceAccountingMode').value = /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache';
     $('modelPriceStatus').textContent = '已回填 ' + modelID + ' 的价格，来源：models.dev / ' + item.provider + '。请核对后保存。';
   }
 
@@ -3199,12 +3333,13 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       pattern: modelID,
       priority: 100,
       enabled: true,
-      price: {
-        input: Math.round(priceNumber(cost.input) * 1e6),
-        output: Math.round(priceNumber(cost.output) * 1e6),
-        cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
-        cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
-      },
+        price: {
+          input: Math.round(priceNumber(cost.input) * 1e6),
+          output: Math.round(priceNumber(cost.output) * 1e6),
+          cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
+          cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
+          accounting_mode: /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache',
+        },
     };
   }
 
@@ -3410,14 +3545,14 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
       return '<td class="usage-key" title="'+esc(display)+'"><div class="usage-key-label"><strong>'+esc(display)+'</strong></div></td>';
     };
 
-    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>预估费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
+    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
       items.map(u => {
-        const estimatedCost = u.estimated_cost_micro_usd != null ? u.estimated_cost_micro_usd : u.cost_micro_usd;
+        const settledCost = u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
         return '<tr><td class="mono">'+esc(u.created_at)+'</td>'+usageAuthCell(u)+
           '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
-          '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(estimatedCost))+'">'+esc(formatMoney(estimatedCost))+'</td></tr>';
+          '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(settledCost))+'">'+esc(formatMoney(settledCost))+'</td></tr>';
       }).join('') + '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整明细</p>' : emptyState('当前筛选条件下暂无使用明细');
     renderUsagePagination(pageData);
   }
@@ -3512,6 +3647,242 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     renderUsage(summary, recent);
   }
 
+  function authQuotaValue(item, key) {
+    if (!item) return undefined;
+    const camel = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    const pascal = camel.charAt(0).toUpperCase() + camel.slice(1);
+    for (const name of [key, camel, pascal]) if (item[name] != null) return item[name];
+    return undefined;
+  }
+
+  function authQuotaTime(value) {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  }
+
+  function authQuotaText(value) {
+    return value == null || value === '' ? '—' : String(value);
+  }
+
+  function authQuotaRatio(window) {
+    const used = Number(authQuotaValue(window, 'used_ratio'));
+    const remaining = Number(authQuotaValue(window, 'remaining_ratio'));
+    const known = Number.isFinite(used) || Number.isFinite(remaining);
+    const ratio = Number.isFinite(used) ? used : (Number.isFinite(remaining) ? 1 - remaining : 0);
+    const percent = Math.max(0, Math.min(100, ratio * 100));
+    const tone = percent >= 90 ? 'danger' : (percent >= 70 ? 'warn' : '');
+    return { known, percent, tone };
+  }
+
+  function authQuotaTimeMs(value) {
+    const parsed = Date.parse(value || '');
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+
+  function authQuotaIsWeekly(window) {
+    const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
+    const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
+    const mode = String(authQuotaValue(window, 'mode') || '').toLowerCase();
+    const unit = String(authQuotaValue(window, 'unit') || '').toLowerCase();
+    const duration = Number(authQuotaValue(window, 'duration_seconds'));
+    if (id.includes('on-demand') || id.includes('ondemand') || id.includes('monthly') || label.includes('on demand') || label.includes('按需') || label.includes('month') || label.includes('月额') || mode === 'balance' || mode === 'fixed' || unit === 'currency') return false;
+    if (id.includes('weekly') || id.includes('seven_day') || id.includes('7d') || label.includes('week') || label.includes('周') || label.includes('週')) return true;
+    if (Number.isFinite(duration) && duration >= 500000 && duration <= 700000) return true;
+    const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (Number.isFinite(start) && Number.isFinite(reset)) {
+      const hours = (reset - start) / 36e5;
+      return hours >= 120 && hours <= 200;
+    }
+    return false;
+  }
+
+  function authQuotaWeekKey(window) {
+    const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (Number.isFinite(start) && Number.isFinite(reset)) return start + ':' + reset;
+    if (Number.isFinite(reset)) return 'reset:' + reset;
+    if (Number.isFinite(start)) return 'start:' + start;
+    return '';
+  }
+
+  function authQuotaShortTime(value) {
+    const ms = authQuotaTimeMs(value);
+    if (!Number.isFinite(ms)) return '—';
+    const date = new Date(ms);
+    const month = String(date.getMonth() + 1);
+    const day = String(date.getDate());
+    const hour = String(date.getHours()).padStart(2, '0');
+    const minute = String(date.getMinutes()).padStart(2, '0');
+    return month + '/' + day + ' ' + hour + ':' + minute;
+  }
+
+  function authQuotaWeekLabel(window, now) {
+    const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    const current = (Number.isFinite(start) && Number.isFinite(reset) && start <= now && now < reset) || (!Number.isFinite(start) && Number.isFinite(reset) && now < reset);
+    return (current ? '当前 · ' : '') + authQuotaShortTime(authQuotaValue(window, 'cycle_start_at')) + ' → ' + authQuotaShortTime(authQuotaValue(window, 'resets_at'));
+  }
+
+  function collectAuthQuotaWeeks(windows, now) {
+    const weeks = [];
+    const seen = new Set();
+    (Array.isArray(windows) ? windows : []).forEach(window => {
+      if (!authQuotaIsWeekly(window)) return;
+      const key = authQuotaWeekKey(window);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+      const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+      weeks.push({ key, start, reset, label: authQuotaWeekLabel(window, now), current: (Number.isFinite(start) && Number.isFinite(reset) && start <= now && now < reset) || (!Number.isFinite(start) && Number.isFinite(reset) && now < reset) });
+    });
+    weeks.sort((a, b) => (Number.isFinite(b.reset) ? b.reset : Number.isFinite(b.start) ? b.start : 0) - (Number.isFinite(a.reset) ? a.reset : Number.isFinite(a.start) ? a.start : 0));
+    return weeks;
+  }
+
+  function authQuotaItemKey(item) {
+    return String(authQuotaValue(item, 'auth_id') || authQuotaValue(item, 'auth_index') || authQuotaValue(item, 'display_name') || '');
+  }
+
+  function selectedAuthQuotaWeek(itemKey, weeks) {
+    if (!weeks.length) {
+      delete state.authQuotaWeeks[itemKey];
+      return '';
+    }
+    const current = weeks.find(week => week.current);
+    if (!weeks.some(week => week.key === state.authQuotaWeeks[itemKey])) state.authQuotaWeeks[itemKey] = (current && current.key) || weeks[0].key;
+    return state.authQuotaWeeks[itemKey];
+  }
+
+  function authQuotaLocalCost(window) {
+    const usage = authQuotaValue(window, 'local_usage');
+    const cost = Number(authQuotaValue(usage, 'estimated_cost_micro_usd'));
+    return Number.isFinite(cost) && cost >= 0 ? cost : null;
+  }
+
+  function authQuotaCostForecast(windows) {
+    let used = 0;
+    let remaining = 0;
+    let remainingKnown = false;
+    (Array.isArray(windows) ? windows : []).forEach(window => {
+      const cost = authQuotaLocalCost(window);
+      if (cost == null) return;
+      used += cost;
+      const usedValue = Number(authQuotaValue(window, 'used'));
+      const remainingValue = Number(authQuotaValue(window, 'remaining'));
+      if (cost > 0 && Number.isFinite(usedValue) && usedValue > 0 && Number.isFinite(remainingValue) && remainingValue >= 0) {
+        remaining += cost * remainingValue / usedValue;
+        remainingKnown = true;
+      }
+    });
+    return {
+      used: formatMoney(used),
+      remaining: remainingKnown ? formatMoney(remaining) : '—',
+      available: remainingKnown ? formatMoney(used + remaining) : '—'
+    };
+  }
+
+  function authQuotaAmount(window, key) {
+    const value = authQuotaValue(window, key);
+    if (value == null || value === '') return '—';
+    const unit = String(authQuotaValue(window, 'unit') || '');
+    const number = Number(value);
+    if (!Number.isFinite(number)) return authQuotaText(value);
+    if (unit === 'percentage') return number.toFixed(number % 1 ? 1 : 0) + '%';
+    if (unit === 'currency') return formatMoney(Math.round(number * 1e6));
+    return authQuotaText(value);
+  }
+
+
+
+  function authQuotaProviderName(provider) {
+    const value = String(provider || '').trim();
+    if (!value) return '未知提供商';
+    const key = value.toLowerCase();
+    if (key === 'xai' || key === 'grok') return 'xAI';
+    if (key === 'codex' || key === 'openai') return 'Codex';
+    if (key === 'claude' || key === 'anthropic') return 'Claude';
+    if (key === 'antigravity' || key === 'google') return 'Antigravity';
+    if (key === 'kimi' || key === 'moonshot') return 'Kimi';
+    return value;
+  }
+
+  function syncAuthQuotaProviderFilter(items) {
+    const select = $('authQuotaProviderFilter');
+    if (!select) return;
+    const providers = Array.from(new Set(items.map(item => String(authQuotaValue(item, 'provider') || '').trim()).filter(Boolean))).sort((a, b) => authQuotaProviderName(a).localeCompare(authQuotaProviderName(b), 'zh'));
+    if (!providers.includes(state.authQuotaProvider)) state.authQuotaProvider = '';
+    select.innerHTML = '<option value="">全部平台</option>' + providers.map(provider => '<option value="'+esc(provider)+'">'+esc(authQuotaProviderName(provider))+'</option>').join('');
+    select.value = state.authQuotaProvider;
+  }
+
+  function authQuotaMatchesFilters(item) {
+    const provider = String(authQuotaValue(item, 'provider') || '');
+    if (state.authQuotaProvider && provider !== state.authQuotaProvider) return false;
+    const query = String(state.authQuotaName || '').trim().toLowerCase();
+    if (!query) return true;
+    const haystack = [authQuotaValue(item, 'display_name'), authQuotaValue(item, 'auth_id'), authQuotaValue(item, 'auth_index'), provider, authQuotaProviderName(provider)].map(value => String(value || '').toLowerCase()).join(' ');
+    return haystack.includes(query);
+  }
+
+  function authQuotaBadge(status) {
+    switch (String(status || '').toLowerCase()) {
+      case 'fresh': return { tone: 'ok', text: '最新' };
+      case 'stale': return { tone: 'warn', text: '缓存过期' };
+      case 'unavailable': return { tone: 'bad', text: '不可用' };
+      default: return { tone: 'warn', text: authQuotaText(status) };
+    }
+  }
+
+  function renderAuthQuotas(result) {
+    if (result) state.authQuotas = result;
+    const items = state.authQuotas && Array.isArray(authQuotaValue(state.authQuotas, 'items')) ? authQuotaValue(state.authQuotas, 'items') : [];
+    if (!items.length) {
+      state.authQuotaWeeks = {};
+      syncAuthQuotaProviderFilter([]);
+      $('authQuotaList').innerHTML = emptyState('当前没有可用的认证额度数据');
+      return;
+    }
+    syncAuthQuotaProviderFilter(items);
+    const visibleItems = items.filter(authQuotaMatchesFilters);
+    if (!visibleItems.length) {
+      $('authQuotaList').innerHTML = emptyState('没有符合筛选条件的认证额度');
+      return;
+    }
+    const now = Date.now();
+    $('authQuotaList').innerHTML = visibleItems.map(item => {
+      const itemKey = authQuotaItemKey(item);
+      const windows = authQuotaValue(item, 'windows');
+      const weeks = collectAuthQuotaWeeks(windows, now);
+      const selected = selectedAuthQuotaWeek(itemKey, weeks);
+      const status = authQuotaValue(item, 'status');
+      const badge = authQuotaBadge(status);
+      const error = authQuotaValue(item, 'error') ?? authQuotaValue(item, 'last_error');
+      const visible = Array.isArray(windows) ? windows.filter(window => authQuotaIsWeekly(window) && authQuotaWeekKey(window) === selected) : [];
+      const cards = visible.length ? visible.map(window => {
+        const ratio = authQuotaRatio(window);
+        const label = authQuotaText(authQuotaValue(window, 'label'));
+        const used = authQuotaAmount(window, 'used');
+        const remaining = authQuotaAmount(window, 'remaining');
+        const progress = ratio.known ? ratio.percent.toFixed(1)+'%' : '—';
+        const progressClass = ratio.known ? ratio.tone : 'unknown';
+        return '<section class="auth-quota-window-card">'+
+          '<div class="auth-quota-progress '+progressClass+'" style="--quota-progress:'+ratio.percent.toFixed(1)+'%" role="img" aria-label="'+esc(label)+' 已用 '+progress+'"><span>'+esc(progress)+'</span></div>'+
+          '<div class="auth-quota-window-content"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+'</div><div class="auth-quota-window-stats"><span>已用<strong>'+esc(used)+'</strong></span><span>剩余<strong>'+esc(remaining)+'</strong></span></div><div class="auth-quota-window-reset" title="重置时间 '+esc(authQuotaTime(authQuotaValue(window, 'resets_at')))+'">重置 '+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</div></div>'+
+          '</section>';
+      }).join('') : '<div class="empty-state">该额度周暂无窗口</div>';
+      const costs = authQuotaCostForecast(visible);
+      const weekSelect = weeks.length
+        ? '<label class="auth-quota-filter"><span>额度周</span><select class="auth-quota-week-select" data-auth-id="'+esc(itemKey)+'" title="额度周">'+weeks.map(week => '<option value="'+esc(week.key)+'"'+(week.key === selected ? ' selected' : '')+'>'+esc(week.label)+'</option>').join('')+'</select></label>'
+        : '<label class="auth-quota-filter"><span>额度周</span><select disabled title="额度周"><option>暂无额度周</option></select></label>';
+      return '<article class="card auth-quota-card"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><p class="auth-quota-provider">'+esc(authQuotaValue(item, 'provider') || '未知提供商')+'</p><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'">'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'</h2><p class="auth-quota-sync">同步 '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>当前费用</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>预估剩余</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>预计可用</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div></div><div class="auth-quota-header-tools">'+weekSelect+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
+    }).join('');
+  }
+
+  async function loadAuthQuotas() {
+    renderAuthQuotas(await api('GET', 'credit-manager/auth-quotas'));
+  }
   async function reload() {
     clearFlash();
     state.tabLoadSeq += 1;
@@ -3625,8 +3996,32 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
     $('mgmtToken').value = '';
     flash('已清除本地管理密钥与 API 根地址', true);
   });
+  $('authQuotaProviderFilter').addEventListener('change', () => {
+    state.authQuotaProvider = $('authQuotaProviderFilter').value || '';
+    renderAuthQuotas();
+  });
+  $('authQuotaNameFilter').addEventListener('input', () => {
+    state.authQuotaName = $('authQuotaNameFilter').value || '';
+    renderAuthQuotas();
+  });
+  $('authQuotaList').addEventListener('change', event => {
+    const select = event.target.closest('.auth-quota-week-select');
+    if (!select) return;
+    const authID = select.getAttribute('data-auth-id') || '';
+    if (!authID) return;
+    state.authQuotaWeeks[authID] = select.value || '';
+    renderAuthQuotas();
+  });
+  $('btnLoadAuthQuotas').addEventListener('click', async () => {
+    try { await loadAuthQuotas(); flash('认证额度已刷新', true); }
+    catch (e) { flash(e.message, false); }
+  });
+
   $('btnRefresh').addEventListener('click', async () => {
-    try { await reloadWithModelCatalog(); flash('模型与价格已刷新并同步', true); } catch (e) { flash(e.message, false); }
+    try {
+      if (state.currentTab === 'auth-quotas') { await loadAuthQuotas(); flash('认证额度已重新加载', true); }
+      else { await reloadWithModelCatalog(); flash('模型与价格已刷新并同步', true); }
+    } catch (e) { flash(e.message, false); }
   });
   $('overviewRangeFilter').addEventListener('change', setOverviewRangeVisibility);
   $('usageRangeFilter').addEventListener('change', setUsageRangeVisibility);
@@ -3727,6 +4122,7 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
           output: microFromUSD($('priceOut').value) || 0,
           cache_read: microFromUSD($('priceCacheRead').value) || 0,
           cache_creation: microFromUSD($('priceCacheCreation').value) || 0,
+          accounting_mode: $('priceAccountingMode').value || '',
         },
       };
       if (!body.id || !body.pattern) throw new Error('规则 ID 与 pattern 必填');

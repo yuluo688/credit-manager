@@ -41,6 +41,7 @@ func Routes() []pluginapi.ManagementRoute {
 		{http.MethodGet, "credit-manager/usage/summary"},
 		{http.MethodGet, "credit-manager/audit"},
 		{http.MethodGet, "credit-manager/balance"},
+		{http.MethodGet, "credit-manager/auth-quotas"},
 	}
 	out := make([]pluginapi.ManagementRoute, 0, len(paths))
 	for _, item := range paths {
@@ -137,6 +138,8 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return listAudit(ctx, svc, req.Query)
 	case req.Method == http.MethodGet && path == "credit-manager/balance":
 		return getBalance(ctx, svc, req.Query)
+	case req.Method == http.MethodGet && path == "credit-manager/auth-quotas":
+		return getAuthQuotas(ctx, svc)
 	default:
 		return jsonErr(http.StatusNotFound, "unknown management route"), nil
 	}
@@ -664,12 +667,13 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 		Priority  int    `json:"priority"`
 		Enabled   *bool  `json:"enabled"`
 		Price     struct {
-			Input         int64 `json:"input"`
-			Output        int64 `json:"output"`
-			Reasoning     int64 `json:"reasoning"`
-			Cached        int64 `json:"cached"`
-			CacheRead     int64 `json:"cache_read"`
-			CacheCreation int64 `json:"cache_creation"`
+			Input          int64  `json:"input"`
+			Output         int64  `json:"output"`
+			Reasoning      int64  `json:"reasoning"`
+			Cached         int64  `json:"cached"`
+			CacheRead      int64  `json:"cache_read"`
+			CacheCreation  int64  `json:"cache_creation"`
+			AccountingMode string `json:"accounting_mode"`
 		} `json:"price"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
@@ -685,6 +689,7 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 			Input: money.MicroUSD(req.Price.Input), Output: money.MicroUSD(req.Price.Output),
 			Reasoning: money.MicroUSD(req.Price.Reasoning), Cached: money.MicroUSD(req.Price.Cached),
 			CacheRead: money.MicroUSD(req.Price.CacheRead), CacheCreation: money.MicroUSD(req.Price.CacheCreation),
+			AccountingMode: strings.TrimSpace(req.Price.AccountingMode),
 		},
 	}
 	if err := svc.Store().PutPricingRule(ctx, rule); err != nil {
@@ -960,6 +965,22 @@ func getBalance(ctx context.Context, svc *service.Service, query map[string][]st
 	return jsonOK(keyView(key)), nil
 }
 
+// HostCallbackIDContextKey identifies the host callback associated with a management request.
+// The host will populate it when management requests expose callback metadata.
+type HostCallbackIDContextKey struct{}
+
+func getAuthQuotas(ctx context.Context, svc *service.Service) (pluginapi.ManagementResponse, error) {
+	hostCallbackID, _ := ctx.Value(HostCallbackIDContextKey{}).(string)
+	overview, err := svc.AuthQuotaOverview(ctx, hostCallbackID)
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "unavailable") {
+			return jsonErrNoStore(http.StatusServiceUnavailable, "auth quota information unavailable"), nil
+		}
+		return jsonErrNoStore(http.StatusInternalServerError, "auth quota information failed"), nil
+	}
+	return jsonOKNoStore(map[string]any{"items": overview}), nil
+}
+
 func callerView(caller store.Caller) map[string]any {
 	return map[string]any{
 		"id":           caller.ID,
@@ -1147,6 +1168,18 @@ func jsonErr(status int, message string) pluginapi.ManagementResponse {
 		Headers:    http.Header{"Content-Type": []string{"application/json"}},
 		Body:       mustJSON(map[string]any{"error": message}),
 	}
+}
+
+func jsonOKNoStore(v any) pluginapi.ManagementResponse {
+	response := jsonOK(v)
+	response.Headers.Set("Cache-Control", "no-store")
+	return response
+}
+
+func jsonErrNoStore(status int, message string) pluginapi.ManagementResponse {
+	response := jsonErr(status, message)
+	response.Headers.Set("Cache-Control", "no-store")
+	return response
 }
 
 func htmlErr(status int, message string) pluginapi.ManagementResponse {

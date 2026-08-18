@@ -105,3 +105,26 @@ func TestConsoleClosesConnectionAfterSuccessfulLoad(t *testing.T) {
 		t.Fatal("connection dialog is not closed after a successful load")
 	}
 }
+
+func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "刷新最多每 15 分钟查询一次", "auth-quota-window-card",
+		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console auth quota view is missing %q", text)
+		}
+	}
+	for _, removed := range []string{"auth-quota-windows", "本地归因", "平均 Token/请求", "预计剩余请求", "authQuotaWeekFilter", "authQuotaPeriodFilter", "额度区间"} {
+		if strings.Contains(page, removed) {
+			t.Fatalf("console auth quota view still exposes removed field %q", removed)
+		}
+	}
+	lookup := string(lookupPage().Body)
+	for _, forbidden := range []string{"auth-quotas", "认证额度"} {
+		if strings.Contains(lookup, forbidden) {
+			t.Fatalf("public lookup page exposes auth quota UI: %q", forbidden)
+		}
+	}
+}
