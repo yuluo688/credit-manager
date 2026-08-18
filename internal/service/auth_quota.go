@@ -92,6 +92,8 @@ type AuthQuotaWindow struct {
 	AverageTokensPerRequest    *float64             `json:"average_tokens_per_request,omitempty"`
 	EstimatedRemainingRequests *int64               `json:"estimated_remaining_requests,omitempty"`
 	PredictionAvailable        bool                 `json:"prediction_available"`
+	BaselineUsed               *float64             `json:"baseline_used,omitempty"`
+	ObservedUsed               *float64             `json:"observed_used,omitempty"`
 }
 type quotaSnapshot struct {
 	Plan         string            `json:"plan,omitempty"`
@@ -444,9 +446,10 @@ func claude(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredential
 		{"seven_day_opus", "model", "opus", int64ptr(604800)},
 		{"seven_day_sonnet", "model", "sonnet", int64ptr(604800)},
 		{"seven_day_cowork", "account", "", int64ptr(604800)},
+		{"seven_day_omelette", "account", "", int64ptr(604800)},
 		{"iguana_necktie", "account", "", nil},
 	} {
-		if m, ok := object(d, spec.id); ok {
+		if m, ok := objectAny(d, spec.id, strings.ReplaceAll(spec.id, "_", "")); ok {
 			if x, ok := utilWindow(spec.id, spec.id, spec.scope, spec.scopeID, spec.duration, m); ok {
 				w = append(w, x)
 			}
@@ -482,8 +485,8 @@ func antigravity(ctx context.Context, s AuthQuotaSource, cb string, c quotaCrede
 		return quotaSnapshot{}, e
 	}
 	w := antiWindows(d)
-	if !has(w, "gemini-weekly") || !has(w, "3p-weekly") {
-		return quotaSnapshot{}, fmt.Errorf("antigravity quota response is missing required weekly pools")
+	if len(w) == 0 {
+		return quotaSnapshot{}, fmt.Errorf("antigravity quota response has no recognized windows")
 	}
 	return quotaSnapshot{Plan: findText(d, "plan", "planName"), Windows: w}, nil
 }
@@ -519,39 +522,84 @@ func xai(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredentials) 
 	return quotaSnapshot{Plan: first(findText(credits, "plan", "planName"), findText(billing, "plan", "planName")), Windows: w}, nil
 }
 
+func codexPayload(d map[string]any) map[string]any {
+	if d == nil {
+		return nil
+	}
+	if _, ok := objectAny(d, "rate_limit", "rateLimit"); ok {
+		return d
+	}
+	if usage, ok := objectAny(d, "usage"); ok {
+		return usage
+	}
+	return d
+}
+
 func codexWindows(d map[string]any) []AuthQuotaWindow {
+	d = codexPayload(d)
 	var out []AuthQuotaWindow
 	add := func(family, label, scope, scopeID string, v any) {
 		m, ok := v.(map[string]any)
 		if !ok {
 			return
 		}
-		for _, k := range []string{"primary_window", "secondary_window"} {
-			if x, ok := object(m, k); ok {
-				if w, ok := percentWindow(family+"-"+strings.TrimSuffix(k, "_window"), label+" "+strings.TrimSuffix(k, "_window"), scope, scopeID, x); ok {
-					out = append(out, w)
-				}
+		primary, hasPrimary := objectAny(m, "primary_window", "primaryWindow")
+		secondary, hasSecondary := objectAny(m, "secondary_window", "secondaryWindow")
+		if hasPrimary {
+			if w, ok := percentWindow(family+"-primary", label+" primary", scope, scopeID, primary); ok {
+				applyCodexWindowMeta(&w, "primary", primary, hasSecondary)
+				out = append(out, w)
+			}
+		}
+		if hasSecondary {
+			if w, ok := percentWindow(family+"-secondary", label+" secondary", scope, scopeID, secondary); ok {
+				applyCodexWindowMeta(&w, "secondary", secondary, hasSecondary)
+				out = append(out, w)
 			}
 		}
 	}
-	if m, ok := object(d, "rate_limit"); ok {
+	if m, ok := objectAny(d, "rate_limit", "rateLimit"); ok {
 		add("rate-limit", "Rate limit", "account", "", m)
 	}
-	if m, ok := object(d, "code_review_rate_limit"); ok {
+	if m, ok := objectAny(d, "code_review_rate_limit", "codeReviewRateLimit"); ok {
 		add("code-review", "Code review", "model", "codex_code_review", m)
 	}
-	if xs, ok := d["additional_rate_limits"].([]any); ok {
-		for i, x := range xs {
-			m, _ := x.(map[string]any)
-			feature := first(findText(m, "metered_feature"), fmt.Sprintf("additional-%d", i+1))
-			name := first(findText(m, "limit_name"), feature)
-			if limit, ok := object(m, "rate_limit"); ok {
-				slug := codexSlug(feature)
-				add("additional-"+slug, name, "model", "codex_"+slug, limit)
-			}
+	for i, x := range anySlice(d, "additional_rate_limits", "additionalRateLimits") {
+		m, _ := x.(map[string]any)
+		feature := first(findText(m, "metered_feature", "meteredFeature", "id"), fmt.Sprintf("additional-%d", i+1))
+		name := first(findText(m, "limit_name", "limitName", "title"), feature)
+		if limit, ok := objectAny(m, "rate_limit", "rateLimit"); ok {
+			add("additional-"+codexSlug(feature), name, "model", "codex_"+codexSlug(feature), limit)
+			continue
 		}
+		add("additional-"+codexSlug(feature), name, "model", "codex_"+codexSlug(feature), m)
 	}
 	return out
+}
+
+func applyCodexWindowMeta(w *AuthQuotaWindow, slot string, raw map[string]any, hasSecondary bool) {
+	if d := codexWindowSeconds(slot, raw, hasSecondary); d != nil {
+		w.DurationSeconds = d
+	}
+	if w.ResetsAt != nil && w.DurationSeconds != nil {
+		start := w.ResetsAt.Add(-time.Duration(*w.DurationSeconds) * time.Second)
+		w.CycleStartAt = &start
+		w.CycleStartSource = "inferred_window_start"
+	}
+}
+
+func codexWindowSeconds(slot string, m map[string]any, hasSecondary bool) *int64 {
+	if n := number(m, "limit_window_seconds", "limitWindowSeconds", "duration_seconds", "durationSeconds"); n != nil && *n > 0 {
+		v := int64(*n)
+		return &v
+	}
+	if slot == "secondary" || (slot == "primary" && !hasSecondary) {
+		return int64ptr(604800)
+	}
+	if slot == "primary" {
+		return int64ptr(18000)
+	}
+	return nil
 }
 func codexSlug(value string) string {
 	var b strings.Builder
@@ -587,8 +635,11 @@ func antiWindows(d map[string]any) []AuthQuotaWindow {
 			for _, b := range bs {
 				m, _ := b.(map[string]any)
 				id := findText(m, "bucketId", "bucket_id")
-				r := number(m, "remainingFraction", "remaining_fraction")
-				if id != spec.id || r == nil || *r < 0 || *r > 1 || m["enabled"] == false || m["isEnabled"] == false {
+				if !antiBucketMatch(id, spec.id) || m["enabled"] == false || m["isEnabled"] == false {
+					continue
+				}
+				r := antiRemainingFraction(m)
+				if r == nil {
 					continue
 				}
 				limit := 100.0
@@ -596,7 +647,13 @@ func antiWindows(d map[string]any) []AuthQuotaWindow {
 				used := limit - remaining
 				usedRatio := used / limit
 				duration := spec.duration
-				window = &AuthQuotaWindow{ID: spec.id, Label: first(findText(gm, "displayName", "display_name"), spec.id), Scope: "model_pool", ScopeID: spec.scopeID, Mode: "rolling", Unit: "percentage", Limit: &limit, Used: &used, Remaining: &remaining, UsedRatio: &usedRatio, RemainingRatio: r, ResetsAt: timeField(m, "resetTime", "resetAt", "reset_time", "reset_at"), DurationSeconds: &duration}
+				reset := timeField(m, "resetTime", "resetAt", "reset_time", "reset_at")
+				var start *time.Time
+				if reset != nil {
+					value := reset.Add(-time.Duration(duration) * time.Second)
+					start = &value
+				}
+				window = &AuthQuotaWindow{ID: spec.id, Label: first(findText(gm, "displayName", "display_name"), spec.id), Scope: "model_pool", ScopeID: spec.scopeID, Mode: "rolling", Unit: "percentage", Limit: &limit, Used: &used, Remaining: &remaining, UsedRatio: &usedRatio, RemainingRatio: r, ResetsAt: reset, DurationSeconds: &duration, CycleStartAt: start, CycleStartSource: "inferred_window_start"}
 				break
 			}
 			if window != nil {
@@ -609,31 +666,77 @@ func antiWindows(d map[string]any) []AuthQuotaWindow {
 	}
 	return out
 }
+
+func antiBucketMatch(id, spec string) bool {
+	normalize := func(value string) string {
+		return strings.ToLower(strings.ReplaceAll(strings.TrimSpace(value), "_", "-"))
+	}
+	return normalize(id) == normalize(spec)
+}
+
+func antiRemainingFraction(m map[string]any) *float64 {
+	r := number(m, "remainingFraction", "remaining_fraction", "remainingPercent", "remaining_percent")
+	if r == nil {
+		return nil
+	}
+	value := *r
+	if value > 1 {
+		value /= 100
+	}
+	if value < 0 || value > 1 {
+		return nil
+	}
+	return &value
+}
+
 func kimiWindows(d map[string]any) []AuthQuotaWindow {
 	var out []AuthQuotaWindow
-	limits, _ := d["limits"].([]any)
-	usage, ok := object(d, "usage")
+	limits := anySlice(d, "limits")
+	usage, ok := objectAny(d, "usage")
 	if !ok {
 		usage = d
 	}
 	if usage != nil {
-		if w, ok := kimiWindow("summary", "Summary", usage, nil); ok {
+		if w, ok := kimiWindow("weekly", "周限额", usage, nil); ok {
+			applyKimiWindowMeta(&w, "weekly", nil)
 			out = append(out, w)
 		}
 	}
 	for i, x := range limits {
 		m, _ := x.(map[string]any)
 		detail := m
-		if nested, ok := object(m, "detail"); ok {
+		if nested, ok := objectAny(m, "detail"); ok {
 			detail = nested
 		}
 		id := first(findText(m, "id", "name", "label"), fmt.Sprintf("limit-%d", i+1))
-		window, _ := object(m, "window")
+		window, _ := objectAny(m, "window")
 		if w, ok := kimiWindow(id, id, detail, window); ok {
+			applyKimiWindowMeta(&w, id, window)
 			out = append(out, w)
 		}
 	}
 	return out
+}
+
+func applyKimiWindowMeta(w *AuthQuotaWindow, id string, window map[string]any) {
+	if d := kimiDuration(window); d != nil {
+		w.DurationSeconds = d
+	} else if kimiLooksWeekly(id, w) && (w.DurationSeconds == nil || *w.DurationSeconds <= 0) {
+		w.DurationSeconds = int64ptr(604800)
+	}
+	if w.ResetsAt != nil && w.DurationSeconds != nil {
+		start := w.ResetsAt.Add(-time.Duration(*w.DurationSeconds) * time.Second)
+		w.CycleStartAt = &start
+		w.CycleStartSource = "inferred_window_start"
+	}
+}
+
+func kimiLooksWeekly(id string, w *AuthQuotaWindow) bool {
+	name := strings.ToLower(first(id, w.ID, w.Label))
+	if strings.Contains(name, "week") || strings.Contains(name, "7d") || strings.Contains(name, "seven") || strings.Contains(name, "周") {
+		return true
+	}
+	return w.DurationSeconds != nil && *w.DurationSeconds >= 500000 && *w.DurationSeconds <= 700000
 }
 func xaiBillingMap(d map[string]any) map[string]any {
 	if d == nil {
@@ -771,15 +874,22 @@ func cent(v *float64) *float64 {
 }
 func percentWindow(id, label, scope, scopeID string, m map[string]any) (AuthQuotaWindow, bool) {
 	p := number(m, "used_percent", "usedPercent")
-	if p == nil || *p < 0 || *p > 100 {
+	if p != nil && *p > 100 {
+		v := 100.0
+		p = &v
+	}
+	if p != nil && *p < 0 {
 		return AuthQuotaWindow{}, false
 	}
 	l := 100.0
-	u := *p
-	r := math.Max(0, l-u)
-	ur := u / l
-	rr := r / l
-	w := AuthQuotaWindow{ID: id, Label: label, Scope: scope, ScopeID: scopeID, Mode: "rolling", Unit: "percentage", Limit: &l, Used: &u, Remaining: &r, UsedRatio: &ur, RemainingRatio: &rr, ResetsAt: timeField(m, "reset_at", "resetAt"), DurationSeconds: duration(m)}
+	w := AuthQuotaWindow{ID: id, Label: label, Scope: scope, ScopeID: scopeID, Mode: "rolling", Unit: "percentage", Limit: &l, ResetsAt: timeField(m, "reset_at", "resetAt"), DurationSeconds: duration(m)}
+	if p != nil {
+		u := *p
+		r := math.Max(0, l-u)
+		ur := u / l
+		rr := r / l
+		w.Used, w.Remaining, w.UsedRatio, w.RemainingRatio = &u, &r, &ur, &rr
+	}
 	if w.ResetsAt != nil && w.DurationSeconds != nil {
 		v := w.ResetsAt.Add(-time.Duration(*w.DurationSeconds) * time.Second)
 		w.CycleStartAt = &v
@@ -870,6 +980,25 @@ func object(m map[string]any, key string) (map[string]any, bool) {
 	x, ok2 := v.(map[string]any)
 	return x, ok && ok2
 }
+func objectAny(m map[string]any, keys ...string) (map[string]any, bool) {
+	for _, key := range keys {
+		if x, ok := object(m, key); ok {
+			return x, true
+		}
+	}
+	return nil, false
+}
+func anySlice(m map[string]any, keys ...string) []any {
+	if m == nil {
+		return nil
+	}
+	for _, key := range keys {
+		if xs, ok := m[key].([]any); ok {
+			return xs
+		}
+	}
+	return nil
+}
 func number(m map[string]any, keys ...string) *float64 {
 	for _, k := range keys {
 		if x, ok := m[k]; ok {
@@ -930,7 +1059,7 @@ func timeField(m map[string]any, keys ...string) *time.Time {
 	return nil
 }
 func duration(m map[string]any) *int64 {
-	for _, k := range []string{"limit_window_seconds", "duration_seconds", "reset_after_seconds", "duration"} {
+	for _, k := range []string{"limit_window_seconds", "limitWindowSeconds", "duration_seconds", "durationSeconds", "duration"} {
 		if n := number(m, k); n != nil {
 			v := *n
 			if k == "duration" {
@@ -971,14 +1100,7 @@ func kimiDuration(window map[string]any) *int64 {
 	return &seconds
 }
 
-func has(ws []AuthQuotaWindow, id string) bool {
-	for _, w := range ws {
-		if w.ID == id {
-			return true
-		}
-	}
-	return false
-}
+
 func first(values ...string) string {
 	for _, v := range values {
 		if v = strings.TrimSpace(v); v != "" {
@@ -1037,17 +1159,112 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 		tokens := totalAuthQuotaTokens(usage)
 		w.LocalAttributionStatus = "complete"
 		w.LocalUsage = authQuotaLocalUsage(usage)
+		observed, baseline, ok := s.observedWindowUsed(ctx, item, w, usage.RequestCount)
+		if ok {
+			w.ObservedUsed = &observed
+			w.BaselineUsed = &baseline
+		}
 		if usage.RequestCount > 0 {
 			a := float64(tokens) / float64(usage.RequestCount)
 			w.AverageTokensPerRequest = &a
-			if w.Used != nil && w.Remaining != nil && *w.Used > 0 {
-				n := int64(math.Floor(float64(usage.RequestCount) * *w.Remaining / *w.Used))
-				w.EstimatedRemainingRequests = &n
-				w.PredictionAvailable = true
+			if ok {
+				if remainingRequests, ready := estimateRemainingRequests(usage.RequestCount, w, observed); ready {
+					w.EstimatedRemainingRequests = &remainingRequests
+					w.PredictionAvailable = true
+				}
 			}
 		}
 	}
 	return item
+}
+
+func windowBaselineID(window *AuthQuotaWindow) string {
+	if window == nil {
+		return "window"
+	}
+	if id := strings.TrimSpace(window.ID); id != "" {
+		return id
+	}
+	return first(strings.TrimSpace(window.Scope+"|"+window.ScopeID), "window")
+}
+
+func windowCycleKey(window *AuthQuotaWindow) string {
+	if window == nil {
+		return ""
+	}
+	if window.CycleStartAt != nil && window.ResetsAt != nil {
+		return fmt.Sprintf("%d:%d", window.CycleStartAt.UTC().UnixMilli(), window.ResetsAt.UTC().UnixMilli())
+	}
+	if window.ResetsAt != nil {
+		return fmt.Sprintf("reset:%d", window.ResetsAt.UTC().UnixMilli())
+	}
+	return ""
+}
+
+const authQuotaMinObservedRatio = 0.005
+
+func estimateRemainingRequests(requestCount int64, window *AuthQuotaWindow, observed float64) (int64, bool) {
+	if window == nil || requestCount <= 0 || observed <= 0 || !finiteNonNegative(observed) {
+		return 0, false
+	}
+	remainingRatio := math.NaN()
+	observedRatio := math.NaN()
+	if window.RemainingRatio != nil && finiteNonNegative(*window.RemainingRatio) {
+		remainingRatio = *window.RemainingRatio
+	}
+	if window.Limit != nil && *window.Limit > 0 {
+		observedRatio = observed / *window.Limit
+		if math.IsNaN(remainingRatio) && window.Remaining != nil && finiteNonNegative(*window.Remaining) {
+			remainingRatio = *window.Remaining / *window.Limit
+		}
+	} else if window.Unit == "percentage" {
+		observedRatio = observed / 100
+		if math.IsNaN(remainingRatio) && window.Remaining != nil && finiteNonNegative(*window.Remaining) {
+			remainingRatio = *window.Remaining / 100
+		}
+	} else if window.Used != nil && *window.Used > 0 && window.UsedRatio != nil && *window.UsedRatio > 0 {
+		observedRatio = observed * (*window.UsedRatio) / (*window.Used)
+		if math.IsNaN(remainingRatio) && window.Remaining != nil && finiteNonNegative(*window.Remaining) {
+			remainingRatio = (*window.Remaining) * (*window.UsedRatio) / (*window.Used)
+		}
+	} else if window.Remaining != nil && finiteNonNegative(*window.Remaining) {
+		return int64(math.Floor(float64(requestCount) * (*window.Remaining) / observed)), true
+	}
+	if math.IsNaN(remainingRatio) || math.IsNaN(observedRatio) || observedRatio < authQuotaMinObservedRatio || remainingRatio < 0 {
+		return 0, false
+	}
+	return int64(math.Floor(float64(requestCount) * remainingRatio / observedRatio)), true
+}
+
+func (s *Service) observedWindowUsed(ctx context.Context, item AuthQuotaOverviewItem, window *AuthQuotaWindow, localRequests int64) (observed, baseline float64, ok bool) {
+	if window == nil || window.Used == nil || *window.Used < 0 || !finiteNonNegative(*window.Used) {
+		return 0, 0, false
+	}
+	used := *window.Used
+	cycleKey := windowCycleKey(window)
+	windowID := windowBaselineID(window)
+	if strings.TrimSpace(item.AuthID) == "" || cycleKey == "" {
+		return used, 0, used > 0
+	}
+	saved, err := s.store.GetAuthQuotaWindowBaseline(ctx, item.Provider, item.AuthID, windowID, cycleKey)
+	if err != nil {
+		baseline = 0
+		if localRequests == 0 {
+			baseline = used
+		}
+		if upsertErr := s.store.UpsertAuthQuotaWindowBaseline(ctx, item.Provider, item.AuthID, windowID, cycleKey, baseline); upsertErr != nil {
+			return used, 0, used > 0
+		}
+		if localRequests == 0 {
+			return 0, baseline, false
+		}
+		return used, 0, used > 0
+	}
+	observed = used - saved.BaselineUsed
+	if observed <= 0 {
+		return 0, saved.BaselineUsed, false
+	}
+	return observed, saved.BaselineUsed, true
 }
 
 func cycleStart(provider string, window *AuthQuotaWindow) time.Time {

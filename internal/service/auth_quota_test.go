@@ -310,8 +310,52 @@ func TestAuthQuotaForecastIncludesFullLocalUsage(t *testing.T) {
 	}
 	used, remaining := 25.0, 75.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
-	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 81 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 {
+	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 81 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 || window.ObservedUsed == nil || *window.ObservedUsed != 25 {
 		t.Fatalf("window=%#v", window)
+	}
+}
+
+func TestAuthQuotaForecastIgnoresPrePluginUsage(t *testing.T) {
+	s := quotaService(t)
+	reset := time.Now().UTC().Add(time.Hour)
+	duration := int64(7200)
+	used, remaining := 70.0, 30.0
+	first := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{ID: "primary", Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
+	if first.PredictionAvailable || first.ObservedUsed != nil {
+		t.Fatalf("baseline capture should not forecast: %#v", first)
+	}
+	key := quotaTestKey(t, s, "preexisting")
+	reservation, err := s.Store().Reserve(context.Background(), store.ReserveRequest{CallerID: "default", PluginKeyID: key.ID, Model: "gpt-test", RequestTokenEstimate: 10, AmountMicroUSD: 1, IdempotencyKey: "quota-forecast-preexisting"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = s.Store().Settle(context.Background(), store.Settlement{ReservationID: reservation.ID, Model: "gpt-test", Usage: money.TokenUsage{Input: 11, Output: 12}, CostMicroUSD: 17, Auth: store.AuthIdentity{AuthID: "auth", AuthIndex: "idx", Provider: "codex"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	used, remaining = 80.0, 20.0
+	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{ID: "primary", Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
+	if window.ObservedUsed == nil || *window.ObservedUsed != 10 || window.BaselineUsed == nil || *window.BaselineUsed != 70 || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 2 {
+		t.Fatalf("window=%#v", window)
+	}
+}
+
+func TestEstimateRemainingRequestsUsesRatiosAndGuardsTinyObserved(t *testing.T) {
+	limit := 100.0
+	remainingRatio := 0.73456
+	window := &AuthQuotaWindow{Unit: "percentage", Limit: &limit, RemainingRatio: &remainingRatio}
+	got, ok := estimateRemainingRequests(10, window, 12.345)
+	if !ok || got != 59 {
+		t.Fatalf("ratio estimate = %d ok=%t, want 59 true", got, ok)
+	}
+	if _, ok := estimateRemainingRequests(10, window, 0.4); ok {
+		t.Fatal("observed ratio below 0.5% must not estimate")
+	}
+	remaining := 20.0
+	absolute := &AuthQuotaWindow{Remaining: &remaining}
+	got, ok = estimateRemainingRequests(1, absolute, 10)
+	if !ok || got != 2 {
+		t.Fatalf("absolute fallback = %d ok=%t, want 2 true", got, ok)
 	}
 }
 
@@ -336,6 +380,41 @@ func TestAuthQuotaAntigravityUnmatchedModelDisablesPrediction(t *testing.T) {
 }
 
 func TestAuthQuotaContracts(t *testing.T) {
+	t.Run("codex weekly classification", func(t *testing.T) {
+		plus := codexWindows(map[string]any{"rate_limit": map[string]any{
+			"primary_window":   map[string]any{"used_percent": 1, "limit_window_seconds": 18000, "reset_after_seconds": 1000, "reset_at": 4102444800},
+			"secondary_window": map[string]any{"used_percent": 27, "reset_after_seconds": 245230, "reset_at": 4102444800},
+		}})
+		if len(plus) != 2 || plus[0].DurationSeconds == nil || *plus[0].DurationSeconds != 18000 || plus[1].ID != "rate-limit-secondary" || plus[1].DurationSeconds == nil || *plus[1].DurationSeconds != 604800 {
+			t.Fatalf("plus=%#v", plus)
+		}
+		team := codexWindows(map[string]any{"usage": map[string]any{"rate_limit": map[string]any{
+			"primary_window":   map[string]any{"used_percent": 9, "limit_window_seconds": 604800, "reset_at": 4102444800},
+			"secondary_window": nil,
+		}}})
+		if len(team) != 1 || team[0].ID != "rate-limit-primary" || team[0].DurationSeconds == nil || *team[0].DurationSeconds != 604800 {
+			t.Fatalf("team=%#v", team)
+		}
+		clamped := codexWindows(map[string]any{"rate_limit": map[string]any{"primary_window": map[string]any{"used_percent": 150, "limit_window_seconds": 604800}}})
+		if len(clamped) != 1 || clamped[0].Used == nil || *clamped[0].Used != 100 {
+			t.Fatalf("clamped=%#v", clamped)
+		}
+		extra := codexWindows(map[string]any{
+			"rate_limit": map[string]any{"primary_window": map[string]any{"used_percent": 1, "limit_window_seconds": 604800}},
+			"additional_rate_limits": []any{map[string]any{
+				"id": "codex-spark", "title": "Codex Spark",
+				"primary_window":   map[string]any{"used_percent": 10, "limit_window_seconds": 18000},
+				"secondary_window": map[string]any{"used_percent": 20, "limit_window_seconds": 604800},
+			}},
+		})
+		got := map[string]AuthQuotaWindow{}
+		for _, window := range extra {
+			got[window.ID] = window
+		}
+		if len(extra) != 3 || got["additional-codex_spark-secondary"].DurationSeconds == nil || *got["additional-codex_spark-secondary"].DurationSeconds != 604800 {
+			t.Fatalf("extra=%#v", extra)
+		}
+	})
 	t.Run("codex nested additional limits and scopes", func(t *testing.T) {
 		windows := codexWindows(map[string]any{
 			"rate_limit":             map[string]any{"primary_window": map[string]any{"used_percent": 25}},
@@ -406,9 +485,15 @@ func TestAuthQuotaContracts(t *testing.T) {
 			}
 		}
 	})
+	t.Run("claude omelette weekly alias", func(t *testing.T) {
+		windows, err := claude(context.Background(), &fakeQuotaSource{responses: map[string]string{"anthropic.com": `{"seven_day_omelette":{"utilization":0.4,"resets_at":"2030-01-01T00:00:00Z"}}`}}, "", quotaCredentials{token: "token"})
+		if err != nil || len(windows.Windows) != 1 || windows.Windows[0].ID != "seven_day_omelette" || windows.Windows[0].DurationSeconds == nil || *windows.Windows[0].DurationSeconds != 604800 {
+			t.Fatalf("windows=%#v err=%v", windows, err)
+		}
+	})
 	t.Run("kimi official usage shape", func(t *testing.T) {
 		windows := kimiWindows(map[string]any{"used": "20", "limit": "100", "remaining": "80", "resetAt": "2030-01-01T00:00:00Z", "limits": []any{map[string]any{"name": "daily", "window": map[string]any{"duration": "1", "timeUnit": "TIME_UNIT_DAY"}, "detail": map[string]any{"used": 10, "limit": 20, "remaining": 10, "resetIn": "3600"}}}})
-		if len(windows) != 2 || windows[0].ID != "summary" || windows[1].DurationSeconds == nil || *windows[1].DurationSeconds != 86400 || windows[1].ResetsAt == nil {
+		if len(windows) != 2 || windows[0].ID != "weekly" || windows[0].Label != "周限额" || windows[0].DurationSeconds == nil || *windows[0].DurationSeconds != 604800 || windows[1].DurationSeconds == nil || *windows[1].DurationSeconds != 86400 || windows[1].ResetsAt == nil {
 			t.Fatalf("windows=%#v", windows)
 		}
 	})
@@ -427,8 +512,25 @@ func TestAuthQuotaContracts(t *testing.T) {
 				t.Fatalf("window=%#v", window)
 			}
 		}
-		if windows[2].ResetsAt == nil {
+		if windows[2].ResetsAt == nil || windows[2].CycleStartAt == nil {
 			t.Fatalf("windows=%#v", windows)
+		}
+	})
+	t.Run("antigravity accepts percent remaining and partial weekly pools", func(t *testing.T) {
+		windows := antiWindows(map[string]any{"groups": []any{map[string]any{"buckets": []any{
+			map[string]any{"bucketId": "gemini_weekly", "remaining_fraction": 80},
+		}}}})
+		if len(windows) != 1 || windows[0].ID != "gemini-weekly" || windows[0].Remaining == nil || *windows[0].Remaining != 80 {
+			t.Fatalf("windows=%#v", windows)
+		}
+	})
+	t.Run("antigravity single weekly pool is enough", func(t *testing.T) {
+		s := quotaService(t)
+		src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "antigravity"}}, auth: quotaJSON("antigravity"), responses: map[string]string{"cloudcode": `{"groups":[{"buckets":[{"bucketId":"gemini-weekly","remainingFraction":0.4,"resetTime":"2030-01-01T00:00:00Z"}]}]}`}}
+		s.SetAuthQuotaSource(src)
+		items, err := s.AuthQuotaOverview(context.Background(), "")
+		if err != nil || len(items) != 1 || items[0].Status != "fresh" || len(items[0].Windows) != 1 || items[0].Windows[0].ID != "gemini-weekly" {
+			t.Fatalf("items=%#v err=%v", items, err)
 		}
 	})
 	t.Run("antigravity model pools require attributable local usage", func(t *testing.T) {
