@@ -62,6 +62,9 @@ type StreamConfig struct {
 // SettlementConfig controls post-upstream accounting when usage is incomplete.
 type SettlementConfig struct {
 	MissingUsage MissingUsagePolicy `yaml:"missing_usage" json:"missing_usage"`
+	// HostUsageWait is how long SettleFromUsage waits for usage.handle before
+	// reserved_fallback. Zero disables the wait.
+	HostUsageWait time.Duration `yaml:"host_usage_wait" json:"host_usage_wait"`
 }
 
 // KeyConfig holds external pepper material for plugin key verification.
@@ -120,7 +123,8 @@ func Default() Config {
 			UnknownPolicy: UnknownPricingAllow,
 		},
 		Settlement: SettlementConfig{
-			MissingUsage: MissingUsageSettleReserved,
+			MissingUsage:  MissingUsageSettleReserved,
+			HostUsageWait: 1500 * time.Millisecond,
 		},
 		Stream: StreamConfig{
 			MaxBufferBytes:          4 << 20,

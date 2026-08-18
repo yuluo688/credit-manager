@@ -29,6 +29,7 @@ pricing:
 
 settlement:
   missing_usage: settle_reserved
+  host_usage_wait: 1500ms
 
 stream:
   max_buffer_bytes: 4194304
