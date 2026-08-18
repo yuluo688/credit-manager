@@ -26,7 +26,7 @@ import (
 const (
 	PluginID      = "credit-manager"
 	PluginName    = "CPA Credit Manager"
-	PluginVersion = "1.1.0"
+	PluginVersion = "1.2.0"
 	// CallerScopeMetadataKey mirrors sdk/cliproxy/executor.CallerScopeMetadataKey.
 	CallerScopeMetadataKey = "caller_scope"
 )
@@ -35,13 +35,16 @@ const staleCleanupInterval = time.Minute
 
 // Service is the process-wide plugin runtime.
 type Service struct {
-	cfg         config.Config
-	peppers     config.PepperSet
-	store       *store.Store
-	authMu      sync.Mutex
-	authPending map[string]*pendingAuthCapture
-	cleanupMu   sync.Mutex
-	lastCleanup time.Time
+	cfg                config.Config
+	peppers            config.PepperSet
+	store              *store.Store
+	authMu             sync.Mutex
+	authPending        map[string]*pendingAuthCapture
+	cleanupMu          sync.Mutex
+	lastCleanup        time.Time
+	authQuotaMu        sync.RWMutex
+	authQuotaSource    AuthQuotaSource
+	authQuotaRefreshMu sync.Mutex
 }
 
 var current atomic.Pointer[Service]
@@ -99,6 +102,17 @@ func (s *Service) Config() config.Config { return s.cfg }
 func (s *Service) Store() *store.Store   { return s.store }
 func (s *Service) Peppers() config.PepperSet {
 	return s.peppers
+}
+
+// SetAuthQuotaSource attaches the host bridge used to inspect auth files and
+// make authenticated quota requests. It may be called after Open or Configure.
+func (s *Service) SetAuthQuotaSource(source AuthQuotaSource) {
+	if s == nil {
+		return
+	}
+	s.authQuotaMu.Lock()
+	s.authQuotaSource = source
+	s.authQuotaMu.Unlock()
 }
 
 // Authenticate verifies a Bearer plugin key and returns a stable principal.
@@ -328,7 +342,7 @@ func (s *Service) TouchReservation(ctx context.Context, reservationID string) er
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
 	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
-		cost, err := money.Cost(hostUsage, plan.Price)
+		cost, err := money.CostFor(hostUsage, plan.Price, plan.Model, "")
 		if err != nil {
 			return err
 		}
@@ -349,7 +363,7 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 		})
 	}
 	if parsed.Found {
-		cost, err := money.Cost(parsed.Usage, plan.Price)
+		cost, err := money.CostFor(parsed.Usage, plan.Price, plan.Model, "")
 		if err != nil {
 			return err
 		}
@@ -389,6 +403,53 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 			SettlementSummary:     "missing_usage_settle_reserved",
 		})
 	}
+}
+
+func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
+	if !usageFound(usage) {
+		return nil
+	}
+	entry, err := s.store.GetUsage(ctx, ledgerID)
+	if err != nil {
+		return err
+	}
+	price, err := s.priceForUsage(ctx, entry)
+	if err != nil {
+		return err
+	}
+	cost, err := money.CostFor(usage, price, entry.Model, entry.Auth.Provider)
+	if err != nil {
+		return err
+	}
+	if price == (money.PricePerMTok{}) && entry.PricingRuleID == nil {
+		cost = 0
+	}
+	return s.store.UpdateUsageDetail(ctx, ledgerID, usage, cost)
+}
+
+func (s *Service) priceForUsage(ctx context.Context, entry store.UsageEntry) (money.PricePerMTok, error) {
+	if entry.PricingRuleID != nil {
+		if rule, err := s.store.GetPricingRule(ctx, *entry.PricingRuleID); err == nil {
+			return rule.Price, nil
+		} else if !errors.Is(err, store.ErrPricingRuleNotFound) {
+			return money.PricePerMTok{}, err
+		}
+	}
+	rule, err := s.store.ResolvePricingRule(ctx, entry.Model)
+	if err == nil {
+		return rule.Price, nil
+	}
+	if !errors.Is(err, store.ErrPricingRuleNotFound) {
+		return money.PricePerMTok{}, err
+	}
+	if s.cfg.Pricing.UnknownPolicy == config.UnknownPricingDefault && s.cfg.Pricing.Default != nil {
+		return money.PricePerMTok{
+			Input: money.MicroUSD(s.cfg.Pricing.Default.Input), Output: money.MicroUSD(s.cfg.Pricing.Default.Output),
+			Reasoning: money.MicroUSD(s.cfg.Pricing.Default.Reasoning), Cached: money.MicroUSD(s.cfg.Pricing.Default.Cached),
+			CacheRead: money.MicroUSD(s.cfg.Pricing.Default.CacheRead), CacheCreation: money.MicroUSD(s.cfg.Pricing.Default.CacheCreation),
+		}, nil
+	}
+	return money.PricePerMTok{}, nil
 }
 
 func (s *Service) settleWithAuth(ctx context.Context, settlement store.Settlement) error {
@@ -675,6 +736,7 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 	if old := current.Load(); old != nil && filepath.Clean(old.cfg.DatabasePath()) == dbPath {
 		// Keep the locked SQLite writer. Opening a second handle deadlocks on *.db.lock.
 		next := &Service{cfg: cfg, peppers: peppers, store: old.store}
+		next.SetAuthQuotaSource(old.authQuotaSourceValue())
 		if err := next.ensureBootstrap(ctx); err != nil {
 			return err
 		}
