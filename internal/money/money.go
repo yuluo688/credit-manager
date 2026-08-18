@@ -4,13 +4,25 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 )
 
 const TokensPerMTok int64 = 1_000_000
 
+const (
+	// AccountingInputExcludesCache bills input and cache counters independently.
+	// This matches Anthropic: input_tokens does not include cache tokens.
+	AccountingInputExcludesCache = "input_excludes_cache"
+	// AccountingInputIncludesCache subtracts cache tokens from input before
+	// billing. This matches OpenAI-compatible usage: prompt_tokens already
+	// includes cached tokens.
+	AccountingInputIncludesCache = "input_includes_cache"
+)
+
 var (
 	ErrNegativeValue = errors.New("money and token values must not be negative")
 	ErrOverflow      = errors.New("micro-USD calculation overflow")
+	ErrAccounting    = errors.New("invalid accounting mode")
 )
 
 // MicroUSD is the only persisted monetary unit. Floating-point currency is
@@ -29,12 +41,23 @@ type TokenUsage struct {
 
 // PricePerMTok is an integer micro-USD price for one million tokens.
 type PricePerMTok struct {
-	Input         MicroUSD `json:"input"`
-	Output        MicroUSD `json:"output"`
-	Reasoning     MicroUSD `json:"reasoning"`
-	Cached        MicroUSD `json:"cached"`
-	CacheRead     MicroUSD `json:"cache_read"`
-	CacheCreation MicroUSD `json:"cache_creation"`
+	Input          MicroUSD `json:"input"`
+	Output         MicroUSD `json:"output"`
+	Reasoning      MicroUSD `json:"reasoning"`
+	Cached         MicroUSD `json:"cached"`
+	CacheRead      MicroUSD `json:"cache_read"`
+	CacheCreation  MicroUSD `json:"cache_creation"`
+	AccountingMode string   `json:"accounting_mode,omitempty"`
+}
+
+// BillableTokens is the de-duplicated usage actually sent to the price table.
+// It follows cap-token-usage-tracker: four components, no extra reasoning line.
+type BillableTokens struct {
+	Input         int64
+	Output        int64
+	CacheRead     int64
+	CacheCreation int64
+	Mode          string
 }
 
 func (u TokenUsage) Validate() error {
@@ -58,11 +81,72 @@ func (p PricePerMTok) Validate() error {
 			return fmt.Errorf("%w: %s price", ErrNegativeValue, name)
 		}
 	}
-	return nil
+	switch strings.TrimSpace(p.AccountingMode) {
+	case "", AccountingInputExcludesCache, AccountingInputIncludesCache:
+		return nil
+	default:
+		return fmt.Errorf("%w: %q", ErrAccounting, p.AccountingMode)
+	}
 }
 
-// Cost calculates rounded-up micro-USD for each token class independently.
-// Rounding each class upward ensures a positive priced usage is never free.
+// DefaultAccountingMode matches cap-token-usage-tracker: Anthropic/Claude
+// exclude cache from input; every other provider includes cache in input.
+func DefaultAccountingMode(model, provider string) string {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	model = strings.ToLower(strings.TrimSpace(model))
+	if provider == "anthropic" || provider == "claude" || strings.Contains(model, "claude") || strings.Contains(model, "anthropic") {
+		return AccountingInputExcludesCache
+	}
+	return AccountingInputIncludesCache
+}
+
+// ResolveAccountingMode keeps an explicit price-book mode and otherwise infers
+// from the model or provider identity.
+func ResolveAccountingMode(mode, model, provider string) string {
+	switch strings.TrimSpace(mode) {
+	case AccountingInputExcludesCache, AccountingInputIncludesCache:
+		return strings.TrimSpace(mode)
+	default:
+		return DefaultAccountingMode(model, provider)
+	}
+}
+
+// Billable applies tracker cache accounting. CacheRead falls back to Cached.
+// Cached and Reasoning are not billed as their own classes.
+func Billable(usage TokenUsage, mode string) BillableTokens {
+	cacheRead := usage.CacheRead
+	if cacheRead == 0 {
+		cacheRead = usage.Cached
+	}
+	cacheCreation := usage.CacheCreation
+	billableInput := usage.Input
+	if mode == AccountingInputIncludesCache {
+		cacheTokens := saturatingAdd(cacheRead, cacheCreation)
+		if billableInput > cacheTokens {
+			billableInput -= cacheTokens
+		} else {
+			billableInput = 0
+		}
+	}
+	return BillableTokens{
+		Input:         billableInput,
+		Output:        usage.Output,
+		CacheRead:     cacheRead,
+		CacheCreation: cacheCreation,
+		Mode:          mode,
+	}
+}
+
+// CostFor resolves the accounting mode from an explicit price setting or the
+// model/provider identity, then bills the request.
+func CostFor(usage TokenUsage, price PricePerMTok, model, provider string) (MicroUSD, error) {
+	price.AccountingMode = ResolveAccountingMode(price.AccountingMode, model, provider)
+	return Cost(usage, price)
+}
+
+// Cost calculates rounded-up micro-USD using the same four billable counters as
+// cap-token-usage-tracker. Each class is rounded upward so a positive priced
+// usage is never free.
 func Cost(usage TokenUsage, price PricePerMTok) (MicroUSD, error) {
 	if err := usage.Validate(); err != nil {
 		return 0, err
@@ -71,16 +155,21 @@ func Cost(usage TokenUsage, price PricePerMTok) (MicroUSD, error) {
 		return 0, err
 	}
 
+	mode := ResolveAccountingMode(price.AccountingMode, "", "")
+	billable := Billable(usage, mode)
+	cacheReadPrice := price.CacheRead
+	if cacheReadPrice == 0 {
+		cacheReadPrice = price.Cached
+	}
+
 	pairs := []struct {
 		tokens int64
 		price  MicroUSD
 	}{
-		{usage.Input, price.Input},
-		{usage.Output, price.Output},
-		{usage.Reasoning, price.Reasoning},
-		{usage.Cached, price.Cached},
-		{usage.CacheRead, price.CacheRead},
-		{usage.CacheCreation, price.CacheCreation},
+		{billable.Input, price.Input},
+		{billable.Output, price.Output},
+		{billable.CacheRead, cacheReadPrice},
+		{billable.CacheCreation, price.CacheCreation},
 	}
 
 	var total int64
@@ -95,6 +184,19 @@ func Cost(usage TokenUsage, price PricePerMTok) (MicroUSD, error) {
 		total += part
 	}
 	return MicroUSD(total), nil
+}
+
+func saturatingAdd(left, right int64) int64 {
+	if left < 0 {
+		left = 0
+	}
+	if right < 0 {
+		right = 0
+	}
+	if left > math.MaxInt64-right {
+		return math.MaxInt64
+	}
+	return left + right
 }
 
 func mulDivCeil(a, b, divisor int64) (int64, error) {
