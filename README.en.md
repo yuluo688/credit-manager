@@ -14,6 +14,7 @@ Plugin ID: `credit-manager`
 4. Per-Key total, daily, weekly, monthly, and concurrency limits.
 5. Management console and API for Keys, models, pricing, usage, and audit history.
 6. A public self-service dashboard where a Key holder can view only their own quota and usage.
+7. A management-only OAuth auth-quota view for Codex, Claude, Antigravity, Kimi, and xAI credentials.
 
 ## Quick Start
 
@@ -51,6 +52,8 @@ Every Key can have the following independent limits. `0` or an omitted field mea
 | `max_concurrent_requests` | Maximum held/in-flight requests |
 
 Period limits include settled usage plus active reservations. The system reserves a conservative amount before forwarding a request, then settles using actual usage. Amounts are stored as integer micro-USD: `1 USD = 1,000,000 micro-USD`.
+
+Cost accounting matches [cap-token-usage-tracker](https://github.com/AITNR/cap-token-usage-tracker): only Input, Output, Cache Read, and Cache Creation are billed. OpenAI-compatible `input`/`prompt_tokens` already include cache tokens, so those cache counters are subtracted before input is priced. Claude/Anthropic `input_tokens` exclude cache, so the four counters are billed independently. Reasoning and generic Cached counts are statistics only; missing `cache_read` falls back to `cached`. Set `price.accounting_mode` to `input_includes_cache` or `input_excludes_cache` to override the model-name default.
 
 ## Self-Service Key Dashboard
 
@@ -98,6 +101,17 @@ Management endpoints require the **host management token**, not a plugin Key. Ba
 | GET | `/usage` | Query usage records |
 | GET | `/usage/summary` | Summarize usage by Key and model |
 | GET | `/audit` | Query audit events |
+| GET | `/auth-quotas` | Inspect OAuth auth-file quota windows and safe local usage estimates |
+
+## OAuth Auth Quotas
+
+The **Auth Quotas** console tab and `GET /v0/management/credit-manager/auth-quotas` show supported OAuth credential quota windows. This endpoint is management-authenticated, returns `Cache-Control: no-store`, and is not available from the public Key lookup page.
+
+- Supported active collectors: Codex/ChatGPT, Claude, Antigravity, Kimi, and xAI OAuth. API-key-only credentials are excluded.
+- The plugin uses the CLIProxyAPI host HTTP callback and its configured outbound transport. It does not create a separate client or apply credential-file `proxy_url` settings for a management callback.
+- Refreshes are protected by a 15-minute per-credential attempt interval. A failed refresh retains the last successful snapshot as `stale`; a credential without a successful snapshot is `unavailable`.
+- Windows retain their native upstream units, such as percentages, requests, credits, or USD. Local request estimates are shown only where the local ledger can safely attribute the window. Usage from other clients, websites, or proxy nodes can reduce the actual remaining calls.
+- Snapshot storage and responses exclude OAuth tokens, upstream account identifiers, auth-file paths, proxy URLs, and raw upstream response bodies. Private provider APIs can change without notice.
 
 ### Create a Key
 
@@ -146,6 +160,7 @@ Streaming and non-streaming requests refresh their reservation heartbeat while a
 - Pepper material is stored in `data_dir/key-peppers` or an environment variable, never in SQLite or management responses.
 - Back up the entire `data_dir`, including `key-peppers`. Losing the pepper invalidates existing Keys.
 - Replacing a Windows DLL requires a CLIProxyAPI restart.
+- Auth-file OAuth material, upstream quota responses, and auth-file paths are not written to quota snapshots or exposed through the public lookup endpoint.
 
 ## Verification
 

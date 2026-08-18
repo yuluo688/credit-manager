@@ -12,6 +12,7 @@
 2. **按 Key 严格预占额度**：请求转发前按保守 Token 上限预留额度，余额不足时拒绝请求。
 3. **按实际 Token 用量结算**：解析上游响应中的 usage，在同一请求链路内完成结算。
 4. **可视化与 API 管理**：支持 Key、可用模型、价格规则、额度、用量和审计记录的统一管理。
+5. **认证额度视图**：管理端可查看 Codex、Claude、Antigravity、Kimi、xAI OAuth 认证的上游额度窗口和安全的本地用量预测。
 
 ## 设计目标
 
@@ -410,6 +411,17 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | GET | `/v0/management/credit-manager/usage` | 查询用量流水（可按 `plugin_key_id` 或 `model` 过滤） |
 | GET | `/v0/management/credit-manager/usage/summary` | 按插件 Key 和模型汇总 |
 | GET | `/v0/management/credit-manager/audit?caller_id=` | 审计事件 |
+| GET | `/v0/management/credit-manager/auth-quotas` | OAuth 认证额度窗口和本地用量预测 |
+
+### 认证额度视图
+
+侧栏 **认证额度** 标签和 `GET /v0/management/credit-manager/auth-quotas` 仅允许宿主管理鉴权访问，成功响应固定设置 `Cache-Control: no-store`；公开 Key 自助查询页面不会展示认证文件或认证额度数据。
+
+- 支持 Codex/ChatGPT、Claude、Antigravity、Kimi、xAI 的 OAuth 认证；仅 API Key 的认证不会进入结果。
+- 采样通过 CLIProxyAPI 宿主 HTTP callback 和全局出站策略执行。管理 callback 无法、安全上也不会直接应用认证文件中的 `proxy_url`。
+- 单个认证最多每 15 分钟尝试刷新一次。刷新失败会保留最后成功快照并显示为 `stale`；从未成功采样的认证显示为 `unavailable`。
+- 百分比、请求数、credits 和 USD 等上游原生单位会分别展示。只有能安全映射到账本周期和模型池的窗口才会显示本地调用预测；网页、其他 CLI 或其他代理节点的使用会降低真实可用调用次数。
+- SQLite 快照与管理响应不会包含 OAuth Token、上游账户 ID、认证文件路径、proxy URL 或原始上游响应。私有上游接口可能随时调整。
 
 ---
 
@@ -439,6 +451,10 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 - 账本仅存储整数 **micro-USD**，不使用浮点金额。
 - 价格单位为 **每 1M Token 的 micro-USD**。
 - 各 Token 类别的费用分别**向上取整**后相加。
+- 计费口径与 [cap-token-usage-tracker](https://github.com/AITNR/cap-token-usage-tracker) 对齐：只对 Input、Output、Cache Read、Cache Creation 四项计价。
+- OpenAI 兼容 usage 的 `input`/`prompt_tokens` 已包含缓存，结算时会先扣除 Cache Read/Creation，避免重复计费。
+- Claude/Anthropic 的 `input_tokens` 不含缓存，四项独立计价。
+- Reasoning 与通用 Cached 计数只作统计，不再单独加价；未提供 `cache_read` 时回退使用 `cached`。
 - **严格预占**：单个插件 Key 的可用额度不足时，请求直接拒绝；Key 之间不共享额度。
 - Key 可分别设置总、日、周、月额度与最大并发请求数；`0` 或省略表示该项不限制。日/周/月按 UTC 自然周期计算，周从周一开始。
 - 周期额度按已结算费用加当前周期内的在途预占计算；并发额度按未结算或未释放的请求数计算，所有检查均在同一个预占事务内完成。
@@ -454,6 +470,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | `cached` | 通用缓存 Token |
 | `cache_read` | 缓存读取 Token |
 | `cache_creation` | 缓存创建 Token |
+| `accounting_mode` | 可选。`input_includes_cache`（OpenAI）或 `input_excludes_cache`（Claude）；空则按模型名自动判断 |
 
 ---
 
@@ -463,6 +480,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 - 数据库仅存储：`kid`、HMAC、pepper ID、指纹、principal 和 `caller_scope`。
 - pepper 仅保存在环境变量或 `data_dir/key-peppers` 中，不写入 SQLite、日志或管理查询结果。
 - 签发 Key 的响应包含 `Cache-Control: no-store`。
+- 认证额度快照不保存 OAuth 凭据、认证文件路径或原始上游响应；公开 `/lookup` 和 `/lookup/data` 不包含认证身份或认证额度字段。
 
 ### Pepper 轮换建议
 
