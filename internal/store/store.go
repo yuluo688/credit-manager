@@ -671,8 +671,8 @@ func (s *Store) PutPricingRule(ctx context.Context, rule PricingRule) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO pricing_rules(
 		id, match_kind, pattern, priority, input_per_mtok_micro_usd, output_per_mtok_micro_usd,
 		reasoning_per_mtok_micro_usd, cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd,
-		cache_creation_per_mtok_micro_usd, enabled, created_at_unix_ms, updated_at_unix_ms
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		cache_creation_per_mtok_micro_usd, accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET match_kind=excluded.match_kind, pattern=excluded.pattern,
 		priority=excluded.priority, input_per_mtok_micro_usd=excluded.input_per_mtok_micro_usd,
 		output_per_mtok_micro_usd=excluded.output_per_mtok_micro_usd,
@@ -680,10 +680,11 @@ func (s *Store) PutPricingRule(ctx context.Context, rule PricingRule) error {
 		cached_per_mtok_micro_usd=excluded.cached_per_mtok_micro_usd,
 		cache_read_per_mtok_micro_usd=excluded.cache_read_per_mtok_micro_usd,
 		cache_creation_per_mtok_micro_usd=excluded.cache_creation_per_mtok_micro_usd,
+		accounting_mode=excluded.accounting_mode,
 		enabled=excluded.enabled, updated_at_unix_ms=excluded.updated_at_unix_ms`,
 		rule.ID, rule.MatchKind, rule.Pattern, rule.Priority, rule.Price.Input, rule.Price.Output,
 		rule.Price.Reasoning, rule.Price.Cached, rule.Price.CacheRead, rule.Price.CacheCreation,
-		boolInt(rule.Enabled), now, now)
+		rule.Price.AccountingMode, boolInt(rule.Enabled), now, now)
 	if err != nil {
 		return fmt.Errorf("put pricing rule: %w", err)
 	}
@@ -702,7 +703,7 @@ func (s *Store) ListPricingRules(ctx context.Context) ([]PricingRule, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
-		enabled, created_at_unix_ms, updated_at_unix_ms
+		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
 		FROM pricing_rules ORDER BY priority DESC, id ASC`)
 	if err != nil {
 		return nil, err
@@ -719,6 +720,18 @@ func (s *Store) ListPricingRules(ctx context.Context) ([]PricingRule, error) {
 	return out, rows.Err()
 }
 
+func (s *Store) GetPricingRule(ctx context.Context, id string) (PricingRule, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return PricingRule{}, fmt.Errorf("%w: pricing rule id is required", ErrInvalidArgument)
+	}
+	return scanPricingRule(s.db.QueryRowContext(ctx, `SELECT id, match_kind, pattern, priority,
+		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
+		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
+		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
+		FROM pricing_rules WHERE id = ?`, id))
+}
+
 func (s *Store) ResolvePricingRule(ctx context.Context, model string) (PricingRule, error) {
 	if strings.TrimSpace(model) == "" {
 		return PricingRule{}, fmt.Errorf("%w: model is required", ErrInvalidArgument)
@@ -726,7 +739,7 @@ func (s *Store) ResolvePricingRule(ctx context.Context, model string) (PricingRu
 	rows, err := s.db.QueryContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
-		enabled, created_at_unix_ms, updated_at_unix_ms
+		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
 		FROM pricing_rules WHERE enabled = 1 ORDER BY priority DESC, id ASC`)
 	if err != nil {
 		return PricingRule{}, fmt.Errorf("list pricing rules: %w", err)
@@ -1042,6 +1055,304 @@ type AuthIdentity struct {
 	Path      string
 }
 
+// AuthQuotaSnapshot is the sanitized quota state most recently fetched for an
+// auth identity. SnapshotJSON must never contain auth material or other secrets.
+type AuthQuotaSnapshot struct {
+	Provider      string
+	AuthID        string
+	SnapshotJSON  string
+	AuthModTime   *time.Time
+	LastAttemptAt time.Time
+	LastSuccessAt *time.Time
+	LastErrorAt   *time.Time
+	LastError     string
+}
+
+// AuthQuotaUsageFilter selects usage attributed to an auth identity during a
+// local quota window. Models, when non-empty, limits the aggregate to exact names.
+type AuthQuotaUsageFilter struct {
+	Provider  string
+	AuthID    string
+	AuthIndex string
+	From      time.Time
+	To        time.Time
+	Models    []string
+}
+
+// AuthQuotaUsage summarizes actual settled ledger usage for a quota window.
+type AuthQuotaUsage struct {
+	RequestCount        int64
+	InputTokens         int64
+	OutputTokens        int64
+	ReasoningTokens     int64
+	CachedTokens        int64
+	CacheReadTokens     int64
+	CacheCreationTokens int64
+	ActualCostMicroUSD  money.MicroUSD
+}
+
+// AuthQuotaUsageByModel is a settled usage aggregate for one normalized model.
+type AuthQuotaUsageByModel struct {
+	Model string
+	AuthQuotaUsage
+}
+
+// GetAuthQuotaSnapshot returns the persisted quota state for an auth identity.
+func (s *Store) GetAuthQuotaSnapshot(ctx context.Context, provider, authID string) (AuthQuotaSnapshot, error) {
+	provider, authID = strings.TrimSpace(provider), strings.TrimSpace(authID)
+	if provider == "" || authID == "" {
+		return AuthQuotaSnapshot{}, fmt.Errorf("%w: provider and auth id are required", ErrInvalidArgument)
+	}
+	var snapshot AuthQuotaSnapshot
+	var authModTime, lastSuccess, lastErrorAt sql.NullInt64
+	var lastAttempt int64
+	err := s.db.QueryRowContext(ctx, `SELECT provider, auth_id, snapshot_json, auth_mod_time_unix_ms,
+		last_attempt_at_unix_ms, last_success_at_unix_ms, last_error_at_unix_ms, last_error
+		FROM auth_quota_snapshots WHERE provider = ? AND auth_id = ?`, provider, authID).Scan(
+		&snapshot.Provider, &snapshot.AuthID, &snapshot.SnapshotJSON, &authModTime,
+		&lastAttempt, &lastSuccess, &lastErrorAt, &snapshot.LastError,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AuthQuotaSnapshot{}, fmt.Errorf("%w: auth quota snapshot not found", ErrInvalidArgument)
+	}
+	if err != nil {
+		return AuthQuotaSnapshot{}, fmt.Errorf("get auth quota snapshot: %w", err)
+	}
+	if authModTime.Valid {
+		value := time.UnixMilli(authModTime.Int64).UTC()
+		snapshot.AuthModTime = &value
+	}
+	if lastSuccess.Valid {
+		value := time.UnixMilli(lastSuccess.Int64).UTC()
+		snapshot.LastSuccessAt = &value
+	}
+	if lastErrorAt.Valid {
+		value := time.UnixMilli(lastErrorAt.Int64).UTC()
+		snapshot.LastErrorAt = &value
+	}
+	snapshot.LastAttemptAt = time.UnixMilli(lastAttempt).UTC()
+	return snapshot, nil
+}
+
+// UpsertAuthQuotaSuccess replaces the sanitized quota snapshot and clears any
+// prior fetch error for the provider/auth identity.
+func (s *Store) UpsertAuthQuotaSuccess(ctx context.Context, provider, authID, snapshotJSON string, authModTime *time.Time) error {
+	provider, authID = strings.TrimSpace(provider), strings.TrimSpace(authID)
+	if provider == "" || authID == "" {
+		return fmt.Errorf("%w: provider and auth id are required", ErrInvalidArgument)
+	}
+	snapshotJSON, err := sanitizeAuthQuotaSnapshotJSON(snapshotJSON)
+	if err != nil {
+		return err
+	}
+	now := nowUnixMilli()
+	var modTime any
+	if authModTime != nil {
+		modTime = authModTime.UTC().UnixMilli()
+	}
+	_, err = s.db.ExecContext(ctx, `INSERT INTO auth_quota_snapshots(
+		provider, auth_id, snapshot_json, auth_mod_time_unix_ms, last_attempt_at_unix_ms, last_success_at_unix_ms, last_error_at_unix_ms, last_error
+	) VALUES (?, ?, ?, ?, ?, ?, NULL, '')
+	ON CONFLICT(provider, auth_id) DO UPDATE SET
+		snapshot_json = excluded.snapshot_json,
+		auth_mod_time_unix_ms = excluded.auth_mod_time_unix_ms,
+		last_attempt_at_unix_ms = excluded.last_attempt_at_unix_ms,
+		last_success_at_unix_ms = excluded.last_success_at_unix_ms,
+		last_error_at_unix_ms = NULL,
+		last_error = ''`, provider, authID, snapshotJSON, modTime, now, now)
+	if err != nil {
+		return fmt.Errorf("upsert auth quota snapshot: %w", err)
+	}
+	return nil
+}
+
+// RecordAuthQuotaFailure records a failed fetch without replacing the last
+// known-good sanitized snapshot.
+func (s *Store) RecordAuthQuotaFailure(ctx context.Context, provider, authID string, authModTime *time.Time, fetchErr error) error {
+	provider, authID = strings.TrimSpace(provider), strings.TrimSpace(authID)
+	if provider == "" || authID == "" || fetchErr == nil {
+		return fmt.Errorf("%w: provider, auth id, and fetch error are required", ErrInvalidArgument)
+	}
+	now := nowUnixMilli()
+	var modTime any
+	if authModTime != nil {
+		modTime = authModTime.UTC().UnixMilli()
+	}
+	_, err := s.db.ExecContext(ctx, `INSERT INTO auth_quota_snapshots(
+		provider, auth_id, auth_mod_time_unix_ms, last_attempt_at_unix_ms, last_error_at_unix_ms, last_error
+	) VALUES (?, ?, ?, ?, ?, ?)
+	ON CONFLICT(provider, auth_id) DO UPDATE SET
+		auth_mod_time_unix_ms = excluded.auth_mod_time_unix_ms,
+		last_attempt_at_unix_ms = excluded.last_attempt_at_unix_ms,
+		last_error_at_unix_ms = excluded.last_error_at_unix_ms,
+		last_error = excluded.last_error`, provider, authID, modTime, now, now, fetchErr.Error())
+	if err != nil {
+		return fmt.Errorf("record auth quota failure: %w", err)
+	}
+	return nil
+}
+
+// GetAuthQuotaUsageByModel returns settled local usage grouped by model for one
+// auth identity. Exact auth IDs take precedence over legacy index-only rows.
+func (s *Store) GetAuthQuotaUsageByModel(ctx context.Context, filter AuthQuotaUsageFilter) ([]AuthQuotaUsageByModel, error) {
+	where, args, err := authQuotaUsageWhere(filter, false)
+	if err != nil {
+		return nil, err
+	}
+	query := `SELECT model, COUNT(1), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
+		COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cached_tokens), 0), COALESCE(SUM(cache_read_tokens), 0),
+		COALESCE(SUM(cache_creation_tokens), 0), COALESCE(SUM(cost_micro_usd), 0)
+		FROM usage_ledger WHERE ` + where + ` GROUP BY model`
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("get auth quota usage by model: %w", err)
+	}
+	defer rows.Close()
+	var result []AuthQuotaUsageByModel
+	for rows.Next() {
+		var item AuthQuotaUsageByModel
+		if err := rows.Scan(&item.Model, &item.RequestCount, &item.InputTokens, &item.OutputTokens,
+			&item.ReasoningTokens, &item.CachedTokens, &item.CacheReadTokens, &item.CacheCreationTokens,
+			&item.ActualCostMicroUSD); err != nil {
+			return nil, fmt.Errorf("scan auth quota usage by model: %w", err)
+		}
+		result = append(result, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate auth quota usage by model: %w", err)
+	}
+	return result, nil
+}
+
+// GetAuthQuotaUsage aggregates an auth identity's actual settled usage. Rows
+// with an exact auth ID always match; legacy rows without one match AuthIndex.
+func (s *Store) GetAuthQuotaUsage(ctx context.Context, filter AuthQuotaUsageFilter) (AuthQuotaUsage, error) {
+	where, args, err := authQuotaUsageWhere(filter, true)
+	if err != nil {
+		return AuthQuotaUsage{}, err
+	}
+	query := `SELECT COUNT(1), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
+		COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cached_tokens), 0), COALESCE(SUM(cache_read_tokens), 0),
+		COALESCE(SUM(cache_creation_tokens), 0), COALESCE(SUM(cost_micro_usd), 0)
+		FROM usage_ledger WHERE ` + where
+	var usage AuthQuotaUsage
+	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
+		&usage.RequestCount, &usage.InputTokens, &usage.OutputTokens, &usage.ReasoningTokens,
+		&usage.CachedTokens, &usage.CacheReadTokens, &usage.CacheCreationTokens, &usage.ActualCostMicroUSD,
+	); err != nil {
+		return AuthQuotaUsage{}, fmt.Errorf("get auth quota usage: %w", err)
+	}
+	return usage, nil
+}
+
+func authQuotaUsageWhere(filter AuthQuotaUsageFilter, includeModels bool) (string, []any, error) {
+	filter.Provider, filter.AuthID, filter.AuthIndex = strings.TrimSpace(filter.Provider), strings.TrimSpace(filter.AuthID), strings.TrimSpace(filter.AuthIndex)
+	if filter.Provider == "" || filter.AuthID == "" || filter.From.IsZero() || filter.To.IsZero() || !filter.To.After(filter.From) {
+		return "", nil, fmt.Errorf("%w: provider, auth id, and a non-empty time window are required", ErrInvalidArgument)
+	}
+	providers := authQuotaProviderAliases(filter.Provider)
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(providers)), ",")
+	conditions := []string{"LOWER(TRIM(COALESCE(auth_provider, ''))) IN (" + placeholders + ")", "created_at_unix_ms >= ?", "created_at_unix_ms < ?"}
+	args := make([]any, 0, len(providers)+6)
+	for _, provider := range providers {
+		args = append(args, provider)
+	}
+	args = append(args, filter.From.UTC().UnixMilli(), filter.To.UTC().UnixMilli())
+	if filter.AuthIndex == "" {
+		conditions = append(conditions, "auth_id = ?")
+		args = append(args, filter.AuthID)
+	} else {
+		conditions = append(conditions, "(auth_id = ? OR (COALESCE(auth_id, '') = '' AND auth_index = ?))")
+		args = append(args, filter.AuthID, filter.AuthIndex)
+	}
+	if includeModels {
+		models := uniqueTrimmedStrings(filter.Models)
+		if len(models) > 0 {
+			modelPlaceholders := strings.TrimRight(strings.Repeat("?,", len(models)), ",")
+			conditions = append(conditions, "model IN ("+modelPlaceholders+")")
+			for _, model := range models {
+				args = append(args, model)
+			}
+		}
+	}
+	return strings.Join(conditions, " AND "), args, nil
+}
+
+func authQuotaProviderAliases(provider string) []string {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	aliases := map[string][]string{
+		"codex":       {"codex", "openai", "chatgpt"},
+		"openai":      {"codex", "openai", "chatgpt"},
+		"chatgpt":     {"codex", "openai", "chatgpt"},
+		"claude":      {"claude", "anthropic"},
+		"anthropic":   {"claude", "anthropic"},
+		"antigravity": {"antigravity", "google", "gemini"},
+		"google":      {"antigravity", "google", "gemini"},
+		"gemini":      {"antigravity", "google", "gemini"},
+		"kimi":        {"kimi", "moonshot"},
+		"moonshot":    {"kimi", "moonshot"},
+		"xai":         {"xai", "grok"},
+		"grok":        {"xai", "grok"},
+	}
+	if mapped := aliases[provider]; len(mapped) > 0 {
+		return mapped
+	}
+	return []string{provider}
+}
+
+func sanitizeAuthQuotaSnapshotJSON(raw string) (string, error) {
+	var value any
+	if err := json.Unmarshal([]byte(raw), &value); err != nil {
+		return "", fmt.Errorf("%w: snapshot json must be valid json", ErrInvalidArgument)
+	}
+	sanitizeAuthQuotaJSONValue(value)
+	sanitized, err := json.Marshal(value)
+	if err != nil {
+		return "", fmt.Errorf("sanitize auth quota snapshot: %w", err)
+	}
+	return string(sanitized), nil
+}
+
+func sanitizeAuthQuotaJSONValue(value any) {
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, nested := range typed {
+			if isSensitiveAuthQuotaJSONKey(key) {
+				delete(typed, key)
+				continue
+			}
+			sanitizeAuthQuotaJSONValue(nested)
+		}
+	case []any:
+		for _, nested := range typed {
+			sanitizeAuthQuotaJSONValue(nested)
+		}
+	}
+}
+
+func isSensitiveAuthQuotaJSONKey(key string) bool {
+	key = strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(key), "_", ""), "-", ""))
+	return strings.Contains(key, "token") || strings.Contains(key, "secret") || strings.Contains(key, "password") ||
+		strings.Contains(key, "credential") || strings.Contains(key, "apikey") || key == "key" || strings.Contains(key, "authorization")
+}
+
+func uniqueTrimmedStrings(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	return result
+}
+
 func (a AuthIdentity) Empty() bool {
 	return strings.TrimSpace(a.AuthID) == "" &&
 		strings.TrimSpace(a.AuthIndex) == "" &&
@@ -1329,28 +1640,90 @@ func (s *Store) UpdateUsageAuth(ctx context.Context, ledgerID string, auth AuthI
 }
 
 // UpdateUsageDetail replaces fallback token estimates with the host's final
-// usage record. Preserve protocol-derived sources when they were already
-// available; only relabel the synthetic fallback source.
-func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
+// usage record and reprices the already-settled ledger row. Preserve
+// protocol-derived sources when they were already available; only relabel
+// the synthetic fallback source.
+func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage money.TokenUsage, cost money.MicroUSD) error {
 	ledgerID = strings.TrimSpace(ledgerID)
 	if ledgerID == "" {
 		return fmt.Errorf("%w: usage ledger id is required", ErrInvalidArgument)
 	}
+	if cost < 0 {
+		return fmt.Errorf("%w: cost must not be negative", ErrInvalidArgument)
+	}
 	if err := usage.Validate(); err != nil {
 		return err
 	}
-	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	var callerID, pluginKeyID, reservationID string
+	var previousCost int64
+	if err := tx.QueryRowContext(ctx, `SELECT caller_id, plugin_key_id, reservation_id, cost_micro_usd
+		FROM usage_ledger WHERE id = ?`, ledgerID).Scan(&callerID, &pluginKeyID, &reservationID, &previousCost); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%w: usage ledger not found", ErrInvalidArgument)
+		}
+		return fmt.Errorf("load usage ledger: %w", err)
+	}
+
+	now := nowUnixMilli()
+	result, err := tx.ExecContext(ctx, `UPDATE usage_ledger SET
 		input_tokens=?, output_tokens=?, reasoning_tokens=?, cached_tokens=?, cache_read_tokens=?, cache_creation_tokens=?,
+		cost_micro_usd=?,
 		source=CASE WHEN source='reserved_fallback' THEN 'host_usage' ELSE source END
 		WHERE id=?`,
-		usage.Input, usage.Output, usage.Reasoning, usage.Cached, usage.CacheRead, usage.CacheCreation, ledgerID)
+		usage.Input, usage.Output, usage.Reasoning, usage.Cached, usage.CacheRead, usage.CacheCreation, cost, ledgerID)
 	if err != nil {
 		return fmt.Errorf("update usage detail: %w", err)
 	}
 	if err := requireOneRow(result, ErrInvalidArgument); err != nil {
 		return err
 	}
-	return nil
+
+	delta := int64(cost) - previousCost
+	if delta != 0 {
+		result, err = tx.ExecContext(ctx, `UPDATE plugin_keys SET
+			settled_spend_micro_usd = CASE
+				WHEN settled_spend_micro_usd + ? < 0 THEN 0
+				ELSE settled_spend_micro_usd + ?
+			END,
+			updated_at_unix_ms = ?
+			WHERE id = ?`, delta, delta, now, pluginKeyID)
+		if err != nil {
+			return fmt.Errorf("adjust settled spend: %w", err)
+		}
+		if err := requireOneRow(result, ErrPluginKeyNotFound); err != nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE reservations SET settled_micro_usd=?, updated_at_unix_ms=?
+			WHERE id=? AND status='settled'`, cost, now, reservationID); err != nil {
+			return fmt.Errorf("adjust settled reservation: %w", err)
+		}
+		details := fmt.Sprintf(`{"previous":%d,"cost":%d}`, previousCost, cost)
+		if err := insertAudit(ctx, tx, callerID, pluginKeyID, reservationID, "quota_repriced", cost, details, now); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+func (s *Store) GetUsage(ctx context.Context, ledgerID string) (UsageEntry, error) {
+	ledgerID = strings.TrimSpace(ledgerID)
+	if ledgerID == "" {
+		return UsageEntry{}, fmt.Errorf("%w: usage ledger id is required", ErrInvalidArgument)
+	}
+	entries, err := s.ListUsage(ctx, UsageFilter{LedgerID: ledgerID, Limit: 1})
+	if err != nil {
+		return UsageEntry{}, err
+	}
+	if len(entries) == 0 {
+		return UsageEntry{}, fmt.Errorf("%w: usage ledger not found", ErrInvalidArgument)
+	}
+	return entries[0], nil
 }
 
 func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry, error) {
@@ -1443,6 +1816,7 @@ func (s *Store) CountUsage(ctx context.Context, filter UsageFilter) (int64, erro
 }
 
 type UsageFilter struct {
+	LedgerID        string
 	CallerID        string
 	PluginKeyID     string
 	Model           string
@@ -1462,8 +1836,12 @@ func usageWhere(filter UsageFilter, alias string) (string, []any) {
 	if strings.TrimSpace(alias) != "" {
 		prefix = strings.TrimSpace(alias) + "."
 	}
-	conds := make([]string, 0, 10)
-	args := make([]any, 0, 10)
+	conds := make([]string, 0, 11)
+	args := make([]any, 0, 11)
+	if strings.TrimSpace(filter.LedgerID) != "" {
+		conds = append(conds, prefix+"id = ?")
+		args = append(args, filter.LedgerID)
+	}
 	if strings.TrimSpace(filter.CallerID) != "" {
 		conds = append(conds, prefix+"caller_id = ?")
 		args = append(args, filter.CallerID)
@@ -1564,7 +1942,7 @@ func (s *Store) UsageOverviewSummary(ctx context.Context) (UsageOverviewSummary,
 	err := s.db.QueryRowContext(ctx, `SELECT
 		COUNT(1),
 		COALESCE(SUM(input_tokens + output_tokens + reasoning_tokens + cached_tokens + cache_read_tokens + cache_creation_tokens), 0),
-		COALESCE(SUM(COALESCE(estimated_cost_micro_usd, cost_micro_usd)), 0)
+		COALESCE(SUM(cost_micro_usd), 0)
 	FROM usage_ledger`).Scan(&summary.RequestCount, &summary.TotalTokens, &summary.EstimatedCostMicroUSD)
 	if err != nil {
 		return UsageOverviewSummary{}, fmt.Errorf("summarize overview usage: %w", err)
@@ -1576,7 +1954,7 @@ func (s *Store) SummarizeUsageFiltered(ctx context.Context, filter UsageFilter) 
 	query := `SELECT COUNT(1), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
 		COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cached_tokens), 0),
 		COALESCE(SUM(cache_read_tokens), 0), COALESCE(SUM(cache_creation_tokens), 0),
-		COALESCE(SUM(COALESCE(estimated_cost_micro_usd, cost_micro_usd)), 0)
+		COALESCE(SUM(cost_micro_usd), 0)
 	FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
@@ -1688,7 +2066,7 @@ func (s *Store) SummarizeUsageDailyFiltered(ctx context.Context, filter UsageFil
 	query := `SELECT strftime('%Y-%m-%d', u.created_at_unix_ms / 1000, 'unixepoch') AS day,
 		COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0), COALESCE(SUM(u.cached_tokens), 0),
 		COALESCE(SUM(u.cache_read_tokens), 0), COALESCE(SUM(u.cache_creation_tokens), 0),
-		COALESCE(SUM(COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd)), 0)
+		COALESCE(SUM(u.cost_micro_usd), 0)
 	FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
@@ -1916,7 +2294,7 @@ func scanPricingRule(row rowScanner) (PricingRule, error) {
 	var created, updated int64
 	if err := row.Scan(&rule.ID, &rule.MatchKind, &rule.Pattern, &rule.Priority,
 		&rule.Price.Input, &rule.Price.Output, &rule.Price.Reasoning, &rule.Price.Cached,
-		&rule.Price.CacheRead, &rule.Price.CacheCreation, &enabled, &created, &updated); err != nil {
+		&rule.Price.CacheRead, &rule.Price.CacheCreation, &rule.Price.AccountingMode, &enabled, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PricingRule{}, ErrPricingRuleNotFound
 		}

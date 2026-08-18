@@ -197,6 +197,42 @@ var migrations = []migration{
 				ON usage_ledger(plugin_key_id, created_at_unix_ms, cost_micro_usd)`,
 		},
 	},
+	{
+		version: 8,
+		name:    "auth quota snapshots",
+		up: []string{
+			`CREATE TABLE IF NOT EXISTS auth_quota_snapshots (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				snapshot_json TEXT NOT NULL DEFAULT '{}',
+				auth_mod_time_unix_ms INTEGER,
+				last_attempt_at_unix_ms INTEGER NOT NULL,
+				last_success_at_unix_ms INTEGER,
+				last_error TEXT NOT NULL DEFAULT '',
+				PRIMARY KEY (provider, auth_id)
+			)`,
+			`CREATE INDEX IF NOT EXISTS auth_quota_snapshots_attempt_idx
+				ON auth_quota_snapshots(last_attempt_at_unix_ms)`,
+			`CREATE INDEX IF NOT EXISTS usage_ledger_auth_provider_id_created_idx
+				ON usage_ledger(auth_provider, auth_id, created_at_unix_ms)`,
+			`CREATE INDEX IF NOT EXISTS usage_ledger_auth_provider_index_created_idx
+				ON usage_ledger(auth_provider, auth_index, created_at_unix_ms)`,
+		},
+	},
+	{
+		version: 9,
+		name:    "auth quota snapshot error timestamp",
+		up: []string{
+			`ALTER TABLE auth_quota_snapshots ADD COLUMN last_error_at_unix_ms INTEGER`,
+		},
+	},
+	{
+		version: 10,
+		name:    "pricing accounting mode",
+		up: []string{
+			`ALTER TABLE pricing_rules ADD COLUMN accounting_mode TEXT NOT NULL DEFAULT ''`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

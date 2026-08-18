@@ -283,6 +283,145 @@ func TestTouchReservationKeepsHeldReservationFresh(t *testing.T) {
 	}
 }
 
+func TestUpdateUsageDetailRepricesSettledSpend(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	reservation, err := st.Reserve(ctx, reserveRequest(key, "reprice", 1_000))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	ledgerID := NewID()
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID:              ledgerID,
+		ReservationID:         reservation.ID,
+		Model:                 "test-model",
+		Usage:                 money.TokenUsage{Input: 100_000, Output: 4_096},
+		CostMicroUSD:          1_000,
+		EstimatedCostMicroUSD: 1_000,
+		Source:                "reserved_fallback",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	if err := st.UpdateUsageDetail(ctx, ledgerID, money.TokenUsage{Input: 20, Output: 8}, 3); err != nil {
+		t.Fatalf("update usage detail: %v", err)
+	}
+	entry, err := st.GetUsage(ctx, ledgerID)
+	if err != nil {
+		t.Fatalf("get usage: %v", err)
+	}
+	if entry.Usage.Input != 20 || entry.Usage.Output != 8 || entry.CostMicroUSD != 3 || entry.Source != "host_usage" {
+		t.Fatalf("usage = %#v", entry)
+	}
+	updatedKey, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("get key: %v", err)
+	}
+	if updatedKey.SettledSpendMicroUSD != 3 {
+		t.Fatalf("settled spend = %d, want 3", updatedKey.SettledSpendMicroUSD)
+	}
+	updatedReservation, err := st.GetReservation(ctx, reservation.ID)
+	if err != nil {
+		t.Fatalf("get reservation: %v", err)
+	}
+	if updatedReservation.SettledMicroUSD == nil || *updatedReservation.SettledMicroUSD != 3 {
+		t.Fatalf("settled reservation = %#v", updatedReservation.SettledMicroUSD)
+	}
+}
+
+func TestAuthQuotaSnapshotMigrationAndPersistence(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	var applied int
+	if err := st.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM schema_migrations WHERE version = 8`).Scan(&applied); err != nil {
+		t.Fatalf("query migration: %v", err)
+	}
+	if applied != 1 {
+		t.Fatalf("migration 8 count = %d, want 1", applied)
+	}
+	modTime := time.Date(2026, time.August, 17, 9, 30, 0, 0, time.UTC)
+	if err := st.UpsertAuthQuotaSuccess(ctx, "antigravity", "auth-1", `{"remaining":42,"access_token":"secret","nested":{"api_key":"nested-secret","limit":100}}`, &modTime); err != nil {
+		t.Fatalf("upsert quota snapshot: %v", err)
+	}
+	snapshot, err := st.GetAuthQuotaSnapshot(ctx, "antigravity", "auth-1")
+	if err != nil {
+		t.Fatalf("get quota snapshot: %v", err)
+	}
+	if snapshot.AuthModTime == nil || !snapshot.AuthModTime.Equal(modTime) || snapshot.LastSuccessAt == nil || snapshot.LastError != "" {
+		t.Fatalf("snapshot = %#v", snapshot)
+	}
+	if bytes.Contains([]byte(snapshot.SnapshotJSON), []byte("secret")) || !bytes.Contains([]byte(snapshot.SnapshotJSON), []byte(`"remaining":42`)) || !bytes.Contains([]byte(snapshot.SnapshotJSON), []byte(`"limit":100`)) {
+		t.Fatalf("sanitized snapshot = %s", snapshot.SnapshotJSON)
+	}
+	if err := st.RecordAuthQuotaFailure(ctx, "antigravity", "auth-1", nil, errors.New("upstream unavailable")); err != nil {
+		t.Fatalf("record quota failure: %v", err)
+	}
+	failed, err := st.GetAuthQuotaSnapshot(ctx, "antigravity", "auth-1")
+	if err != nil || failed.SnapshotJSON != snapshot.SnapshotJSON || failed.LastSuccessAt == nil || failed.LastErrorAt == nil || failed.LastError != "upstream unavailable" {
+		t.Fatalf("snapshot after failure = %#v, err = %v", failed, err)
+	}
+}
+func TestGetAuthQuotaUsageMatchesAuthAndLegacyIndex(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	from := time.Date(2026, time.August, 17, 0, 0, 0, 0, time.UTC)
+	to := from.Add(24 * time.Hour)
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	insert := func(id, provider, authID, index, model string, at time.Time, input, output, cost int64) {
+		t.Helper()
+		_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, auth_provider, auth_id, auth_index, created_at_unix_ms) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, 'usage', ?, ?, ?, ?)`, id, "r-"+id, key.CallerID, key.ID, model, input, output, cost, provider, authID, index, at.UnixMilli())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("exact", "antigravity", "auth-1", "index-1", "pool-a", from.Add(time.Hour), 10, 5, 11)
+	insert("legacy", "antigravity", "", "index-1", "pool-a", from.Add(2*time.Hour), 7, 8, 13)
+	insert("other-auth", "antigravity", "auth-2", "index-1", "pool-a", from.Add(3*time.Hour), 100, 0, 101)
+	insert("other-provider", "other", "auth-1", "index-1", "pool-a", from.Add(4*time.Hour), 100, 0, 103)
+	insert("other-model", "antigravity", "auth-1", "index-1", "pool-b", from.Add(5*time.Hour), 100, 0, 107)
+	insert("outside", "antigravity", "auth-1", "index-1", "pool-a", to, 100, 0, 109)
+	usage, err := st.GetAuthQuotaUsage(ctx, AuthQuotaUsageFilter{Provider: "antigravity", AuthID: "auth-1", AuthIndex: "index-1", From: from, To: to, Models: []string{"pool-a"}})
+	if err != nil || usage.RequestCount != 2 || usage.InputTokens != 17 || usage.OutputTokens != 13 || usage.ActualCostMicroUSD != 24 {
+		t.Fatalf("usage = %#v, err = %v", usage, err)
+	}
+}
+
+func TestGetAuthQuotaUsageMatchesProviderAliases(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	from := time.Date(2026, time.August, 17, 0, 0, 0, 0, time.UTC)
+	to := from.Add(24 * time.Hour)
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	insert := func(id, provider, model string, input, output, cost int64) {
+		t.Helper()
+		_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, auth_provider, auth_id, auth_index, created_at_unix_ms) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, ?, 'usage', ?, 'auth-1', 'index-1', ?)`, id, "r-"+id, key.CallerID, key.ID, model, input, output, cost, provider, from.Add(time.Hour).UnixMilli())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("openai", "openai", "gpt-test", 10, 5, 11)
+	insert("chatgpt", "ChatGPT", "gpt-test", 7, 8, 13)
+	insert("claude", "anthropic", "claude-test", 3, 1, 5)
+	usage, err := st.GetAuthQuotaUsage(ctx, AuthQuotaUsageFilter{Provider: "codex", AuthID: "auth-1", AuthIndex: "index-1", From: from, To: to})
+	if err != nil || usage.RequestCount != 2 || usage.InputTokens != 17 || usage.OutputTokens != 13 || usage.ActualCostMicroUSD != 24 {
+		t.Fatalf("codex usage = %#v, err = %v", usage, err)
+	}
+	byModel, err := st.GetAuthQuotaUsageByModel(ctx, AuthQuotaUsageFilter{Provider: "claude", AuthID: "auth-1", AuthIndex: "index-1", From: from, To: to})
+	if err != nil || len(byModel) != 1 || byModel[0].Model != "claude-test" || byModel[0].RequestCount != 1 || byModel[0].ActualCostMicroUSD != 5 {
+		t.Fatalf("claude usage = %#v, err = %v", byModel, err)
+	}
+}
+
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	st, err := Open(context.Background(), filepath.Join(t.TempDir(), "credit-manager.db"), OpenOptions{BusyTimeout: time.Second})
