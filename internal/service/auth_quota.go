@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
@@ -1329,7 +1330,9 @@ func addAuthQuotaUsage(to *store.AuthQuotaUsage, from store.AuthQuotaUsage) {
 }
 
 func totalAuthQuotaTokens(usage store.AuthQuotaUsage) int64 {
-	return usage.InputTokens + usage.OutputTokens + usage.ReasoningTokens + usage.CachedTokens + usage.CacheReadTokens + usage.CacheCreationTokens
+	return money.ReportedTotal(money.TokenUsage{
+		Input: usage.InputTokens, Output: usage.OutputTokens, Reasoning: usage.ReasoningTokens, Cached: usage.CachedTokens,
+	})
 }
 
 func authQuotaLocalUsage(usage store.AuthQuotaUsage) *AuthQuotaLocalUsage {

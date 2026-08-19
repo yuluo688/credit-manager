@@ -26,7 +26,7 @@ import (
 const (
 	PluginID      = "credit-manager"
 	PluginName    = "CPA Credit Manager"
-	PluginVersion = "1.2.0"
+	PluginVersion = "1.3.0"
 	// CallerScopeMetadataKey mirrors sdk/cliproxy/executor.CallerScopeMetadataKey.
 	CallerScopeMetadataKey = "caller_scope"
 )
@@ -246,6 +246,7 @@ type ReservePlan struct {
 	InputEstimate  int64
 	OutputEstimate int64
 	TokenEstimate  int64
+	ImageCount     int64
 	Price          money.PricePerMTok
 	PricingRuleID  *string
 	Amount         money.MicroUSD
@@ -260,16 +261,7 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 	if model == "" {
 		return ReservePlan{}, fmt.Errorf("%w: model is required", store.ErrInvalidArgument)
 	}
-	inputEst, outputEst := estimateTokens(body, s.cfg.Limits.DefaultOutputReserve, s.cfg.Limits.MaxTokenEstimate)
-	if err := s.cfg.ValidateTokenEstimate(inputEst + outputEst); err != nil {
-		return ReservePlan{}, err
-	}
-	plan := ReservePlan{
-		Model:          model,
-		InputEstimate:  inputEst,
-		OutputEstimate: outputEst,
-		TokenEstimate:  inputEst + outputEst,
-	}
+	plan := ReservePlan{Model: model}
 	rule, err := s.store.ResolvePricingRule(ctx, model)
 	switch {
 	case err == nil:
@@ -297,7 +289,25 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 	default:
 		return ReservePlan{}, err
 	}
-	cost, err := money.Cost(money.TokenUsage{Input: inputEst, Output: outputEst}, plan.Price)
+	if plan.Price.IsPerImage() {
+		images := extractImageCount(body)
+		plan.ImageCount = images
+		plan.TokenEstimate = images
+		cost, err := money.Cost(money.TokenUsage{Images: images}, plan.Price)
+		if err != nil {
+			return ReservePlan{}, err
+		}
+		plan.Amount = cost
+		return plan, nil
+	}
+	inputEst, outputEst := estimateTokens(body, s.cfg.Limits.DefaultOutputReserve, s.cfg.Limits.MaxTokenEstimate)
+	if err := s.cfg.ValidateTokenEstimate(inputEst + outputEst); err != nil {
+		return ReservePlan{}, err
+	}
+	plan.InputEstimate = inputEst
+	plan.OutputEstimate = outputEst
+	plan.TokenEstimate = inputEst + outputEst
+	cost, err := money.CostFor(money.TokenUsage{Input: inputEst, Output: outputEst}, plan.Price, plan.Model, "")
 	if err != nil {
 		return ReservePlan{}, err
 	}
@@ -319,7 +329,7 @@ func (s *Service) Reserve(ctx context.Context, key store.PluginKey, plan Reserve
 		Model:                plan.Model,
 		RequestTokenEstimate: plan.TokenEstimate,
 		AmountMicroUSD:       plan.Amount,
-		RequestSummary:       fmt.Sprintf("model=%s in=%d out=%d", plan.Model, plan.InputEstimate, plan.OutputEstimate),
+		RequestSummary:       reserveSummary(plan),
 	})
 }
 
@@ -360,23 +370,29 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 		_, err := s.store.Release(ctx, reservation.ID, "missing_usage")
 		return err
 	default:
-		usage := money.TokenUsage{Input: plan.InputEstimate, Output: plan.OutputEstimate}
-		metrics.TokensPerSecond = tokensPerSecond(usage.Output, metrics.GenerationDuration)
+		if plan.Price.IsPerImage() {
+			return s.settleResolvedUsage(ctx, reservation, plan, money.TokenUsage{Images: plan.ImageCount}, "per_image", "missing_usage_settle_per_image", metrics)
+		}
+		// Do not bill max_tokens / body-length estimates as actual spend.
+		// Keep a ledger row so a later usage.handle can reprice from official tokens.
 		return s.settleWithAuth(ctx, store.Settlement{
 			ReservationID:         reservation.ID,
 			Model:                 plan.Model,
 			PricingRuleID:         plan.PricingRuleID,
-			Usage:                 usage,
-			CostMicroUSD:          reservation.HeldMicroUSD,
+			Usage:                 money.TokenUsage{},
+			CostMicroUSD:          0,
 			EstimatedCostMicroUSD: reservation.HeldMicroUSD,
 			Source:                "reserved_fallback",
 			Metrics:               metrics,
-			SettlementSummary:     "missing_usage_settle_reserved",
+			SettlementSummary:     "missing_usage_pending_host",
 		})
 	}
 }
 
 func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, usage money.TokenUsage, source, summary string, metrics store.UsageMetrics) error {
+	if plan.Price.IsPerImage() && usage.Images <= 0 {
+		usage.Images = plan.ImageCount
+	}
 	cost, err := money.CostFor(usage, plan.Price, plan.Model, "")
 	if err != nil {
 		return err
@@ -399,7 +415,7 @@ func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Res
 }
 
 func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
-	if !usageFound(usage) {
+	if !usageFound(usage) && usage.Images <= 0 {
 		return nil
 	}
 	entry, err := s.store.GetUsage(ctx, ledgerID)
@@ -409,6 +425,9 @@ func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage mon
 	price, err := s.priceForUsage(ctx, entry)
 	if err != nil {
 		return err
+	}
+	if price.IsPerImage() && usage.Images <= 0 {
+		return s.store.UpdateUsageDetail(ctx, ledgerID, usage, entry.CostMicroUSD)
 	}
 	cost, err := money.CostFor(usage, price, entry.Model, entry.Auth.Provider)
 	if err != nil {
@@ -664,6 +683,57 @@ func extractOutputLimit(body []byte) int64 {
 	if gen, ok := root["generationConfig"].(map[string]any); ok {
 		if value, ok := gen["maxOutputTokens"].(float64); ok && value > 0 {
 			return int64(value)
+		}
+	}
+	return 0
+}
+
+func reserveSummary(plan ReservePlan) string {
+	if plan.Price.IsPerImage() {
+		return fmt.Sprintf("model=%s images=%d", plan.Model, plan.ImageCount)
+	}
+	return fmt.Sprintf("model=%s in=%d out=%d", plan.Model, plan.InputEstimate, plan.OutputEstimate)
+}
+
+func extractImageCount(body []byte) int64 {
+	const maxImages int64 = 32
+	if len(body) == 0 {
+		return 1
+	}
+	var root map[string]any
+	if err := json.Unmarshal(body, &root); err != nil {
+		return 1
+	}
+	for _, key := range []string{"n", "n_images", "num_images", "image_count"} {
+		if value, ok := root[key]; ok {
+			if count := positiveInt64(value); count > 0 {
+				if count > maxImages {
+					return maxImages
+				}
+				return count
+			}
+		}
+	}
+	return 1
+}
+
+func positiveInt64(value any) int64 {
+	switch typed := value.(type) {
+	case float64:
+		if typed > 0 {
+			return int64(typed)
+		}
+	case int64:
+		if typed > 0 {
+			return typed
+		}
+	case int:
+		if typed > 0 {
+			return int64(typed)
+		}
+	case json.Number:
+		if parsed, err := typed.Int64(); err == nil && parsed > 0 {
+			return parsed
 		}
 	}
 	return 0

@@ -310,7 +310,7 @@ func TestAuthQuotaForecastIncludesFullLocalUsage(t *testing.T) {
 	}
 	used, remaining := 25.0, 75.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
-	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 81 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 || window.ObservedUsed == nil || *window.ObservedUsed != 25 {
+	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 36 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 || window.ObservedUsed == nil || *window.ObservedUsed != 25 {
 		t.Fatalf("window=%#v", window)
 	}
 }

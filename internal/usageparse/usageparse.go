@@ -141,6 +141,7 @@ func fromClaude(root map[string]any) Result {
 	if r.Usage.CacheCreation == 0 {
 		r.Usage.CacheCreation = int64Field(usage, "cache_creation_tokens")
 	}
+	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
 	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.CacheRead > 0 || r.Usage.CacheCreation > 0
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
@@ -159,6 +160,7 @@ func fromGemini(root map[string]any) Result {
 	r.Usage.Output = int64Field(usage, "candidatesTokenCount", "candidates_token_count")
 	r.Usage.Reasoning = int64Field(usage, "thoughtsTokenCount", "thoughts_token_count")
 	r.Usage.Cached = int64Field(usage, "cachedContentTokenCount", "cached_content_token_count")
+	r.Usage.ReportedTotal = int64Field(usage, "totalTokenCount", "total_token_count")
 	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.Reasoning > 0 || r.Usage.Cached > 0
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
@@ -178,6 +180,7 @@ func fromResponses(root map[string]any) Result {
 	if details, ok := usage["output_tokens_details"].(map[string]any); ok {
 		r.Usage.Reasoning = int64Field(details, "reasoning_tokens")
 	}
+	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
 	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.CacheRead > 0 || r.Usage.Reasoning > 0
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
@@ -190,16 +193,18 @@ func mapUsage(usage map[string]any, source string) Result {
 	r.Usage.Reasoning = int64Field(usage, "reasoning_tokens")
 	r.Usage.Cached = int64Field(usage, "cached_tokens")
 	if details, ok := usage["prompt_tokens_details"].(map[string]any); ok {
+		cached := int64Field(details, "cached_tokens")
 		if r.Usage.Cached == 0 {
-			r.Usage.Cached = int64Field(details, "cached_tokens")
+			r.Usage.Cached = cached
 		}
-		r.Usage.CacheRead = int64Field(details, "cached_tokens")
+		r.Usage.CacheRead = cached
 	}
 	if details, ok := usage["completion_tokens_details"].(map[string]any); ok {
 		if r.Usage.Reasoning == 0 {
 			r.Usage.Reasoning = int64Field(details, "reasoning_tokens")
 		}
 	}
+	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
 	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.Cached > 0 || r.Usage.Reasoning > 0
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r

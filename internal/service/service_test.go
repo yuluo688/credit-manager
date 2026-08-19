@@ -54,8 +54,11 @@ func TestApplyHostUsageRepricesReservedFallback(t *testing.T) {
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("list usage: %v %#v", err, entries)
 	}
-	if entries[0].Source != "reserved_fallback" || entries[0].CostMicroUSD != reservation.HeldMicroUSD {
+	if entries[0].Source != "reserved_fallback" || entries[0].CostMicroUSD != 0 || entries[0].Usage.Output != 0 {
 		t.Fatalf("fallback entry = %#v", entries[0])
+	}
+	if entries[0].EstimatedCostMicroUSD != reservation.HeldMicroUSD {
+		t.Fatalf("fallback estimated cost = %d, want held %d", entries[0].EstimatedCostMicroUSD, reservation.HeldMicroUSD)
 	}
 
 	if err := svc.ApplyHostUsage(ctx, entries[0].ID, money.TokenUsage{Input: 10, Output: 20}); err != nil {
@@ -189,5 +192,53 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 	}
 	if entries[0].Source != "host_usage" || entries[0].Usage.Input != 9 || entries[0].Auth.Label != "ops" {
 		t.Fatalf("settled entry = %#v", entries[0])
+	}
+}
+
+func TestBuildReservePlanPerImageUsesRequestCount(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "gpt-image-1", MatchKind: store.MatchExact, Pattern: "gpt-image-1", Priority: 100, Enabled: true,
+		Price: money.PricePerMTok{BillingMode: money.BillingPerImage, PerImage: 40_000, Input: 5_000_000},
+	}); err != nil {
+		t.Fatalf("put pricing: %v", err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "gpt-image-1", []byte(`{"model":"gpt-image-1","n":3,"prompt":"cat"}`))
+	if err != nil {
+		t.Fatalf("build plan: %v", err)
+	}
+	if plan.ImageCount != 3 || plan.Amount != 120_000 || plan.TokenEstimate != 3 {
+		t.Fatalf("image plan = %#v", plan)
+	}
+
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "image", 10_000_000, nil)
+	if err != nil {
+		t.Fatalf("mint key: %v", err)
+	}
+	reservation, err := svc.Reserve(ctx, key, plan, "image-n")
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if err := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, "openai", store.UsageMetrics{}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 1})
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if entries[0].CostMicroUSD != 120_000 {
+		t.Fatalf("image cost = %d, want 120000", entries[0].CostMicroUSD)
 	}
 }
