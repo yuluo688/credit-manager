@@ -295,6 +295,7 @@ func lookupUsageSummaryView(summary store.UsageFilteredSummary) map[string]any {
 		"cached_tokens":         summary.CachedTokens,
 		"cache_read_tokens":     summary.CacheReadTokens,
 		"cache_creation_tokens": summary.CacheCreationTokens,
+		"total_tokens":          summary.TotalTokens,
 		"cost_micro_usd":        summary.CostMicroUSD,
 	}
 }
@@ -344,6 +345,7 @@ func publicUsageView(entry store.UsageEntry) map[string]any {
 		"cached_tokens":            entry.Usage.Cached,
 		"cache_read_tokens":        entry.Usage.CacheRead,
 		"cache_creation_tokens":    entry.Usage.CacheCreation,
+		"total_tokens":             money.ReportedTotal(entry.Usage),
 		"cost_micro_usd":           entry.CostMicroUSD,
 		"estimated_cost_micro_usd": entry.EstimatedCostMicroUSD,
 		"source":                   entry.Source,
@@ -674,6 +676,8 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 			CacheRead      int64  `json:"cache_read"`
 			CacheCreation  int64  `json:"cache_creation"`
 			AccountingMode string `json:"accounting_mode"`
+			BillingMode    string `json:"billing_mode"`
+			PerImage       int64  `json:"per_image"`
 		} `json:"price"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
@@ -690,6 +694,8 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 			Reasoning: money.MicroUSD(req.Price.Reasoning), Cached: money.MicroUSD(req.Price.Cached),
 			CacheRead: money.MicroUSD(req.Price.CacheRead), CacheCreation: money.MicroUSD(req.Price.CacheCreation),
 			AccountingMode: strings.TrimSpace(req.Price.AccountingMode),
+			BillingMode:    strings.TrimSpace(req.Price.BillingMode),
+			PerImage:       money.MicroUSD(req.Price.PerImage),
 		},
 	}
 	if err := svc.Store().PutPricingRule(ctx, rule); err != nil {
@@ -1086,7 +1092,7 @@ func usageView(entry store.UsageEntry) map[string]any {
 		"cached_tokens":            entry.Usage.Cached,
 		"cache_read_tokens":        entry.Usage.CacheRead,
 		"cache_creation_tokens":    entry.Usage.CacheCreation,
-		"total_tokens":             entry.Usage.Input + entry.Usage.Output + entry.Usage.Reasoning + entry.Usage.Cached + entry.Usage.CacheRead + entry.Usage.CacheCreation,
+		"total_tokens":             money.ReportedTotal(entry.Usage),
 		"cost_micro_usd":           entry.CostMicroUSD,
 		"estimated_cost_micro_usd": entry.EstimatedCostMicroUSD,
 		"source":                   entry.Source,

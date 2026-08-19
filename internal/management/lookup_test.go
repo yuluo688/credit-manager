@@ -145,6 +145,45 @@ func TestConsoleClosesConnectionAfterSuccessfulLoad(t *testing.T) {
 	}
 }
 
+func TestConsoleTokenTotalsMatchCapTracker(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"const reported = Number(item.total_tokens || 0);",
+		"Number(item.input_tokens || 0) + Number(item.output_tokens || 0) + Number(item.reasoning_tokens || 0)",
+		"to.getFullYear(), to.getMonth(), to.getDate()",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing CAP-aligned token totals: %q", text)
+		}
+	}
+	if strings.Contains(page, "cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0));") {
+		t.Fatal("console still adds cache counters into total tokens")
+	}
+	lookup := string(lookupPage().Body)
+	if !strings.Contains(lookup, "const reported=Number(item.total_tokens||0); if(reported>0) return reported;") {
+		t.Fatal("lookup page does not use official total_tokens")
+	}
+}
+
+func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"function isImageGenerationModel",
+		"function modelsDevTokenPriced",
+		"function syncPriceBillingFields",
+		`value="per_image"`,
+		"按张（出图）",
+		"每张 USD",
+		"不能套用 Token 价",
+		"billing_mode",
+		"per_image",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing image pricing support: %q", text)
+		}
+	}
+}
+
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{

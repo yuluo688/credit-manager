@@ -1130,7 +1130,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     <div class="modal-backdrop" id="priceModal" aria-hidden="true">
       <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="priceModalTitle">新增价格规则</h2><p class="hint">价格单位为每 1M tokens 的 USD；保存前可从 models.dev 回填当前可用模型的价格。</p></div>
+          <div><h2 class="panel-title" id="priceModalTitle">新增价格规则</h2><p class="hint">文本模型按 USD / 1M tokens；纯出图模型按张计费，不要套用 Token 价。</p></div>
           <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗">×</button>
         </div>
         <div class="modal-body">
@@ -1166,8 +1166,15 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
               </div>
             </div>
             <div class="modal-section">
-              <p class="modal-section-title">计费价格<span>USD / 1M tokens</span></p>
+              <p class="modal-section-title">计费价格<span>Token 或按张</span></p>
               <div class="form-grid-4">
+                <label class="field-span-2">计费方式
+                  <select id="priceBillingMode">
+                    <option value="token">按 Token（USD / 1M）</option>
+                    <option value="per_image">按张（出图）</option>
+                  </select>
+                </label>
+                <div id="priceTokenFields" class="field-span-2 form-grid-4">
                 <label>input USD/1M
                   <input id="priceIn" type="number" step="0.000001" value="0"/>
                 </label>
@@ -1187,6 +1194,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
                     <option value="input_excludes_cache">input 不含缓存（Claude）</option>
                   </select>
                 </label>
+                </div>
+                <div id="priceImageFields" class="field-span-2 hidden">
+                <label>每张 USD
+                  <input id="pricePerImage" type="number" step="0.000001" value="0"/>
+                </label>
+                </div>
               </div>
             </div>
             <p class="modal-status" id="modelPriceStatus">价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。</p>
@@ -1218,7 +1231,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       <div class="filter-heading">
         <div>
           <h2 class="panel-title">概览筛选</h2>
-          <p class="hint">筛选仅影响概览指标和图表；时间按 UTC 解析。</p>
+          <p class="hint">筛选仅影响概览指标和图表；「今日」按本地自然日。</p>
         </div>
         <span class="overview-filter-state" id="overviewFilterState">最近 30 天 · 全部数据</span>
       </div>
@@ -1332,7 +1345,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   <section id="tab-pricing" class="tabpane hidden">
     <div class="page-intro">
-      <div><h2>模型与价格</h2><p>维护模型匹配规则与每百万 Token 的计费价格。</p></div>
+      <div><h2>模型与价格</h2><p>文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。</p></div>
       <span class="badge">定价规则</span>
     </div>
     <div class="pricing-layout">
@@ -1352,7 +1365,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       <div class="filter-heading">
         <div>
           <h2 class="panel-title">统计筛选</h2>
-          <p class="hint">汇总和明细共用以下条件。时间按 UTC 解析，金额单位为 USD。</p>
+          <p class="hint">汇总和明细共用以下条件。「今日」按本地自然日，金额单位为 USD。</p>
         </div>
         <span class="filter-state" id="usageFilterState">未设置筛选</span>
       </div>
@@ -1490,13 +1503,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     '额度仪表盘': { 'zh-TW':'額度儀表板', en:'Credit Dashboard', ru:'Панель лимитов' }, '连接设置': { 'zh-TW':'連線設定', en:'Connection settings', ru:'Настройки подключения' }, '刷新数据': { 'zh-TW':'重新整理資料', en:'Refresh data', ru:'Обновить данные' },
     '概览': { 'zh-TW':'概覽', en:'Overview', ru:'Обзор' }, 'Key 管理': { 'zh-TW':'Key 管理', en:'Keys', ru:'Ключи' }, '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '使用统计': { 'zh-TW':'使用統計', en:'Usage analytics', ru:'Статистика использования' },
     '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、账号、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、帳號、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, account, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, аккаунту, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
-    '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；时间按 UTC 解析。': { 'zh-TW':'篩選僅影響概覽指標和圖表；時間按 UTC 解析。', en:'Filters affect overview metrics and charts only; times use UTC.', ru:'Фильтры влияют только на метрики и диаграммы; время в UTC.' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
+    '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；「今日」按本地自然日。': { 'zh-TW':'篩選僅影響概覽指標和圖表；「今天」按本地自然日。', en:'Filters affect overview metrics and charts only; Today uses the local calendar day.', ru:'Фильтры влияют только на метрики и диаграммы; «Сегодня» — локальный день.' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
     '时间范围': { 'zh-TW':'時間範圍', en:'Time range', ru:'Период' }, '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '时间范围（UTC）': { 'zh-TW':'時間範圍（UTC）', en:'Time range (UTC)', ru:'Период (UTC)' }, '至': { 'zh-TW':'至', en:'to', ru:'до' },
     'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '账号': { 'zh-TW':'帳號', en:'Account', ru:'Аккаунт' }, '搜索账号名称或 ID': { 'zh-TW':'搜尋帳號名稱或 ID', en:'Search account name or ID', ru:'Поиск аккаунта или ID' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
     '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' }, '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
     '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
     '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有 Key': { 'zh-TW':'已有 Key', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
-    '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '维护模型匹配规则与每百万 Token 的计费价格。': { 'zh-TW':'維護模型比對規則與每百萬 Token 的計費價格。', en:'Manage model matching rules and prices per million tokens.', ru:'Управляйте правилами сопоставления моделей и ценами за миллион токенов.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
+    '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
+    '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' }, '按张计费': { 'zh-TW':'按張計費', en:'Per image', ru:'За картинку' },
     '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按 Key 汇总': { 'zh-TW':'依 Key 彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
@@ -2322,8 +2336,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     if (range === 'all' || range === 'custom') return { from: '', to: '' };
     const to = new Date();
     if (range === 'today') {
-      const from = new Date(to.getTime());
-      from.setUTCHours(0, 0, 0, 0);
+      const from = new Date(to.getFullYear(), to.getMonth(), to.getDate());
       return { from: from.toISOString(), to: to.toISOString() };
     }
     const from = new Date(to.getTime());
@@ -2393,9 +2406,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function usageTokens(item) {
-    return Number(item.total_tokens != null ? item.total_tokens :
-      Number(item.input_tokens || 0) + Number(item.output_tokens || 0) + Number(item.reasoning_tokens || 0) +
-      Number(item.cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0));
+    const reported = Number(item.total_tokens || 0);
+    if (reported > 0) return reported;
+    const total = Number(item.input_tokens || 0) + Number(item.output_tokens || 0) + Number(item.reasoning_tokens || 0);
+    return total > 0 ? total : Number(item.cached_tokens || 0);
   }
 
   function overviewModelUsage(items) {
@@ -2478,7 +2492,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function usageCacheRelated(item) {
-    return Number(item.cached_tokens || 0) + Number(item.cache_read_tokens || 0) + Number(item.cache_creation_tokens || 0);
+    const input = Number(item.input_tokens || 0);
+    if (input > 0) return input;
+    return Number(item.cache_read_tokens || item.cached_tokens || 0) + Number(item.cache_creation_tokens || 0);
   }
 
   function disposeOverviewChart(id) {
@@ -2568,10 +2584,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function overviewTrendBucket(date, grain) {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hour = String(date.getUTCHours()).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hour = String(date.getHours()).padStart(2, '0');
     if (grain === 'hour') return { key: year + '-' + month + '-' + day + 'T' + hour, label: month + '-' + day + ' ' + hour + ':00' };
     if (grain === 'month') return { key: year + '-' + month, label: year + '-' + month };
     return { key: year + '-' + month + '-' + day, label: month + '-' + day };
@@ -3369,8 +3385,11 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     $('priceCacheRead').value = Number(priceValue(price, 'CacheRead', 'cache_read') || 0) / 1e6;
     $('priceCacheCreation').value = Number(priceValue(price, 'CacheCreation', 'cache_creation') || 0) / 1e6;
     $('priceAccountingMode').value = priceValue(price, 'AccountingMode', 'accounting_mode') || '';
+    $('priceBillingMode').value = (priceValue(price, 'BillingMode', 'billing_mode') === 'per_image') ? 'per_image' : 'token';
+    $('pricePerImage').value = Number(priceValue(price, 'PerImage', 'per_image') || 0) / 1e6;
     $('priceModelPicker').value = '';
     $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」。可同步并选择当前可用模型的 models.dev 价格进行回填。' : '价格来源：models.dev。仅匹配当前代理公开的模型；同步不会自动保存。';
+    syncPriceBillingFields();
     refreshCustomControls();
     const modal = $('priceModal');
     modal.classList.add('open');
@@ -3489,6 +3508,29 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     return ['input', 'output', 'cache_read', 'cache_write'].some(key => Number(c[key]) > 0);
   }
 
+  function modelsDevModalities(model) {
+    const raw = (model && model.modalities) || {};
+    const list = value => [].concat(value || []).map(item => String(item || '').toLowerCase()).filter(Boolean);
+    return { input: list(raw.input), output: list(raw.output) };
+  }
+
+  function isImageGenerationModel(modelID, modalities) {
+    const id = String(modelID || '').toLowerCase();
+    const output = (modalities && modalities.output) || [];
+    if (/imagen|flux|dall-?e|stable-diffusion|gpt-image|chatgpt-image|grok-imagine|qwen-image|wan\d[\w.-]*image|image-preview|image-quality/.test(id)) return true;
+    return output.includes('image') && !output.includes('text');
+  }
+
+  function modelsDevTokenPriced(cost, modelID, modalities) {
+    if (!modelsDevHasPrice(cost)) return false;
+    if (!isImageGenerationModel(modelID, modalities)) return true;
+    const output = (modalities && modalities.output) || [];
+    if (output.includes('text')) return true;
+    const input = Number((cost || {}).input) || 0;
+    const out = Number((cost || {}).output) || 0;
+    return out > 0 || input >= 1;
+  }
+
   function modelsDevMatchQuality(catalogID, providerID, query) {
     const id = String(catalogID || '').toLowerCase();
     const full = String(providerID + '/' + catalogID).toLowerCase();
@@ -3507,9 +3549,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const matches = [];
     Object.entries(catalog || {}).forEach(([providerID, provider]) => {
       Object.values((provider && provider.models) || {}).forEach(model => {
-        if (!model || !model.cost) return;
+        if (!model) return;
         const quality = modelsDevMatchQuality(model.id, providerID, normalized);
         if (!quality) return;
+        const modalities = modelsDevModalities(model);
         const providerScore = modelsDevProviderRank[providerID] || 10;
         matches.push({
           providerID,
@@ -3517,6 +3560,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           quality,
           providerScore,
           priced: modelsDevHasPrice(model.cost),
+          tokenPriced: modelsDevTokenPriced(model.cost, model.id || modelID, modalities),
         });
       });
     });
@@ -3530,8 +3574,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     let matched = null;
     for (const quality of qualities) {
       let pool = candidates.filter(item => item.quality === quality);
-      const priced = pool.filter(item => item.priced);
-      if (priced.length) pool = priced;
+      const tokenPriced = pool.filter(item => item.tokenPriced);
+      if (tokenPriced.length) pool = tokenPriced;
+      else {
+        const priced = pool.filter(item => item.priced);
+        if (priced.length) pool = priced;
+      }
       const bestProvider = Math.max(...pool.map(item => item.providerScore));
       const preferred = pool.filter(item => item.providerScore === bestProvider);
       const preferredCosts = new Set(preferred.map(item => modelsDevCostKey(item.model.cost)));
@@ -3549,8 +3597,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     // Same price under a first-party catalog wins over gateway mirrors.
     const cost = modelsDevCostKey(matched.model.cost);
     return candidates
-      .filter(item => item.priced && modelsDevCostKey(item.model.cost) === cost)
-      .sort((a, b) => b.providerScore - a.providerScore || b.quality - a.quality)[0] || matched;
+      .filter(item => (item.tokenPriced || item.priced) && modelsDevCostKey(item.model.cost) === cost)
+      .sort((a, b) => Number(b.tokenPriced) - Number(a.tokenPriced) || b.providerScore - a.providerScore || b.quality - a.quality)[0] || matched;
+  }
+
+  function syncPriceBillingFields() {
+    const perImage = $('priceBillingMode').value === 'per_image';
+    $('priceTokenFields').classList.toggle('hidden', perImage);
+    $('priceImageFields').classList.toggle('hidden', !perImage);
   }
 
   function loadModelPrice(modelID) {
@@ -3561,12 +3615,28 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     $('priceKind').value = 'exact';
     $('pricePattern').value = modelID;
     refreshCustomControls();
-    $('priceIn').value = priceNumber(cost.input);
-    $('priceOut').value = priceNumber(cost.output);
-    $('priceCacheRead').value = priceNumber(cost.cache_read);
-    $('priceCacheCreation').value = priceNumber(cost.cache_write);
-    $('priceAccountingMode').value = /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache';
-    $('modelPriceStatus').textContent = '已回填 ' + modelID + ' 的价格，来源：models.dev / ' + item.provider + '。请核对后保存。';
+    if (item.tokenPriced) {
+      $('priceBillingMode').value = 'token';
+      $('priceIn').value = priceNumber(cost.input);
+      $('priceOut').value = priceNumber(cost.output);
+      $('priceCacheRead').value = priceNumber(cost.cache_read);
+      $('priceCacheCreation').value = priceNumber(cost.cache_write);
+      $('priceAccountingMode').value = /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache';
+      $('pricePerImage').value = 0;
+      $('modelPriceStatus').textContent = item.imageGen
+        ? '已回填 ' + modelID + ' 的 Token 价（图片输出按 Token，不是按张），来源：models.dev / ' + item.provider + '。'
+        : '已回填 ' + modelID + ' 的价格，来源：models.dev / ' + item.provider + '。请核对后保存。';
+    } else {
+      $('priceBillingMode').value = 'per_image';
+      $('priceIn').value = 0;
+      $('priceOut').value = 0;
+      $('priceCacheRead').value = 0;
+      $('priceCacheCreation').value = 0;
+      $('priceAccountingMode').value = '';
+      $('pricePerImage').value = 0;
+      $('modelPriceStatus').textContent = '「' + modelID + '」是出图模型，不能套用 Token 价。请填写每张 USD 后保存。';
+    }
+    syncPriceBillingFields();
   }
 
   function pricingRuleIndex(rules) {
@@ -3587,6 +3657,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
           cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
           accounting_mode: /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache',
+          billing_mode: 'token',
         },
     };
   }
@@ -3594,7 +3665,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   async function syncModelsDevPrices(prices, rules) {
     const exactRules = pricingRuleIndex(rules);
     const ruleIDs = new Set((rules || []).map(rule => String(rule.ID || rule.id || '').trim()));
-    const pending = Object.entries(prices).filter(([modelID]) => !exactRules.has(modelID) && !ruleIDs.has(modelID));
+    const pending = Object.entries(prices).filter(([modelID, item]) => item && item.tokenPriced && !exactRules.has(modelID) && !ruleIDs.has(modelID));
     let saved = 0;
     const failed = [];
     for (const [modelID, item] of pending) {
@@ -3632,10 +3703,20 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       models.forEach(modelID => {
         const candidates = modelsDevCandidates(catalog, modelID);
         const matched = resolveModelsDevMatch(candidates);
+        const modalities = matched ? modelsDevModalities(matched.model) : { input: [], output: [] };
+        const imageGen = isImageGenerationModel(modelID, modalities);
         if (matched) {
-          prices[modelID] = { provider: matched.providerID, cost: matched.model.cost };
+          prices[modelID] = {
+            provider: matched.providerID,
+            cost: matched.model.cost || {},
+            modalities,
+            imageGen,
+            tokenPriced: modelsDevTokenPriced(matched.model.cost, modelID, modalities),
+          };
         } else if (candidates.length) {
           ambiguous.push(modelID);
+        } else if (imageGen) {
+          prices[modelID] = { provider: '', cost: {}, modalities, imageGen: true, tokenPriced: false };
         }
       });
       const sync = await syncModelsDevPrices(prices, (state.overview && state.overview.pricing) || []);
@@ -3646,10 +3727,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         '<option value="' + esc(modelID) + '">' + esc(modelID + ' · ' + prices[modelID].provider) + '</option>'
       ).join('');
       refreshCustomControl(picker);
-      $('modelCatalogCount').textContent = models.length + ' 个模型 · ' + Object.keys(prices).length + ' 个已匹配';
+      const tokenCount = Object.values(prices).filter(item => item.tokenPriced).length;
+      const imageCount = Object.values(prices).filter(item => item.imageGen && !item.tokenPriced).length;
+      $('modelCatalogCount').textContent = models.length + ' 个模型 · ' + tokenCount + ' 个 Token 价 · ' + imageCount + ' 个出图';
       const syncText = '新增 ' + sync.saved + '，保留 ' + sync.skipped + (sync.failed.length ? '，失败 ' + sync.failed.length : '');
       const ambiguousText = ambiguous.length ? '；' + ambiguous.length + ' 个未自动匹配' : '';
-      status.textContent = '已加载 ' + models.length + ' 个模型，匹配 ' + Object.keys(prices).length + ' 个价格；' + syncText + ambiguousText + '。';
+      status.textContent = '已加载 ' + models.length + ' 个模型，Token 价 ' + tokenCount + '，出图 ' + imageCount + '；' + syncText + ambiguousText + '。出图模型不会按 Token 价自动保存。';
       renderPricing((state.overview && state.overview.pricing) || []);
       if (sync.failed.length) throw new Error('部分 models.dev 价格未保存：' + sync.failed.join('；'));
     } finally {
@@ -3675,13 +3758,16 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         const matched = state.modelPrices[modelID];
         const rule = rulesByModel.get(modelID);
         const price = rule && (rule.Price || rule.price) || {};
-        const pricePairs = matched ? [
+        const imageGen = matched && matched.imageGen || isImageGenerationModel(modelID);
+        const tokenPriced = matched && matched.tokenPriced;
+        const pricePairs = tokenPriced ? [
           ['输入', matched.cost.input], ['输出', matched.cost.output], ['缓存读取', matched.cost.cache_read], ['缓存创建', matched.cost.cache_write],
-        ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') : '<span class="muted">未找到唯一匹配价格</span>';
-        const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output')))+'</div>' : '<span class="muted">未设置</span>';
-        const status = rule ? ((rule.Enabled != null ? rule.Enabled : rule.enabled) ? '<span class="badge ok">已设置</span>' : '<span class="badge warn">已停用</span>') : (matched ? '<span class="badge">待保存</span>' : '<span class="badge bad">无价格</span>');
+        ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') : (imageGen ? '<span class="muted">按张计费，不能套用 Token 价</span>' : '<span class="muted">未找到唯一匹配价格</span>');
+        const ruleBilling = priceValue(price, 'BillingMode', 'billing_mode');
+        const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">'+(ruleBilling === 'per_image' ? '每张 '+esc(formatMoney(priceValue(price, 'PerImage', 'per_image'))) : '输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output'))))+'</div>' : '<span class="muted">未设置</span>';
+        const status = rule ? ((rule.Enabled != null ? rule.Enabled : rule.enabled) ? '<span class="badge ok">已设置</span>' : '<span class="badge warn">已停用</span>') : (tokenPriced ? '<span class="badge">待保存</span>' : (imageGen ? '<span class="badge warn">出图</span>' : '<span class="badge bad">无价格</span>'));
         return '<tr>' +
-          '<td><div class="pricing-rule-id mono">'+esc(modelID)+'</div>'+(matched ? '<div class="hint">models.dev / '+esc(matched.provider)+'</div>' : '')+'</td>' +
+          '<td><div class="pricing-rule-id mono">'+esc(modelID)+'</div>'+(matched && matched.provider ? '<div class="hint">models.dev / '+esc(matched.provider)+(imageGen ? ' · 出图' : '')+'</div>' : (imageGen ? '<div class="hint">出图模型</div>' : ''))+'</td>' +
           '<td><div class="price-pairs">'+pricePairs+'</div></td>' +
           '<td>'+currentRule+'</td>' +
           '<td><div class="pricing-meta">'+status+'</div></td>' +
@@ -3785,8 +3871,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       return Number.isFinite(n) ? n.toFixed(2) : '—';
     });
     const cacheHit = u => Number(u.cache_read_tokens || 0) > 0 ? '是' : '否';
-    const totalUsageTokens = u => u.total_tokens != null ? Number(u.total_tokens) :
-      Number(u.input_tokens || 0) + Number(u.output_tokens || 0) + Number(u.reasoning_tokens || 0) + Number(u.cached_tokens || 0) + Number(u.cache_read_tokens || 0) + Number(u.cache_creation_tokens || 0);
+    const totalUsageTokens = u => usageTokens(u);
     const usageAuthCell = u => {
       const provider = String(u.auth_provider || u.auth_type || '').trim();
       const account = String(u.auth_label || u.auth_email || u.auth_name || u.auth_id || u.auth_index || '').trim();
@@ -4459,6 +4544,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     try { await loadModelPrices(); } catch (e) { $('modelPriceStatus').textContent = '同步失败：' + e.message; flash(e.message, false); }
   });
   $('priceModelPicker').addEventListener('change', event => loadModelPrice(event.target.value));
+  $('priceBillingMode').addEventListener('change', syncPriceBillingFields);
   $('btnSavePrice').addEventListener('click', async () => {
     try {
       const body = {
@@ -4473,6 +4559,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           cache_read: microFromUSD($('priceCacheRead').value) || 0,
           cache_creation: microFromUSD($('priceCacheCreation').value) || 0,
           accounting_mode: $('priceAccountingMode').value || '',
+          billing_mode: $('priceBillingMode').value || 'token',
+          per_image: microFromUSD($('pricePerImage').value) || 0,
         },
       };
       if (!body.id || !body.pattern) throw new Error('规则 ID 与 pattern 必填');
