@@ -63,6 +63,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 	"unsafe"
 
@@ -107,7 +108,20 @@ type registrationCapability struct {
 	ExecutorOutputFormats         []string `json:"executor_output_formats"`
 	UsagePlugin                   bool     `json:"usage_plugin"`
 	ManagementAPI                 bool     `json:"management_api"`
+	RequestInterceptor            bool     `json:"request_interceptor"`
+	RequestLifecyclePlugin        bool     `json:"request_lifecycle_plugin"`
 }
+
+type imageHold struct {
+	reservation store.Reservation
+	plan        service.ReservePlan
+	stopHeart   func()
+}
+
+var (
+	imageHoldsMu sync.Mutex
+	imageHolds   = map[string]imageHold{}
+)
 
 type rpcModelRouteRequest struct {
 	pluginapi.ModelRouteRequest
@@ -252,6 +266,12 @@ func handleMethod(method string, request []byte) ([]byte, error) {
 		return handleManagement(request)
 	case pluginabi.MethodUsageHandle:
 		return handleUsage(request)
+	case pluginabi.MethodRequestInterceptBefore:
+		return okEnvelope(pluginapi.RequestInterceptResponse{})
+	case pluginabi.MethodRequestInterceptAfter:
+		return interceptRequestAfterAuth(request)
+	case pluginabi.MethodRequestComplete:
+		return completeInterceptedRequest(request)
 	default:
 		return errorEnvelope("unknown_method", "unknown method: "+method), nil
 	}
@@ -274,6 +294,7 @@ func configure(raw []byte) error {
 func pluginRegistration() registration {
 	formats := []string{
 		"openai", "chat-completions", "claude", "gemini", "openai-response", "responses", "codex",
+		"openai-image", "openai-video",
 	}
 	return registration{
 		SchemaVersion: pluginabi.SchemaVersion,
@@ -307,6 +328,8 @@ func pluginRegistration() registration {
 			ExecutorOutputFormats:         formats,
 			UsagePlugin:                   true,
 			ManagementAPI:                 true,
+			RequestInterceptor:            true,
+			RequestLifecyclePlugin:        true,
 		},
 	}
 }
@@ -349,6 +372,11 @@ func routeModel(raw []byte) ([]byte, error) {
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return nil, err
 	}
+	// Host HostModelExecute rejects image-only models. Let the native
+	// /v1/images/* path run; interceptors reserve and settle instead.
+	if isNativeImageProtocol(req.SourceFormat) || isImageOnlyModel(req.RequestedModel) {
+		return okEnvelope(pluginapi.ModelRouteResponse{Handled: false, Reason: "native_image_protocol"})
+	}
 	// Only handle authenticated plugin-key traffic; exclusive auth already rejected others.
 	scope := metadataString(req.Metadata, service.CallerScopeMetadataKey)
 	if scope == "" && bearerPresent(req.Headers) {
@@ -367,6 +395,107 @@ func routeModel(raw []byte) ([]byte, error) {
 		TargetKind: pluginapi.ModelRouteTargetSelf,
 		Reason:     "credit_manager_caller_scope",
 	})
+}
+
+func isNativeImageProtocol(format string) bool {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "openai-image", "openai-video":
+		return true
+	default:
+		return false
+	}
+}
+
+func isImageOnlyModel(model string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	switch model {
+	case "gpt-image-1", "gpt-image-1.5", "gpt-image-2", "grok-imagine-image", "grok-imagine-image-quality":
+		return true
+	default:
+		return strings.Contains(model, "imagine-image") || strings.Contains(model, "imagine-video")
+	}
+}
+
+func interceptRequestAfterAuth(raw []byte) ([]byte, error) {
+	svc := service.Current()
+	if svc == nil {
+		return okEnvelope(pluginapi.RequestInterceptResponse{})
+	}
+	var req pluginapi.RequestInterceptRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return nil, err
+	}
+	if !isNativeImageProtocol(req.SourceFormat) && !isImageOnlyModel(firstNonEmpty(req.RequestedModel, req.Model)) {
+		return okEnvelope(pluginapi.RequestInterceptResponse{})
+	}
+	requestID := strings.TrimSpace(req.RequestID)
+	if requestID == "" {
+		return okEnvelope(pluginapi.RequestInterceptResponse{})
+	}
+	ctx := context.Background()
+	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Metadata)
+	if err != nil {
+		return okEnvelope(quotaRejectResponse(http.StatusUnauthorized, err.Error()))
+	}
+	plan, err := svc.BuildReservePlan(ctx, firstNonEmpty(req.RequestedModel, req.Model), req.Body)
+	if err != nil {
+		return okEnvelope(quotaRejectResponse(http.StatusPaymentRequired, err.Error()))
+	}
+	reservation, err := svc.Reserve(ctx, key, plan, "")
+	if err != nil {
+		return okEnvelope(quotaRejectResponse(http.StatusTooManyRequests, err.Error()))
+	}
+	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model, req.RequestedModel)
+	imageHoldsMu.Lock()
+	imageHolds[requestID] = imageHold{reservation: reservation, plan: plan, stopHeart: startReservationHeartbeat(svc, reservation.ID)}
+	imageHoldsMu.Unlock()
+	return okEnvelope(pluginapi.RequestInterceptResponse{})
+}
+
+func completeInterceptedRequest(raw []byte) ([]byte, error) {
+	svc := service.Current()
+	if svc == nil {
+		return okEnvelope(map[string]any{})
+	}
+	var req pluginapi.RequestCompletion
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return nil, err
+	}
+	requestID := strings.TrimSpace(req.RequestID)
+	imageHoldsMu.Lock()
+	hold, ok := imageHolds[requestID]
+	if ok {
+		delete(imageHolds, requestID)
+	}
+	imageHoldsMu.Unlock()
+	if !ok {
+		return okEnvelope(map[string]any{})
+	}
+	if hold.stopHeart != nil {
+		hold.stopHeart()
+	}
+	ctx := context.Background()
+	if req.Outcome != pluginapi.RequestCompletionSucceeded {
+		_ = svc.Release(ctx, hold.reservation.ID, "image_"+string(req.Outcome))
+		return okEnvelope(map[string]any{})
+	}
+	metrics := usageMetricsFromRequest(nil, req.StartedAt, req.CompletedAt, resultFromStatus(req.StatusCode))
+	_ = svc.SettleFromUsage(ctx, hold.reservation, hold.plan, usageparse.Result{}, firstNonEmpty(req.SourceFormat, "openai-image"), metrics)
+	return okEnvelope(map[string]any{})
+}
+
+func quotaRejectResponse(status int, message string) pluginapi.RequestInterceptResponse {
+	if status <= 0 {
+		status = http.StatusForbidden
+	}
+	body, _ := json.Marshal(map[string]any{
+		"error": map[string]any{"message": message, "type": "insufficient_quota", "code": "limit_rejected"},
+	})
+	return pluginapi.RequestInterceptResponse{
+		Terminate:    true,
+		StatusCode:   status,
+		ResponseBody: body,
+	}
 }
 
 func execute(raw []byte) ([]byte, error) {
@@ -735,7 +864,7 @@ func handleUsage(raw []byte) ([]byte, error) {
 		return okEnvelope(map[string]any{})
 	}
 	if strings.TrimSpace(ledgerID) == "" {
-		if entry, found, err := svc.Store().FindRecentFallbackWithoutAuth(context.Background(), []string{record.Model, record.Alias}, 15*time.Minute); err == nil && found {
+		if entry, found, err := svc.Store().FindRecentFallback(context.Background(), []string{record.Model, record.Alias}, 15*time.Minute); err == nil && found {
 			ledgerID = entry.ID
 		}
 	}
@@ -752,12 +881,13 @@ func handleUsage(raw []byte) ([]byte, error) {
 
 func usageFromHostRecord(record pluginapi.UsageRecord) money.TokenUsage {
 	return money.TokenUsage{
-		Input:         record.Detail.InputTokens,
-		Output:        record.Detail.OutputTokens,
-		Reasoning:     record.Detail.ReasoningTokens,
-		Cached:        record.Detail.CachedTokens,
-		CacheRead:     record.Detail.CacheReadTokens,
-		CacheCreation: record.Detail.CacheCreationTokens,
+		Input:          record.Detail.InputTokens,
+		Output:         record.Detail.OutputTokens,
+		Reasoning:      record.Detail.ReasoningTokens,
+		Cached:         record.Detail.CachedTokens,
+		CacheRead:      record.Detail.CacheReadTokens,
+		CacheCreation:  record.Detail.CacheCreationTokens,
+		ReportedTotal:  record.Detail.TotalTokens,
 	}
 }
 
