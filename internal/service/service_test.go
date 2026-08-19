@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -240,5 +242,61 @@ func TestBuildReservePlanPerImageUsesRequestCount(t *testing.T) {
 	}
 	if entries[0].CostMicroUSD != 120_000 {
 		t.Fatalf("image cost = %d, want 120000", entries[0].CostMicroUSD)
+	}
+}
+
+func TestOpenHandsDatabaseToReplacementInstance(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	cfg.Settlement.HostUsageWait = 0
+
+	first, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open first service: %v", err)
+	}
+	t.Cleanup(func() { _ = first.Close() })
+
+	second, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open replacement service: %v", err)
+	}
+	defer second.Close()
+
+	if _, err := first.Store().GetCaller(ctx, BootstrapCallerID); err == nil {
+		t.Fatal("retired service still serves queries")
+	}
+	if _, err := second.Store().GetCaller(ctx, BootstrapCallerID); err != nil {
+		t.Fatalf("replacement service lost bootstrap caller: %v", err)
+	}
+}
+
+func TestConfigureReusesSameDatabaseWithoutHandover(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	raw := []byte("data_dir: " + strconv.Quote(filepath.ToSlash(dir)) + "\nkeys:\n  pepper_env: CREDIT_MANAGER_TEST_PEPPERS\n  active_pepper_id: active\n")
+	t.Cleanup(Shutdown)
+
+	if err := Configure(ctx, raw); err != nil {
+		t.Fatalf("first configure: %v", err)
+	}
+	first := Current()
+	if first == nil {
+		t.Fatal("current service is nil")
+	}
+	if err := Configure(ctx, raw); err != nil {
+		t.Fatalf("reconfigure: %v", err)
+	}
+	second := Current()
+	if second == nil || second.Store() != first.Store() {
+		t.Fatal("reconfigure opened a second store")
+	}
+	if _, err := second.Store().GetCaller(ctx, BootstrapCallerID); err != nil {
+		t.Fatalf("reused store lost bootstrap caller: %v", err)
 	}
 }

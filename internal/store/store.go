@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -42,7 +43,11 @@ var (
 
 // Store owns the SQLite connection pool. MaxOpenConns is intentionally one.
 type Store struct {
-	db *sql.DB
+	db        *sql.DB
+	lease     *storeLease
+	done      chan struct{}
+	closeOnce sync.Once
+	closeErr  error
 }
 
 type OpenOptions struct {
@@ -90,16 +95,27 @@ func OpenLocked(ctx context.Context, databasePath string, options OpenOptions, l
 	if locker == nil {
 		return nil, fmt.Errorf("%w: file locker is required", ErrInvalidArgument)
 	}
-	unlock, err := locker.Lock(ctx, LockPath(databasePath))
+	lease, err := newStoreLease(databasePath)
 	if err != nil {
-		return nil, fmt.Errorf("acquire database lock: %w", err)
+		return nil, err
+	}
+	unlock, err := acquireWriterLock(ctx, locker, databasePath, lease)
+	if err != nil {
+		return nil, err
 	}
 	store, err := Open(ctx, databasePath, options)
 	if err != nil {
 		_ = unlock()
+		lease.release()
 		return nil, err
 	}
-	storeUnlockers.Store(store, unlock)
+	if !lease.current() {
+		_ = store.Close()
+		_ = unlock()
+		lease.release()
+		return nil, errors.New("database handover was superseded by another plugin instance")
+	}
+	store.attachLease(lease, unlock)
 	return store, nil
 }
 
@@ -131,15 +147,27 @@ func (r *unlockRegistry) LoadAndDelete(store *Store) func() error {
 }
 
 func (s *Store) Close() error {
-	if s == nil || s.db == nil {
+	if s == nil {
 		return nil
 	}
-	dbErr := s.db.Close()
-	var lockErr error
-	if unlock := storeUnlockers.LoadAndDelete(s); unlock != nil {
-		lockErr = unlock()
-	}
-	return errors.Join(dbErr, lockErr)
+	s.closeOnce.Do(func() {
+		if s.done != nil {
+			close(s.done)
+		}
+		var dbErr error
+		if s.db != nil {
+			dbErr = s.db.Close()
+		}
+		var lockErr error
+		if unlock := storeUnlockers.LoadAndDelete(s); unlock != nil {
+			lockErr = unlock()
+		}
+		if s.lease != nil {
+			s.lease.release()
+		}
+		s.closeErr = errors.Join(dbErr, lockErr)
+	})
+	return s.closeErr
 }
 
 func (s *Store) DB() *sql.DB { return s.db }
@@ -1836,7 +1864,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 	query := `SELECT u.id, u.reservation_id, u.caller_id, u.plugin_key_id,
 		u.model, u.pricing_rule_id,
 		u.input_tokens, u.output_tokens, u.reasoning_tokens, u.cached_tokens, u.cache_read_tokens,
-		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, u.estimated_cost_micro_usd, u.source, u.tier, u.result, u.first_token_latency_ms,
+		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd, 0), u.source, u.tier, u.result, u.first_token_latency_ms,
 		u.generation_duration_ms, u.tokens_per_second, u.thinking_intensity,
 		COALESCE(u.auth_id, ''), COALESCE(u.auth_index, ''), COALESCE(u.auth_name, ''), COALESCE(u.auth_label, ''),
 		COALESCE(u.auth_provider, ''), COALESCE(u.auth_type, ''), COALESCE(u.auth_email, ''), COALESCE(u.auth_path, ''),
@@ -2040,12 +2068,14 @@ type UsageKeySummary struct {
 }
 
 type UsageModelSummary struct {
-	Model        string         `json:"model"`
-	RequestCount int64          `json:"request_count"`
-	CostMicroUSD money.MicroUSD `json:"cost_micro_usd"`
-	InputTokens  int64          `json:"input_tokens"`
-	OutputTokens int64          `json:"output_tokens"`
-	TotalTokens  int64          `json:"total_tokens"`
+	Model              string         `json:"model"`
+	RequestCount       int64          `json:"request_count"`
+	CostMicroUSD       money.MicroUSD `json:"cost_micro_usd"`
+	InputTokens        int64          `json:"input_tokens"`
+	OutputTokens       int64          `json:"output_tokens"`
+	TotalTokens        int64          `json:"total_tokens"`
+	CacheReadTokens    int64          `json:"cache_read_tokens"`
+	AvgTokensPerSecond *float64       `json:"avg_tokens_per_second,omitempty"`
 }
 
 // UsageDailySummary is a UTC calendar-day usage rollup for dashboard trends.
@@ -2087,7 +2117,7 @@ func (s *Store) UsageOverviewSummary(ctx context.Context) (UsageOverviewSummary,
 	var summary UsageOverviewSummary
 	err := s.db.QueryRowContext(ctx, `SELECT
 		COUNT(1),
-		COALESCE(SUM(` + usageReportedTotalSQL("") + `), 0),
+		COALESCE(SUM(`+usageReportedTotalSQL("")+`), 0),
 		COALESCE(SUM(cost_micro_usd), 0)
 	FROM usage_ledger`).Scan(&summary.RequestCount, &summary.TotalTokens, &summary.EstimatedCostMicroUSD)
 	if err != nil {
@@ -2124,7 +2154,7 @@ func (s *Store) UsageTokenTrend(ctx context.Context, days int) ([]UsageTokenTren
 	from := time.Now().UTC().AddDate(0, 0, 1-days).Truncate(24 * time.Hour).UnixMilli()
 	rows, err := s.db.QueryContext(ctx, `SELECT
 		strftime('%Y-%m-%d', created_at_unix_ms / 1000, 'unixepoch') AS day,
-		COALESCE(SUM(` + usageReportedTotalSQL("") + `), 0)
+		COALESCE(SUM(`+usageReportedTotalSQL("")+`), 0)
 	FROM usage_ledger
 	WHERE created_at_unix_ms >= ?
 	GROUP BY day
@@ -2186,7 +2216,9 @@ func (s *Store) SummarizeUsageByModelFiltered(ctx context.Context, filter UsageF
 	query := `
 	SELECT u.model, COUNT(1), COALESCE(SUM(u.cost_micro_usd), 0),
 	COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0),
-	COALESCE(SUM(` + usageReportedTotalSQL("u.") + `), 0)
+	COALESCE(SUM(` + usageReportedTotalSQL("u.") + `), 0),
+	COALESCE(SUM(u.cache_read_tokens), 0),
+	AVG(CASE WHEN u.tokens_per_second IS NOT NULL AND u.tokens_per_second > 0 THEN u.tokens_per_second END)
 FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
@@ -2201,8 +2233,13 @@ FROM usage_ledger u`
 	var out []UsageModelSummary
 	for rows.Next() {
 		var item UsageModelSummary
-		if err := rows.Scan(&item.Model, &item.RequestCount, &item.CostMicroUSD, &item.InputTokens, &item.OutputTokens, &item.TotalTokens); err != nil {
+		var avgTPS sql.NullFloat64
+		if err := rows.Scan(&item.Model, &item.RequestCount, &item.CostMicroUSD, &item.InputTokens, &item.OutputTokens, &item.TotalTokens, &item.CacheReadTokens, &avgTPS); err != nil {
 			return nil, err
+		}
+		if avgTPS.Valid {
+			value := avgTPS.Float64
+			item.AvgTokensPerSecond = &value
 		}
 		out = append(out, item)
 	}
@@ -2233,8 +2270,23 @@ ORDER BY 5 COLLATE NOCASE, 6 COLLATE NOCASE, 4 COLLATE NOCASE, 1 COLLATE NOCASE,
 	return out, rows.Err()
 }
 
+func usageTrendLayout(grain string) string {
+	switch strings.ToLower(strings.TrimSpace(grain)) {
+	case "hour":
+		return "%Y-%m-%dT%H:00"
+	case "month":
+		return "%Y-%m"
+	default:
+		return "%Y-%m-%d"
+	}
+}
+
 func (s *Store) SummarizeUsageDailyFiltered(ctx context.Context, filter UsageFilter) ([]UsageDailySummary, error) {
-	query := `SELECT strftime('%Y-%m-%d', u.created_at_unix_ms / 1000, 'unixepoch') AS day,
+	return s.SummarizeUsageTrendFiltered(ctx, filter, "day")
+}
+
+func (s *Store) SummarizeUsageTrendFiltered(ctx context.Context, filter UsageFilter, grain string) ([]UsageDailySummary, error) {
+	query := `SELECT strftime('` + usageTrendLayout(grain) + `', u.created_at_unix_ms / 1000, 'unixepoch') AS bucket,
 		COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0), COALESCE(SUM(u.cached_tokens), 0),
 		COALESCE(SUM(u.cache_read_tokens), 0), COALESCE(SUM(u.cache_creation_tokens), 0),
 		COALESCE(SUM(u.cost_micro_usd), 0)
@@ -2243,7 +2295,7 @@ func (s *Store) SummarizeUsageDailyFiltered(ctx context.Context, filter UsageFil
 	if where != "" {
 		query += ` WHERE ` + where
 	}
-	query += ` GROUP BY day ORDER BY day`
+	query += ` GROUP BY bucket ORDER BY bucket`
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err

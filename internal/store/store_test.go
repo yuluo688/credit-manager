@@ -499,6 +499,83 @@ func TestGetAuthQuotaUsageMatchesProviderAliases(t *testing.T) {
 	}
 }
 
+func TestSummarizeUsageTrendFilteredHourAndMonth(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	insert := func(id string, at time.Time) {
+		t.Helper()
+		_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES (?, ?, ?, ?, 'm', 10, 2, 0, 0, 1, 0, 100, 'usage', ?)`, id, "r-"+id, key.CallerID, key.ID, at.UnixMilli())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("h1", time.Date(2026, time.August, 19, 12, 10, 0, 0, time.UTC))
+	insert("h2", time.Date(2026, time.August, 19, 13, 10, 0, 0, time.UTC))
+	insert("h3", time.Date(2026, time.July, 1, 8, 0, 0, 0, time.UTC))
+	hourly, err := st.SummarizeUsageTrendFiltered(ctx, UsageFilter{PluginKeyID: key.ID}, "hour")
+	if err != nil || len(hourly) != 3 || hourly[1].Date != "2026-08-19T12:00" || hourly[2].Date != "2026-08-19T13:00" {
+		t.Fatalf("hourly = %#v, err = %v", hourly, err)
+	}
+	monthly, err := st.SummarizeUsageTrendFiltered(ctx, UsageFilter{PluginKeyID: key.ID}, "month")
+	if err != nil || len(monthly) != 2 || monthly[0].Date != "2026-07" || monthly[1].Date != "2026-08" {
+		t.Fatalf("monthly = %#v, err = %v", monthly, err)
+	}
+}
+
+func TestListUsageAllowsNullEstimatedCost(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	at := time.Date(2026, time.August, 19, 12, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES ('u-null-est', 'r-null-est', ?, ?, 'grok-4.6', 10, 2, 0, 0, 0, 0, 1500, 'usage', ?)`, key.CallerID, key.ID, at.UnixMilli())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.ListUsage(ctx, UsageFilter{PluginKeyID: key.ID, Limit: 10})
+	if err != nil {
+		t.Fatalf("list usage: %v", err)
+	}
+	if len(got) != 1 || got[0].CostMicroUSD != 1500 || got[0].EstimatedCostMicroUSD != 1500 {
+		t.Fatalf("usage = %#v", got)
+	}
+}
+
+func TestSummarizeUsageByModelIncludesCacheAndTPS(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	at := time.Date(2026, time.August, 19, 12, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatalf("disable foreign keys: %v", err)
+	}
+	_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, tokens_per_second, created_at_unix_ms) VALUES ('u1', 'r-u1', ?, ?, 'grok-4.6', 100, 10, 0, 0, 80, 0, 2000, 'usage', 40, ?)`, key.CallerID, key.ID, at.UnixMilli())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, tokens_per_second, created_at_unix_ms) VALUES ('u2', 'r-u2', ?, ?, 'grok-4.6', 50, 5, 0, 0, 20, 0, 1000, 'usage', 20, ?)`, key.CallerID, key.ID, at.UnixMilli())
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := st.SummarizeUsageByModelFiltered(ctx, UsageFilter{PluginKeyID: key.ID})
+	if err != nil || len(got) != 1 {
+		t.Fatalf("summaries = %#v, err = %v", got, err)
+	}
+	item := got[0]
+	if item.Model != "grok-4.6" || item.RequestCount != 2 || item.CacheReadTokens != 100 || item.AvgTokensPerSecond == nil || *item.AvgTokensPerSecond != 30 {
+		t.Fatalf("model summary = %#v", item)
+	}
+}
+
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	st, err := Open(context.Background(), filepath.Join(t.TempDir(), "credit-manager.db"), OpenOptions{BusyTimeout: time.Second})
