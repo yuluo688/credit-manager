@@ -49,7 +49,7 @@ func TestAllowedAuthQuotaRequest(t *testing.T) {
 }
 
 func TestPluginRegistrationIncludesImageFormats(t *testing.T) {
-	reg := pluginRegistration()
+	reg := pluginRegistration(negotiateRPCSchema(0))
 	if !reg.Capabilities.RequestInterceptor || !reg.Capabilities.RequestLifecyclePlugin {
 		t.Fatalf("image intercept capabilities missing: %+v", reg.Capabilities)
 	}

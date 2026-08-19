@@ -89,7 +89,8 @@ type envelopeError struct {
 }
 
 type lifecycleRequest struct {
-	ConfigYAML []byte `json:"config_yaml"`
+	ConfigYAML    []byte `json:"config_yaml"`
+	SchemaVersion uint32 `json:"schema_version"`
 }
 
 type registration struct {
@@ -239,10 +240,14 @@ func cliproxyPluginShutdown() {
 func handleMethod(method string, request []byte) ([]byte, error) {
 	switch method {
 	case pluginabi.MethodPluginRegister, pluginabi.MethodPluginReconfigure:
-		if err := configure(request); err != nil {
+		req, err := decodeLifecycle(request)
+		if err != nil {
 			return nil, err
 		}
-		return okEnvelope(pluginRegistration())
+		if err := configure(req); err != nil {
+			return nil, err
+		}
+		return okEnvelope(pluginRegistration(negotiateRPCSchema(req.SchemaVersion)))
 	case pluginabi.MethodFrontendAuthIdentifier:
 		return okEnvelope(map[string]string{"identifier": service.PluginID})
 	case pluginabi.MethodFrontendAuthAuthenticate:
@@ -277,13 +282,7 @@ func handleMethod(method string, request []byte) ([]byte, error) {
 	}
 }
 
-func configure(raw []byte) error {
-	var req lifecycleRequest
-	if len(raw) > 0 {
-		if err := json.Unmarshal(raw, &req); err != nil {
-			return err
-		}
-	}
+func configure(req lifecycleRequest) error {
 	if err := service.Configure(context.Background(), req.ConfigYAML); err != nil {
 		return err
 	}
@@ -291,13 +290,13 @@ func configure(raw []byte) error {
 	return nil
 }
 
-func pluginRegistration() registration {
+func pluginRegistration(schemaVersion uint32) registration {
 	formats := []string{
 		"openai", "chat-completions", "claude", "gemini", "openai-response", "responses", "codex",
 		"openai-image", "openai-video",
 	}
 	return registration{
-		SchemaVersion: pluginabi.SchemaVersion,
+		SchemaVersion: schemaVersion,
 		Metadata: pluginapi.Metadata{
 			Name:             service.PluginName,
 			Version:          service.PluginVersion,
@@ -881,13 +880,13 @@ func handleUsage(raw []byte) ([]byte, error) {
 
 func usageFromHostRecord(record pluginapi.UsageRecord) money.TokenUsage {
 	return money.TokenUsage{
-		Input:          record.Detail.InputTokens,
-		Output:         record.Detail.OutputTokens,
-		Reasoning:      record.Detail.ReasoningTokens,
-		Cached:         record.Detail.CachedTokens,
-		CacheRead:      record.Detail.CacheReadTokens,
-		CacheCreation:  record.Detail.CacheCreationTokens,
-		ReportedTotal:  record.Detail.TotalTokens,
+		Input:         record.Detail.InputTokens,
+		Output:        record.Detail.OutputTokens,
+		Reasoning:     record.Detail.ReasoningTokens,
+		Cached:        record.Detail.CachedTokens,
+		CacheRead:     record.Detail.CacheReadTokens,
+		CacheCreation: record.Detail.CacheCreationTokens,
+		ReportedTotal: record.Detail.TotalTokens,
 	}
 }
 
