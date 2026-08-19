@@ -330,7 +330,7 @@ func TestUpdateUsageDetailRepricesSettledSpend(t *testing.T) {
 	}
 }
 
-func TestFindRecentFallbackWithoutAuth(t *testing.T) {
+func TestFindRecentFallbackIncludesAuth(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)
 	defer st.Close()
@@ -348,15 +348,16 @@ func TestFindRecentFallbackWithoutAuth(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("settle: %v", err)
 	}
-	entry, found, err := st.FindRecentFallbackWithoutAuth(ctx, []string{"grok-4.6"}, time.Minute)
+	entry, found, err := st.FindRecentFallback(ctx, []string{"grok-4.6"}, time.Minute)
 	if err != nil || !found || entry.Model != "grok-4.6" || !entry.Auth.Empty() {
 		t.Fatalf("find = (%#v, %v, %v)", entry, found, err)
 	}
 	if err := st.UpdateUsageAuth(ctx, entry.ID, AuthIdentity{AuthID: "auth-1", Provider: "xai", Label: "ops"}); err != nil {
 		t.Fatalf("update auth: %v", err)
 	}
-	if _, found, err = st.FindRecentFallbackWithoutAuth(ctx, []string{"grok-4.6"}, time.Minute); err != nil || found {
-		t.Fatalf("find after auth = (%v, %v)", found, err)
+	entry, found, err = st.FindRecentFallback(ctx, []string{"grok-4.6"}, time.Minute)
+	if err != nil || !found || entry.Auth.AuthID != "auth-1" {
+		t.Fatalf("find after auth = (%#v, %v, %v)", entry, found, err)
 	}
 }
 

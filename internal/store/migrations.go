@@ -248,6 +248,25 @@ var migrations = []migration{
 			)`,
 		},
 	},
+	{
+		version: 12,
+		name:    "pricing billing mode and per-image price",
+		up: []string{
+			`ALTER TABLE pricing_rules ADD COLUMN billing_mode TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE pricing_rules ADD COLUMN per_image_micro_usd INTEGER NOT NULL DEFAULT 0`,
+		},
+	},
+	{
+		version: 13,
+		name:    "persist official usage total tokens",
+		up: []string{
+			`ALTER TABLE usage_ledger ADD COLUMN total_tokens INTEGER NOT NULL DEFAULT 0`,
+			`UPDATE usage_ledger SET total_tokens = CASE
+				WHEN (input_tokens + output_tokens + reasoning_tokens) > 0 THEN (input_tokens + output_tokens + reasoning_tokens)
+				ELSE cached_tokens
+			END`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

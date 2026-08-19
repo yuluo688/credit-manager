@@ -672,8 +672,9 @@ func (s *Store) PutPricingRule(ctx context.Context, rule PricingRule) error {
 	_, err := s.db.ExecContext(ctx, `INSERT INTO pricing_rules(
 		id, match_kind, pattern, priority, input_per_mtok_micro_usd, output_per_mtok_micro_usd,
 		reasoning_per_mtok_micro_usd, cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd,
-		cache_creation_per_mtok_micro_usd, accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		cache_creation_per_mtok_micro_usd, accounting_mode, billing_mode, per_image_micro_usd,
+		enabled, created_at_unix_ms, updated_at_unix_ms
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET match_kind=excluded.match_kind, pattern=excluded.pattern,
 		priority=excluded.priority, input_per_mtok_micro_usd=excluded.input_per_mtok_micro_usd,
 		output_per_mtok_micro_usd=excluded.output_per_mtok_micro_usd,
@@ -681,11 +682,13 @@ func (s *Store) PutPricingRule(ctx context.Context, rule PricingRule) error {
 		cached_per_mtok_micro_usd=excluded.cached_per_mtok_micro_usd,
 		cache_read_per_mtok_micro_usd=excluded.cache_read_per_mtok_micro_usd,
 		cache_creation_per_mtok_micro_usd=excluded.cache_creation_per_mtok_micro_usd,
-		accounting_mode=excluded.accounting_mode,
+		accounting_mode=excluded.accounting_mode, billing_mode=excluded.billing_mode,
+		per_image_micro_usd=excluded.per_image_micro_usd,
 		enabled=excluded.enabled, updated_at_unix_ms=excluded.updated_at_unix_ms`,
 		rule.ID, rule.MatchKind, rule.Pattern, rule.Priority, rule.Price.Input, rule.Price.Output,
 		rule.Price.Reasoning, rule.Price.Cached, rule.Price.CacheRead, rule.Price.CacheCreation,
-		rule.Price.AccountingMode, boolInt(rule.Enabled), now, now)
+		rule.Price.AccountingMode, rule.Price.BillingMode, rule.Price.PerImage,
+		boolInt(rule.Enabled), now, now)
 	if err != nil {
 		return fmt.Errorf("put pricing rule: %w", err)
 	}
@@ -704,7 +707,7 @@ func (s *Store) ListPricingRules(ctx context.Context) ([]PricingRule, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
-		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
+		accounting_mode, billing_mode, per_image_micro_usd, enabled, created_at_unix_ms, updated_at_unix_ms
 		FROM pricing_rules ORDER BY priority DESC, id ASC`)
 	if err != nil {
 		return nil, err
@@ -729,7 +732,7 @@ func (s *Store) GetPricingRule(ctx context.Context, id string) (PricingRule, err
 	return scanPricingRule(s.db.QueryRowContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
-		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
+		accounting_mode, billing_mode, per_image_micro_usd, enabled, created_at_unix_ms, updated_at_unix_ms
 		FROM pricing_rules WHERE id = ?`, id))
 }
 
@@ -740,7 +743,7 @@ func (s *Store) ResolvePricingRule(ctx context.Context, model string) (PricingRu
 	rows, err := s.db.QueryContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
-		accounting_mode, enabled, created_at_unix_ms, updated_at_unix_ms
+		accounting_mode, billing_mode, per_image_micro_usd, enabled, created_at_unix_ms, updated_at_unix_ms
 		FROM pricing_rules WHERE enabled = 1 ORDER BY priority DESC, id ASC`)
 	if err != nil {
 		return PricingRule{}, fmt.Errorf("list pricing rules: %w", err)
@@ -1487,14 +1490,14 @@ func (s *Store) Settle(ctx context.Context, settlement Settlement) (Reservation,
 	auth := settlement.Auth
 	_, err = tx.ExecContext(ctx, `INSERT INTO usage_ledger(
 		id, reservation_id, caller_id, plugin_key_id, model, pricing_rule_id, input_tokens, output_tokens,
-		reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, estimated_cost_micro_usd, source,
+		reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, total_tokens, cost_micro_usd, estimated_cost_micro_usd, source,
 		tier, result, first_token_latency_ms, generation_duration_ms, tokens_per_second, thinking_intensity,
 		auth_id, auth_index, auth_name, auth_label, auth_provider, auth_type, auth_email, auth_path, created_at_unix_ms
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		settlement.LedgerID, settlement.ReservationID, reservation.CallerID, reservation.PluginKeyID, settlement.Model,
 		settlement.PricingRuleID, settlement.Usage.Input, settlement.Usage.Output,
 		settlement.Usage.Reasoning, settlement.Usage.Cached, settlement.Usage.CacheRead,
-		settlement.Usage.CacheCreation, settlement.CostMicroUSD, settlement.EstimatedCostMicroUSD, settlement.Source,
+		settlement.Usage.CacheCreation, money.ReportedTotal(settlement.Usage), settlement.CostMicroUSD, settlement.EstimatedCostMicroUSD, settlement.Source,
 		nullableText(settlement.Metrics.Tier), resultLabel, firstTokenLatencyMillis, generationDurationMillis,
 		settlement.Metrics.TokensPerSecond, nullableText(settlement.Metrics.ThinkingIntensity),
 		nullableString(auth.AuthID), nullableString(auth.AuthIndex), nullableString(auth.Name), nullableString(auth.Label),
@@ -1690,20 +1693,16 @@ func (s *Store) UpdateUsageAuth(ctx context.Context, ledgerID string, auth AuthI
 	return nil
 }
 
-// FindRecentFallbackWithoutAuth returns the newest reserved_fallback row that
-// still has no auth identity, optionally restricted to the given models.
-func (s *Store) FindRecentFallbackWithoutAuth(ctx context.Context, models []string, window time.Duration) (UsageEntry, bool, error) {
+// FindRecentFallback returns the newest reserved_fallback row so a late host
+// usage callback can replace estimate placeholders, including rows that already
+// have auth identity attached.
+func (s *Store) FindRecentFallback(ctx context.Context, models []string, window time.Duration) (UsageEntry, bool, error) {
 	if window <= 0 {
 		window = 15 * time.Minute
 	}
 	query := `SELECT id FROM usage_ledger
 		WHERE source = 'reserved_fallback'
-		  AND created_at_unix_ms >= ?
-		  AND TRIM(COALESCE(auth_id, '')) = ''
-		  AND TRIM(COALESCE(auth_index, '')) = ''
-		  AND TRIM(COALESCE(auth_label, '')) = ''
-		  AND TRIM(COALESCE(auth_email, '')) = ''
-		  AND TRIM(COALESCE(auth_name, '')) = ''`
+		  AND created_at_unix_ms >= ?`
 	args := []any{time.Now().Add(-window).UnixMilli()}
 	cleaned := make([]string, 0, len(models))
 	seen := make(map[string]struct{}, len(models))
@@ -1732,7 +1731,7 @@ func (s *Store) FindRecentFallbackWithoutAuth(ctx context.Context, models []stri
 		if errors.Is(err, sql.ErrNoRows) {
 			return UsageEntry{}, false, nil
 		}
-		return UsageEntry{}, false, fmt.Errorf("find fallback without auth: %w", err)
+		return UsageEntry{}, false, fmt.Errorf("find reserved fallback: %w", err)
 	}
 	entry, err := s.GetUsage(ctx, id)
 	if err != nil {
@@ -1775,10 +1774,11 @@ func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage mo
 	now := nowUnixMilli()
 	result, err := tx.ExecContext(ctx, `UPDATE usage_ledger SET
 		input_tokens=?, output_tokens=?, reasoning_tokens=?, cached_tokens=?, cache_read_tokens=?, cache_creation_tokens=?,
-		cost_micro_usd=?,
+		total_tokens=?, cost_micro_usd=?,
 		source=CASE WHEN source='reserved_fallback' THEN 'host_usage' ELSE source END
 		WHERE id=?`,
-		usage.Input, usage.Output, usage.Reasoning, usage.Cached, usage.CacheRead, usage.CacheCreation, cost, ledgerID)
+		usage.Input, usage.Output, usage.Reasoning, usage.Cached, usage.CacheRead, usage.CacheCreation,
+		money.ReportedTotal(usage), cost, ledgerID)
 	if err != nil {
 		return fmt.Errorf("update usage detail: %w", err)
 	}
@@ -1836,7 +1836,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 	query := `SELECT u.id, u.reservation_id, u.caller_id, u.plugin_key_id,
 		u.model, u.pricing_rule_id,
 		u.input_tokens, u.output_tokens, u.reasoning_tokens, u.cached_tokens, u.cache_read_tokens,
-		u.cache_creation_tokens, u.cost_micro_usd, u.estimated_cost_micro_usd, u.source, u.tier, u.result, u.first_token_latency_ms,
+		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, u.estimated_cost_micro_usd, u.source, u.tier, u.result, u.first_token_latency_ms,
 		u.generation_duration_ms, u.tokens_per_second, u.thinking_intensity,
 		COALESCE(u.auth_id, ''), COALESCE(u.auth_index, ''), COALESCE(u.auth_name, ''), COALESCE(u.auth_label, ''),
 		COALESCE(u.auth_provider, ''), COALESCE(u.auth_type, ''), COALESCE(u.auth_email, ''), COALESCE(u.auth_path, ''),
@@ -1863,7 +1863,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		var tier, resultLabel, thinkingIntensity sql.NullString
 		if err := rows.Scan(&entry.ID, &entry.ReservationID, &entry.CallerID, &entry.PluginKeyID,
 			&entry.Model, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
-			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source, &tier,
+			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.Usage.ReportedTotal, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source, &tier,
 			&resultLabel, &firstTokenLatency, &generationDuration, &tokensPerSecond, &thinkingIntensity,
 			&entry.Auth.AuthID, &entry.Auth.AuthIndex, &entry.Auth.Name, &entry.Auth.Label,
 			&entry.Auth.Provider, &entry.Auth.Type, &entry.Auth.Email, &entry.Auth.Path,
@@ -1946,6 +1946,13 @@ type UsageAuthSummary struct {
 	Email     string `json:"auth_email"`
 }
 
+func usageReportedTotalSQL(prefix string) string {
+	return "CASE WHEN " + prefix + "total_tokens > 0 THEN " + prefix + "total_tokens WHEN (" +
+		prefix + "input_tokens + " + prefix + "output_tokens + " + prefix + "reasoning_tokens) > 0 THEN (" +
+		prefix + "input_tokens + " + prefix + "output_tokens + " + prefix + "reasoning_tokens) ELSE " +
+		prefix + "cached_tokens END"
+}
+
 func usageWhere(filter UsageFilter, alias string) (string, []any) {
 	prefix := ""
 	if strings.TrimSpace(alias) != "" {
@@ -2012,7 +2019,7 @@ func usageWhere(filter UsageFilter, alias string) (string, []any) {
 		conds = append(conds, prefix+"cost_micro_usd <= ?")
 		args = append(args, int64(*filter.MaxCostMicroUSD))
 	}
-	totalTokens := "(" + prefix + "input_tokens + " + prefix + "output_tokens + " + prefix + "reasoning_tokens + " + prefix + "cached_tokens + " + prefix + "cache_read_tokens + " + prefix + "cache_creation_tokens)"
+	totalTokens := usageReportedTotalSQL(prefix)
 	if filter.MinTokens != nil {
 		conds = append(conds, totalTokens+" >= ?")
 		args = append(args, *filter.MinTokens)
@@ -2067,6 +2074,7 @@ type UsageFilteredSummary struct {
 	CachedTokens        int64          `json:"cached_tokens"`
 	CacheReadTokens     int64          `json:"cache_read_tokens"`
 	CacheCreationTokens int64          `json:"cache_creation_tokens"`
+	TotalTokens         int64          `json:"total_tokens"`
 	CostMicroUSD        money.MicroUSD `json:"cost_micro_usd"`
 }
 
@@ -2079,7 +2087,7 @@ func (s *Store) UsageOverviewSummary(ctx context.Context) (UsageOverviewSummary,
 	var summary UsageOverviewSummary
 	err := s.db.QueryRowContext(ctx, `SELECT
 		COUNT(1),
-		COALESCE(SUM(input_tokens + output_tokens + reasoning_tokens + cached_tokens + cache_read_tokens + cache_creation_tokens), 0),
+		COALESCE(SUM(` + usageReportedTotalSQL("") + `), 0),
 		COALESCE(SUM(cost_micro_usd), 0)
 	FROM usage_ledger`).Scan(&summary.RequestCount, &summary.TotalTokens, &summary.EstimatedCostMicroUSD)
 	if err != nil {
@@ -2092,6 +2100,7 @@ func (s *Store) SummarizeUsageFiltered(ctx context.Context, filter UsageFilter) 
 	query := `SELECT COUNT(1), COALESCE(SUM(input_tokens), 0), COALESCE(SUM(output_tokens), 0),
 		COALESCE(SUM(reasoning_tokens), 0), COALESCE(SUM(cached_tokens), 0),
 		COALESCE(SUM(cache_read_tokens), 0), COALESCE(SUM(cache_creation_tokens), 0),
+		COALESCE(SUM(` + usageReportedTotalSQL("") + `), 0),
 		COALESCE(SUM(cost_micro_usd), 0)
 	FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
@@ -2101,7 +2110,7 @@ func (s *Store) SummarizeUsageFiltered(ctx context.Context, filter UsageFilter) 
 	var summary UsageFilteredSummary
 	if err := s.db.QueryRowContext(ctx, query, args...).Scan(
 		&summary.RequestCount, &summary.InputTokens, &summary.OutputTokens, &summary.ReasoningTokens,
-		&summary.CachedTokens, &summary.CacheReadTokens, &summary.CacheCreationTokens, &summary.CostMicroUSD,
+		&summary.CachedTokens, &summary.CacheReadTokens, &summary.CacheCreationTokens, &summary.TotalTokens, &summary.CostMicroUSD,
 	); err != nil {
 		return UsageFilteredSummary{}, fmt.Errorf("summarize filtered usage: %w", err)
 	}
@@ -2115,7 +2124,7 @@ func (s *Store) UsageTokenTrend(ctx context.Context, days int) ([]UsageTokenTren
 	from := time.Now().UTC().AddDate(0, 0, 1-days).Truncate(24 * time.Hour).UnixMilli()
 	rows, err := s.db.QueryContext(ctx, `SELECT
 		strftime('%Y-%m-%d', created_at_unix_ms / 1000, 'unixepoch') AS day,
-		COALESCE(SUM(input_tokens + output_tokens + reasoning_tokens + cached_tokens + cache_read_tokens + cache_creation_tokens), 0)
+		COALESCE(SUM(` + usageReportedTotalSQL("") + `), 0)
 	FROM usage_ledger
 	WHERE created_at_unix_ms >= ?
 	GROUP BY day
@@ -2177,7 +2186,7 @@ func (s *Store) SummarizeUsageByModelFiltered(ctx context.Context, filter UsageF
 	query := `
 	SELECT u.model, COUNT(1), COALESCE(SUM(u.cost_micro_usd), 0),
 	COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0),
-	COALESCE(SUM(u.input_tokens + u.output_tokens + u.reasoning_tokens + u.cached_tokens + u.cache_read_tokens + u.cache_creation_tokens), 0)
+	COALESCE(SUM(` + usageReportedTotalSQL("u.") + `), 0)
 FROM usage_ledger u`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
@@ -2456,7 +2465,8 @@ func scanPricingRule(row rowScanner) (PricingRule, error) {
 	var created, updated int64
 	if err := row.Scan(&rule.ID, &rule.MatchKind, &rule.Pattern, &rule.Priority,
 		&rule.Price.Input, &rule.Price.Output, &rule.Price.Reasoning, &rule.Price.Cached,
-		&rule.Price.CacheRead, &rule.Price.CacheCreation, &rule.Price.AccountingMode, &enabled, &created, &updated); err != nil {
+		&rule.Price.CacheRead, &rule.Price.CacheCreation, &rule.Price.AccountingMode,
+		&rule.Price.BillingMode, &rule.Price.PerImage, &enabled, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PricingRule{}, ErrPricingRuleNotFound
 		}
