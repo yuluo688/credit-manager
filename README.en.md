@@ -159,7 +159,7 @@ Streaming and non-streaming requests refresh their reservation heartbeat while a
 - SQLite stores the Key ID, HMAC, pepper ID, fingerprint, principal, and caller scope, not plaintext Key material.
 - Pepper material is stored in `data_dir/key-peppers` or an environment variable, never in SQLite or management responses.
 - Back up the entire `data_dir`, including `key-peppers`. Losing the pepper invalidates existing Keys.
-- Replacing a Windows DLL requires a CLIProxyAPI restart.
+- Overwriting a loaded Windows DLL still requires a CLIProxyAPI restart. Plugin-store upgrades write a versioned file and, since 1.4.0, hand over the SQLite lock to the new instance. The first upgrade from an older build needs one uninstall/reinstall or host restart.
 - Auth-file OAuth material, upstream quota responses, and auth-file paths are not written to quota snapshots or exposed through the public lookup endpoint.
 
 ## Verification
