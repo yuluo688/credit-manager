@@ -117,3 +117,56 @@ func TestCostRejectsInvalidAccountingMode(t *testing.T) {
 		t.Fatal("expected invalid accounting mode")
 	}
 }
+
+func TestCostPerImageIgnoresTokens(t *testing.T) {
+	price := PricePerMTok{BillingMode: BillingPerImage, PerImage: 80_000, Input: 5_000_000, Output: 30_000_000}
+	got, err := Cost(TokenUsage{Input: 12_000, Output: 4_000, Images: 2}, price)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 160_000 {
+		t.Fatalf("per-image cost = %d, want 160000", got)
+	}
+}
+
+func TestCostPerImageDefaultsToOne(t *testing.T) {
+	got, err := Cost(TokenUsage{}, PricePerMTok{BillingMode: BillingPerImage, PerImage: 40_000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 40_000 {
+		t.Fatalf("default image count cost = %d, want 40000", got)
+	}
+}
+
+func TestCostGrokHostUsageMatchesCapTracker(t *testing.T) {
+	usage := TokenUsage{Input: 215, Output: 291, Reasoning: 290, Cached: 128, CacheRead: 128}
+	price := PricePerMTok{Input: 2_000_000, Output: 6_000_000, CacheRead: 500_000}
+	got, err := CostFor(usage, price, "grok-4.6", "xai")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// billable input 87 * $2 + output 291 * $6 + cache 128 * $0.5
+	if got != 1984 {
+		t.Fatalf("grok host usage cost = %d, want 1984", got)
+	}
+}
+
+func TestReportedTotalMatchesCapTracker(t *testing.T) {
+	if got := ReportedTotal(TokenUsage{ReportedTotal: 506, Input: 215, Output: 291, Reasoning: 290, Cached: 128, CacheRead: 128}); got != 506 {
+		t.Fatalf("host total = %d, want 506", got)
+	}
+	if got := ReportedTotal(TokenUsage{Input: 17, Output: 9, Reasoning: 4, Cached: 50, CacheRead: 50}); got != 30 {
+		t.Fatalf("fallback total = %d, want 30", got)
+	}
+	if got := ReportedTotal(TokenUsage{Cached: 41, CacheRead: 99, CacheCreation: 100}); got != 41 {
+		t.Fatalf("cached-only total = %d, want 41", got)
+	}
+}
+
+func TestCostRejectsInvalidBillingMode(t *testing.T) {
+	_, err := Cost(TokenUsage{Images: 1}, PricePerMTok{BillingMode: "per_token"})
+	if err == nil {
+		t.Fatal("expected invalid billing mode")
+	}
+}

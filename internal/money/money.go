@@ -17,12 +17,18 @@ const (
 	// billing. This matches OpenAI-compatible usage: prompt_tokens already
 	// includes cached tokens.
 	AccountingInputIncludesCache = "input_includes_cache"
+
+	// BillingToken charges USD per million tokens.
+	BillingToken = "token"
+	// BillingPerImage charges a flat USD price per generated image.
+	BillingPerImage = "per_image"
 )
 
 var (
 	ErrNegativeValue = errors.New("money and token values must not be negative")
 	ErrOverflow      = errors.New("micro-USD calculation overflow")
 	ErrAccounting    = errors.New("invalid accounting mode")
+	ErrBilling       = errors.New("invalid billing mode")
 )
 
 // MicroUSD is the only persisted monetary unit. Floating-point currency is
@@ -36,7 +42,9 @@ type TokenUsage struct {
 	Reasoning     int64 `json:"reasoning"`
 	Cached        int64 `json:"cached"`
 	CacheRead     int64 `json:"cache_read"`
-	CacheCreation int64 `json:"cache_creation"`
+	CacheCreation  int64 `json:"cache_creation"`
+	Images         int64 `json:"images,omitempty"`
+	ReportedTotal  int64 `json:"reported_total,omitempty"`
 }
 
 // PricePerMTok is an integer micro-USD price for one million tokens.
@@ -48,6 +56,8 @@ type PricePerMTok struct {
 	CacheRead      MicroUSD `json:"cache_read"`
 	CacheCreation  MicroUSD `json:"cache_creation"`
 	AccountingMode string   `json:"accounting_mode,omitempty"`
+	BillingMode    string   `json:"billing_mode,omitempty"`
+	PerImage       MicroUSD `json:"per_image,omitempty"`
 }
 
 // BillableTokens is the de-duplicated usage actually sent to the price table.
@@ -64,6 +74,7 @@ func (u TokenUsage) Validate() error {
 	for name, value := range map[string]int64{
 		"input": u.Input, "output": u.Output, "reasoning": u.Reasoning,
 		"cached": u.Cached, "cache_read": u.CacheRead, "cache_creation": u.CacheCreation,
+		"images": u.Images, "reported_total": u.ReportedTotal,
 	} {
 		if value < 0 {
 			return fmt.Errorf("%w: %s tokens", ErrNegativeValue, name)
@@ -76,10 +87,16 @@ func (p PricePerMTok) Validate() error {
 	for name, value := range map[string]MicroUSD{
 		"input": p.Input, "output": p.Output, "reasoning": p.Reasoning,
 		"cached": p.Cached, "cache_read": p.CacheRead, "cache_creation": p.CacheCreation,
+		"per_image": p.PerImage,
 	} {
 		if value < 0 {
 			return fmt.Errorf("%w: %s price", ErrNegativeValue, name)
 		}
+	}
+	switch strings.TrimSpace(p.BillingMode) {
+	case "", BillingToken, BillingPerImage:
+	default:
+		return fmt.Errorf("%w: %q", ErrBilling, p.BillingMode)
 	}
 	switch strings.TrimSpace(p.AccountingMode) {
 	case "", AccountingInputExcludesCache, AccountingInputIncludesCache:
@@ -87,6 +104,32 @@ func (p PricePerMTok) Validate() error {
 	default:
 		return fmt.Errorf("%w: %q", ErrAccounting, p.AccountingMode)
 	}
+}
+
+// ResolveBillingMode treats an empty mode as token billing.
+func ResolveBillingMode(mode string) string {
+	if strings.TrimSpace(mode) == BillingPerImage {
+		return BillingPerImage
+	}
+	return BillingToken
+}
+
+func (p PricePerMTok) IsPerImage() bool {
+	return ResolveBillingMode(p.BillingMode) == BillingPerImage
+}
+
+// ReportedTotal matches cap-token-usage-tracker: prefer the official
+// total_tokens, otherwise input+output+reasoning, and only then cached.
+// Cache counters are never added on top of input.
+func ReportedTotal(usage TokenUsage) int64 {
+	if usage.ReportedTotal > 0 {
+		return usage.ReportedTotal
+	}
+	total := usage.Input + usage.Output + usage.Reasoning
+	if total > 0 {
+		return total
+	}
+	return usage.Cached
 }
 
 // DefaultAccountingMode matches cap-token-usage-tracker: Anthropic/Claude
@@ -154,6 +197,9 @@ func Cost(usage TokenUsage, price PricePerMTok) (MicroUSD, error) {
 	if err := price.Validate(); err != nil {
 		return 0, err
 	}
+	if price.IsPerImage() {
+		return costPerImage(usage.Images, price.PerImage)
+	}
 
 	mode := ResolveAccountingMode(price.AccountingMode, "", "")
 	billable := Billable(usage, mode)
@@ -184,6 +230,22 @@ func Cost(usage TokenUsage, price PricePerMTok) (MicroUSD, error) {
 		total += part
 	}
 	return MicroUSD(total), nil
+}
+
+func costPerImage(images int64, price MicroUSD) (MicroUSD, error) {
+	if images < 0 || price < 0 {
+		return 0, ErrNegativeValue
+	}
+	if images <= 0 {
+		images = 1
+	}
+	if price == 0 {
+		return 0, nil
+	}
+	if int64(price) > math.MaxInt64/images {
+		return 0, ErrOverflow
+	}
+	return MicroUSD(images * int64(price)), nil
 }
 
 func saturatingAdd(left, right int64) int64 {
