@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/yuluo688/credit-manager/internal/fx"
 	"github.com/yuluo688/credit-manager/internal/keys"
 	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/service"
@@ -68,6 +69,9 @@ func Resources() []pluginapi.ResourceRoute {
 		{
 			Path: "/lookup/data",
 		},
+		{
+			Path: "/fx/usd-cny",
+		},
 	}
 }
 
@@ -86,6 +90,9 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 				return jsonErr(http.StatusServiceUnavailable, "service not configured"), nil
 			}
 			return lookupKey(ctx, svc, req.Headers, req.Query)
+		}
+		if req.Method == http.MethodGet && resourcePath == "fx/usd-cny" {
+			return usdCNYRate(ctx, req.Query)
 		}
 		return htmlErr(http.StatusNotFound, "unknown resource"), nil
 	}
@@ -145,6 +152,19 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 	}
 }
 
+func usdCNYRate(ctx context.Context, _ map[string][]string) (pluginapi.ManagementResponse, error) {
+	rate, err := fx.GetUSDCNY(ctx, false)
+	if err != nil {
+		return jsonErrNoStore(http.StatusBadGateway, "usd/cny rate unavailable"), nil
+	}
+	return jsonOKNoStore(map[string]any{
+		"usd_to_cny": rate.USDToCNY,
+		"source":     rate.Source,
+		"fetched_at": rate.FetchedAt.UTC(),
+		"cached":     rate.Cached,
+	}), nil
+}
+
 func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, query map[string][]string) (pluginapi.ManagementResponse, error) {
 	key, err := svc.LookupPluginKeyFromHeaders(ctx, headers)
 	if err != nil {
@@ -166,7 +186,7 @@ func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, q
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
-	dailyTrend, err := svc.Store().SummarizeUsageDailyFiltered(ctx, filter)
+	dailyTrend, err := svc.Store().SummarizeUsageTrendFiltered(ctx, filter, firstQuery(query, "grain"))
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}

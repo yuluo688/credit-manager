@@ -8,6 +8,60 @@ import (
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
+func TestFXResourceRoute(t *testing.T) {
+	var found bool
+	for _, resource := range Resources() {
+		if resource.Path != "/fx/usd-cny" {
+			continue
+		}
+		found = true
+		if resource.Menu != "" {
+			t.Fatalf("fx menu = %q, want no sidebar entry", resource.Menu)
+		}
+	}
+	if !found {
+		t.Fatal("fx resource is not registered")
+	}
+	path, ok := resourceRelativePath("/v0/resource/plugins/" + service.PluginID + "/fx/usd-cny")
+	if !ok || path != "fx/usd-cny" {
+		t.Fatalf("resourceRelativePath fx = %q, %t", path, ok)
+	}
+}
+
+func TestConsoleFetchesLiveUsdCnyRate(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"function fetchUsdCnyRate",
+		"/fx/usd-cny",
+		`id="usdCnyRate" data-no-i18n`,
+		"实时美元兑人民币汇率",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing live FX support: %q", text)
+		}
+	}
+	if strings.Contains(page, `id="usdCnyRate" type="number"`) {
+		t.Fatal("console still uses a manual USD/CNY rate input")
+	}
+}
+
+func TestLookupFetchesLiveUsdCnyRate(t *testing.T) {
+	page := string(lookupPage().Body)
+	for _, text := range []string{
+		"function fetchUsdCnyRate",
+		"/fx/usd-cny",
+		`id="usdCnyRate" data-no-i18n`,
+		"实时美元兑人民币汇率",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("lookup page is missing live FX support: %q", text)
+		}
+	}
+	if strings.Contains(page, `id="usdCnyRate" type="number"`) {
+		t.Fatal("lookup still uses a manual USD/CNY rate input")
+	}
+}
+
 func TestLookupResourceRoute(t *testing.T) {
 	var found bool
 	for _, resource := range Resources() {
@@ -46,7 +100,7 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 			t.Fatalf("lookup page is missing mobile-safe Key validation: %q", text)
 		}
 	}
-	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch", "data-token-unit=\"k\" title=\"千 (×1,000)\">千", "suffix:'千'", "suffix:'万'", "suffix:'百万'"} {
+	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch", "data-token-unit=\"qian\" title=\"千 (×1,000)\" data-no-i18n>千", "data-token-unit=\"k\" title=\"k (×1,000)\" data-no-i18n>k", "data-token-unit=\"wan\" title=\"万 (×10,000)\" data-no-i18n>万", "data-token-unit=\"w\" title=\"w (×10,000)\" data-no-i18n>w", "data-token-unit=\"baiwan\" title=\"百万 (×1,000,000)\" data-no-i18n>百万", "data-token-unit=\"m\" title=\"m (×1,000,000)\" data-no-i18n>m", "suffix:'千'", "suffix:'k'", "suffix:'万'", "suffix:'w'", "suffix:'百万'", "suffix:'m'"} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing recent usage pagination or one-line headers: %q", text)
 		}
@@ -64,6 +118,88 @@ func TestPublicUsageViewExcludesAuthIdentity(t *testing.T) {
 	}
 }
 
+func TestLookupPageFollowsCPALanguageAndTheme(t *testing.T) {
+	page := string(lookupPage().Body)
+	for _, text := range []string{
+		`data-theme="auto"`,
+		`data-palette="white"`,
+		"cli-proxy-language",
+		"cli-proxy-theme",
+		`data-locale="zh-CN"`,
+		`data-locale="zh-TW"`,
+		`data-locale="en"`,
+		`data-locale="ru"`,
+		`data-theme-value="auto"`,
+		`data-theme-value="white"`,
+		`data-theme-value="light"`,
+		`data-theme-value="dark"`,
+		"跟随系统",
+		"纯白",
+		"羊毛纸",
+		"暗色",
+		"function applyLocale",
+		"function applyTheme",
+		"function persistCPA",
+		"简体中文",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("lookup page is missing CPA language/theme support: %q", text)
+		}
+	}
+}
+
+func TestLookupTrendGrainSwitch(t *testing.T) {
+	page := string(lookupPage().Body)
+	for _, text := range []string{
+		`data-trend-grain="hour"`,
+		`data-trend-grain="day"`,
+		`data-trend-grain="month"`,
+		"function setTrendGrain",
+		"function getTrendGrain",
+		"function bucketTrend",
+		`data-trend-chart="token"`,
+		`data-trend-chart="cost"`,
+		"grain=hour",
+		"containLabel:true",
+		"share-body",
+		"trend-metric-row",
+		"legend:{show:false",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("lookup page is missing trend grain switch: %q", text)
+		}
+	}
+	if strings.Contains(page, "class=\"chart-legend\"") {
+		t.Fatal("lookup page still uses a duplicate HTML chart legend")
+	}
+}
+
+func TestLookupModelEfficiencyRank(t *testing.T) {
+	page := string(lookupPage().Body)
+	for _, text := range []string{
+		"模型效率排行",
+		`id="modelRank"`,
+		`id="modelRankMetric"`,
+		`data-rank-metric="value"`,
+		`data-rank-metric="unit"`,
+		`data-rank-metric="cache"`,
+		`data-rank-metric="tps"`,
+		"function renderModelRank",
+		"function modelRankSpec",
+		"function drillLookupModel",
+		"rank-card",
+		"avg_tokens_per_second",
+		"cache_read_tokens",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("lookup page is missing model efficiency rank: %q", text)
+		}
+	}
+	if strings.Contains(page, "min-height:570px") {
+		t.Fatal("lookup share card still spans the full analytics height")
+	}
+}
+
 func TestLookupPathRecognition(t *testing.T) {
 	path, ok := resourceRelativePath("/v0/resource/plugins/" + service.PluginID + "/lookup")
 	if !ok || path != "lookup" {
@@ -74,18 +210,52 @@ func TestLookupPathRecognition(t *testing.T) {
 func TestConsoleTokenUnitsUseChineseLabels(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		`data-token-unit="k" title="千 (×1,000)">千`,
-		`data-token-unit="w" title="万 (×10,000)">万`,
-		`data-token-unit="m" title="百万 (×1,000,000)">百万`,
+		`data-token-unit="raw" title="原始数量" data-no-i18n>个`,
+		`data-token-unit="qian" title="千 (×1,000)" data-no-i18n>千`,
+		`data-token-unit="k" title="k (×1,000)" data-no-i18n>k`,
+		`data-token-unit="wan" title="万 (×10,000)" data-no-i18n>万`,
+		`data-token-unit="w" title="w (×10,000)" data-no-i18n>w`,
+		`data-token-unit="baiwan" title="百万 (×1,000,000)" data-no-i18n>百万`,
+		`data-token-unit="m" title="m (×1,000,000)" data-no-i18n>m`,
 		`suffix: '千'`,
+		`suffix: 'k'`,
 		`suffix: '万'`,
+		`suffix: 'w'`,
 		`suffix: '百万'`,
-		`t(cfg.suffix)`,
-		`'百万': { 'zh-TW':'百萬', en:'m', ru:'m' }`,
+		`suffix: 'm'`,
+		`cfg.suffix`,
+		`data-no-i18n`,
 	} {
 		if !strings.Contains(page, text) {
-			t.Fatalf("console page is missing Chinese token units: %q", text)
+			t.Fatalf("console page is missing token units: %q", text)
 		}
+	}
+}
+
+func TestConsoleModelEfficiencyRank(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"模型效率排行",
+		`id="overviewModelRank"`,
+		`id="modelRankMetricSwitch"`,
+		`data-rank-metric="value"`,
+		`data-rank-metric="unit"`,
+		`data-rank-metric="cache"`,
+		`data-rank-metric="tps"`,
+		"function renderOverviewRank",
+		"function modelRankSpec",
+		"function setModelRankMetric",
+		"overview-rank-card",
+		"grid-column:2; grid-row:2",
+		"tpsSum",
+		"cacheRelated",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing model efficiency rank: %q", text)
+		}
+	}
+	if strings.Contains(page, "grid-row:1 / span 2") {
+		t.Fatal("model share card still spans both dashboard rows")
 	}
 }
 
@@ -99,6 +269,8 @@ func TestConsoleTrendGrainSwitch(t *testing.T) {
 		"function setTrendGrain",
 		"function trendMetric",
 		"trend-metric-row",
+		`data-trend-chart="token"`,
+		`data-trend-chart="cost"`,
 		"趋势时间维度",
 	} {
 		if !strings.Contains(page, text) {
@@ -189,7 +361,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	for _, text := range []string{
 		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "刷新最多每 15 分钟查询一次", "auth-quota-window-card",
 		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'",
-		"align-items:start", "flex-direction:column",
+		"align-items:stretch", "flex-direction:column", "height:100%",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console auth quota view is missing %q", text)

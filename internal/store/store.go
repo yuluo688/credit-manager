@@ -2281,10 +2281,6 @@ func usageTrendLayout(grain string) string {
 	}
 }
 
-func (s *Store) SummarizeUsageDailyFiltered(ctx context.Context, filter UsageFilter) ([]UsageDailySummary, error) {
-	return s.SummarizeUsageTrendFiltered(ctx, filter, "day")
-}
-
 func (s *Store) SummarizeUsageTrendFiltered(ctx context.Context, filter UsageFilter, grain string) ([]UsageDailySummary, error) {
 	query := `SELECT strftime('` + usageTrendLayout(grain) + `', u.created_at_unix_ms / 1000, 'unixepoch') AS bucket,
 		COALESCE(SUM(u.input_tokens), 0), COALESCE(SUM(u.output_tokens), 0), COALESCE(SUM(u.cached_tokens), 0),

@@ -476,14 +476,13 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
   font-size:.72rem;
   white-space:nowrap;
 }
-.rate-field input {
-  width:72px;
-  min-width:72px;
-  padding:6px 8px;
-  font-size:.8rem;
-  font-weight:650;
-  color:var(--text);
-}
+.rate-field b {
+   min-width:64px;
+   font-size:.8rem;
+   font-weight:700;
+   color:var(--text);
+   font-variant-numeric:tabular-nums;
+ }
 .rate-field.hidden { display:none !important; }
 .connection-trigger { display:inline-flex; align-items:center; gap:7px; }
 .connection-trigger::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
@@ -617,6 +616,14 @@ html[data-palette="dark"] input, html[data-palette="dark"] select, html[data-pal
 html[data-palette="light"] th, html[data-palette="light"] .keys-table th, html[data-palette="dark"] th, html[data-palette="dark"] .keys-table th { background:var(--table-head); color:var(--table-muted); }
 html[data-palette="light"] tbody tr:hover td, html[data-palette="light"] .keys-table tbody tr:hover td { background:#f4f1eb; }
 html[data-palette="dark"] tbody tr:hover td, html[data-palette="dark"] .keys-table tbody tr:hover td { background:#2d2925; }
+@media (max-width: 760px) {
+  html[data-palette="light"] .keys-table tbody tr { background:#fffdf9; border-color:#e3e1db; }
+  html[data-palette="dark"] .keys-table tbody tr { background:#1d1b18; border-color:#3a3530; }
+  html[data-palette="light"] .keys-table tbody tr:hover { border-color:#d8d3ca; }
+  html[data-palette="dark"] .keys-table tbody tr:hover { border-color:#5a534b; }
+  html[data-palette="light"] .keys-table tbody tr:hover td,
+  html[data-palette="dark"] .keys-table tbody tr:hover td { background:transparent; }
+}
 html[data-palette="light"] .modal-section, html[data-palette="light"] .custom-date-panel { background:linear-gradient(180deg, #fffdf9, #f6f4ee); border-color:var(--line); }
 html[data-palette="dark"] .modal-section, html[data-palette="dark"] .custom-date-panel { background:linear-gradient(180deg, #282521, #1d1b18); border-color:var(--line); }
 html[data-palette="light"] .tab.active, html[data-palette="light"] .unit-switch button.active, html[data-palette="light"] .filter-state, html[data-palette="light"] .overview-filter-state { color:#57524c; border-color:#d8d3ca; }
@@ -625,15 +632,14 @@ html[data-palette="light"] .unit-switch { background:#eeece6; border-color:#d8d4
 html[data-palette="light"] .unit-switch button:hover { background:#e2dfd8; }
 html[data-palette="light"] .unit-switch button.active { background:#817b73; color:#fffdf9; }
 html[data-palette="light"] .rate-field { background:#eeece6; border-color:#d8d4cc; box-shadow:none; color:#756e66; }
-html[data-palette="light"] .rate-field input { background:#fffdf9; border-color:#d8d4cc; }
+html[data-palette="light"] .rate-field b { color:#2d2a26; }
 html[data-palette="dark"] .unit-switch { background:#282521; border-color:#49433c; box-shadow:none; }
 html[data-palette="dark"] .unit-switch-label { color:#b9b1a7; }
 html[data-palette="dark"] .unit-switch button { color:#c8c0b6; }
 html[data-palette="dark"] .unit-switch button:hover { background:#37322d; color:#f6f4f1; }
 html[data-palette="dark"] .unit-switch button.active { background:#6f675f; color:#fffdf9; }
 html[data-palette="dark"] .rate-field { background:#282521; border-color:#49433c; box-shadow:none; color:#b9b1a7; }
-html[data-palette="dark"] .rate-field input { background:#1d1b18 !important; color:#f6f4f1 !important; border-color:#4a443c !important; }
-html[data-palette="dark"] .rate-field input:focus { background:#2d2925 !important; border-color:#797066 !important; box-shadow:0 0 0 3px rgba(179,170,160,.16) !important; }
+html[data-palette="dark"] .rate-field b { color:#f6f4f1; }
 html[data-palette="dark"] select {
   background-color:#25221f !important;
   color:#f6f4f1 !important;
@@ -700,20 +706,21 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .keys-card { padding:0; overflow:hidden; }
 .keys-card .section-heading { padding:16px 18px 0; margin-bottom:0; }
 .keys-card #keysTable { padding:12px 14px 16px; }
-.keys-table { min-width:920px; table-layout:fixed; }
-.keys-table th:nth-child(1) { width:16%; }
-.keys-table th:nth-child(2) { width:18%; }
-.keys-table th:nth-child(3) { width:14%; }
-.keys-table th:nth-child(4) { width:20%; }
-.keys-table th:nth-child(5) { width:9%; }
-.keys-table th:nth-child(6) { width:23%; }
-.keys-table th { position:sticky; top:0; z-index:1; background:#f7faf7; }
+.keys-table { min-width:1020px; table-layout:fixed; }
+.keys-table th:nth-child(1) { width:8rem; }
+.keys-table th:nth-child(2) { width:11.5rem; }
+.keys-table th:nth-child(3) { width:16.5rem; }
+.keys-table th:nth-child(4) { width:7.75rem; }
+.keys-table th:nth-child(5) { width:5rem; }
+.keys-table th:nth-child(6) { width:14.25rem; }
+.keys-table th { position:sticky; top:0; z-index:1; background:#f7faf7; white-space:nowrap; }
 .keys-table td { vertical-align:middle; padding:14px 10px; }
+.keys-table td:nth-child(4), .keys-table td:nth-child(5) { white-space:nowrap; }
 .keys-table tbody tr { transition:background .14s ease; }
 .keys-table tbody tr:hover td { background:#f6fbf8; }
 .keys-table tbody tr:last-child td { border-bottom:none; }
 .key-label { display:grid; gap:4px; min-width:0; }
-.key-label strong { font-size:.95rem; letter-spacing:-.01em; font-weight:700; color:var(--table-text); }
+.key-label strong { font-size:.95rem; letter-spacing:-.01em; font-weight:700; color:var(--table-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .key-label .mono { color:var(--table-muted); font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .model-chip-row { display:flex; flex-wrap:wrap; gap:5px; max-height:52px; overflow:hidden; }
 .model-chip { display:inline-flex; align-items:center; max-width:100%; padding:4px 9px; border-radius:999px; background:#f3f6f3; border:1px solid #e4eae4; color:#3d4a42; font-size:.78rem; line-height:1.25; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -722,6 +729,8 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .quota-line { display:flex; justify-content:space-between; gap:8px; align-items:baseline; font-size:.9rem; }
 .quota-line strong { font-weight:700; letter-spacing:-.015em; color:var(--table-text); }
 .quota-line .muted { font-size:.78rem; color:var(--table-muted); }
+.quota-periods { display:flex; flex-wrap:wrap; gap:1px 0; color:var(--table-muted); font-size:.78rem; line-height:1.35; }
+.quota-periods span:not(:last-child)::after { content:" · "; }
 .quota-bar { height:6px; border-radius:999px; background:#edf2ee; overflow:hidden; }
 .quota-bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #1eb787, #63d4ad); min-width:0; transition:width .2s ease; }
 .quota-bar.warn > span { background:linear-gradient(90deg, #e5a12d, #f0c56b); }
@@ -755,6 +764,38 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   .auth-quota-toolbar { width:100%; justify-content:flex-start; align-items:flex-end; gap:14px; }
   .auth-quota-toolbar-filters { flex:1 1 auto; min-width:0; }
   #btnLoadAuthQuotas { width:auto; flex:0 0 auto; white-space:nowrap; }
+  .keys-card #keysTable { padding:10px 10px 12px; }
+  .keys-card .table-scroll { overflow:visible; border:0; background:transparent; }
+  .keys-table { min-width:0; width:100%; table-layout:auto; }
+  .keys-table thead { display:none; }
+  .keys-table, .keys-table tbody { display:block; width:100%; }
+  .keys-table tbody { display:grid; gap:10px; }
+  .keys-table tbody tr {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    gap:8px 10px;
+    padding:14px 14px 12px;
+    border:1px solid #e8ece6;
+    border-radius:12px;
+    background:#fff;
+  }
+  .keys-table tbody tr:hover { border-color:#c8eddd; }
+  .keys-table td, .keys-table tbody tr:hover td, .keys-table tbody tr:last-child td {
+    width:auto;
+    padding:0;
+    border:0;
+    background:transparent;
+    white-space:normal;
+  }
+  .keys-table td:nth-child(1) { grid-column:1; grid-row:1; min-width:0; }
+  .keys-table td:nth-child(5) { grid-column:2; grid-row:1; align-self:center; }
+  .keys-table td:nth-child(2),
+  .keys-table td:nth-child(3),
+  .keys-table td:nth-child(4),
+  .keys-table td:nth-child(6) { grid-column:1 / -1; }
+  .keys-table .model-chip-row { max-height:none; }
+  .keys-table .key-label strong { white-space:normal; overflow:visible; text-overflow:unset; }
+  .keys-table .quota-line { justify-content:flex-start; gap:10px; }
 }
 .overview-layout { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; }
 .overview-layout .stats { grid-template-columns:repeat(3, minmax(150px, 1fr)); align-content:start; }
@@ -765,24 +806,56 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .overview-date-range input { min-width:0; }
 .overview-actions { margin-top:14px; justify-content:flex-end; }
 .overview-filter-state { color:#087d5a; font-size:.76rem; }
-.overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.35fr) minmax(300px, .88fr); grid-template-rows:auto auto; gap:16px; margin-top:16px; align-items:stretch; }
+.overview-dashboard { display:grid; grid-template-columns:minmax(0, 1.18fr) minmax(340px, 1fr); grid-template-rows:minmax(292px, 1fr) minmax(292px, 1fr); gap:16px; margin-top:16px; align-items:stretch; }
 .overview-dashboard .card { margin-bottom:0; }
 .overview-trends-column { display:contents; }
-.overview-trend-card { min-height:320px; }
+.overview-trend-card { min-height:292px; }
 .overview-trend-card:first-child { grid-column:1; grid-row:1; }
 .overview-trend-card:last-child { grid-column:1; grid-row:2; }
-.overview-share-card { grid-column:2; grid-row:1 / span 2; min-width:0; min-height:0; }
+.overview-share-card { grid-column:2; grid-row:1; min-width:0; min-height:0; }
+.overview-rank-card { grid-column:2; grid-row:2; min-width:0; min-height:0; }
 .overview-dashboard > .card,
 .overview-trends-column > .card { display:flex; flex-direction:column; }
-.overview-share-card > .section-heading { flex:0 0 auto; }
+.overview-share-card > .section-heading,
+.overview-rank-card > .section-heading { flex:0 0 auto; }
 .overview-trends-column > .card > #overviewTrend,
-.overview-trends-column > .card > #overviewCostTrend { flex:1 1 auto; min-height:248px; width:100%; }
-.overview-share-card > #overviewModelShare { flex:1 1 0%; min-height:0; width:100%; }
-.overview-share-card > #overviewModelShare > .empty-state { min-height:196px; height:100%; }
-.overview-echart { width:100%; height:248px; }
-.overview-share-card > #overviewModelShare.overview-echart { flex:1 1 0%; min-height:0; height:auto; }
+.overview-trends-column > .card > #overviewCostTrend { flex:1 1 auto; min-height:188px; width:100%; }
+.overview-share-body { display:grid; grid-template-columns:minmax(156px, .9fr) minmax(168px, 1.1fr); gap:4px 10px; flex:1 1 0%; min-height:0; align-items:stretch; }
+.overview-share-body:has(#overviewModelShareLegend[hidden]) { grid-template-columns:1fr; }
+.overview-share-card #overviewModelShare { min-height:168px; width:100%; height:100%; }
+.overview-share-card #overviewModelShare > .empty-state { min-height:168px; height:100%; }
+.overview-echart { width:100%; height:220px; }
+.overview-share-card #overviewModelShare.overview-echart { height:100%; min-height:168px; }
+.share-legend { display:grid; align-content:start; gap:6px; min-height:0; margin:0; padding:0; overflow:auto; }
+.share-legend[hidden] { display:none; }
+.share-legend-item { appearance:none; display:flex; align-items:flex-start; gap:8px; width:100%; margin:0; padding:7px 8px; border:1px solid transparent; border-radius:10px; background:transparent; color:inherit; box-shadow:none; text-align:left; cursor:pointer; font:inherit; }
+.share-legend-item:hover, .share-legend-item:focus-visible { border-color:var(--line); background:var(--panel-2); box-shadow:none; }
+.share-legend-dot { flex:0 0 8px; width:8px; height:8px; margin-top:6px; border-radius:2px; }
+.share-legend-body { display:grid; gap:6px; min-width:0; flex:1 1 auto; }
+.share-legend-top { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+.share-legend-name { min-width:0; flex:1 1 auto; overflow-wrap:anywhere; word-break:break-word; color:var(--table-text); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.8rem; font-weight:650; line-height:1.35; }
+.share-legend-pct { flex:0 0 auto; color:var(--table-muted); font-size:.78rem; font-weight:750; font-variant-numeric:tabular-nums; }
+.share-legend-metrics { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px 10px; }
+.share-legend-metric { display:grid; gap:1px; min-width:0; }
+.share-legend-metric em { color:var(--table-muted); font-size:.66rem; font-style:normal; font-weight:650; line-height:1.2; }
+.share-legend-metric b { overflow:hidden; color:var(--table-text); font-size:.78rem; font-weight:730; font-variant-numeric:tabular-nums; text-overflow:ellipsis; white-space:nowrap; }
 .overview-model-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-.overview-model-tools .unit-switch button { min-width:0; padding:6px 10px; font-size:.78rem; }
+.overview-model-tools .unit-switch button { min-width:0; padding:6px 9px; font-size:.76rem; }
+.model-rank-list { display:grid; align-content:start; gap:7px; flex:1 1 0%; min-height:168px; overflow:auto; }
+.model-rank-list > .empty-state { min-height:168px; }
+.model-rank-item { appearance:none; display:flex; align-items:flex-start; gap:10px; width:100%; margin:0; padding:9px 10px; border:1px solid var(--line); border-radius:11px; background:linear-gradient(180deg, var(--panel), var(--panel-2)); color:inherit; box-shadow:none; text-align:left; cursor:pointer; font:inherit; }
+.model-rank-item:hover, .model-rank-item:focus-visible { border-color:#c8d5cc; background:var(--control-hover); box-shadow:none; }
+.model-rank-index { flex:0 0 22px; display:grid; place-items:center; width:22px; height:22px; margin-top:1px; border-radius:7px; background:var(--panel-2); color:var(--muted); font-size:.72rem; font-weight:750; font-variant-numeric:tabular-nums; }
+.model-rank-item:nth-child(1) .model-rank-index { background:#f6e3a1; color:#8a6a12; }
+.model-rank-item:nth-child(2) .model-rank-index { background:#e4e8ee; color:#5c6570; }
+.model-rank-item:nth-child(3) .model-rank-index { background:#f0d2b4; color:#8a5524; }
+.model-rank-body { display:grid; gap:6px; min-width:0; flex:1 1 auto; }
+.model-rank-top { display:flex; align-items:flex-start; gap:10px; min-width:0; }
+.model-rank-name { min-width:0; flex:1 1 auto; overflow-wrap:anywhere; word-break:break-word; color:var(--table-text); font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.8rem; font-weight:650; line-height:1.35; }
+.model-rank-value { flex:0 0 auto; color:var(--text); font-size:.82rem; font-weight:760; font-variant-numeric:tabular-nums; letter-spacing:-.02em; white-space:nowrap; }
+.model-rank-bar { height:6px; border-radius:999px; background:#edf2ee; overflow:hidden; }
+.model-rank-bar > i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #1eb787, #63d4ad); min-width:8px; }
+.model-rank-meta { color:var(--table-muted); font-size:.72rem; font-weight:600; font-variant-numeric:tabular-nums; line-height:1.35; }
 .overview-trend-card .section-heading { align-items:flex-start; margin-bottom:10px; }
 .overview-trend-card .section-heading > div:first-child { min-width:0; flex:1 1 auto; }
 .overview-trend-card .trend-grain-switch { flex:0 0 auto; margin-top:1px; }
@@ -817,11 +890,23 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 html[data-palette="light"] .trend-metric { background:#f6f4ee; border-color:#e3e1db; }
 html[data-palette="dark"] .trend-metric { background:#24211e; border-color:#3a3530; }
 html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background:#2d2925; }
+html[data-palette="light"] .share-legend-item:hover, html[data-palette="light"] .share-legend-item:focus-visible { background:#f4f1eb; border-color:#e3e1db; }
+html[data-palette="dark"] .share-legend-item:hover, html[data-palette="dark"] .share-legend-item:focus-visible { background:#2d2925; border-color:#49433c; }
+html[data-palette="light"] .model-rank-item { background:linear-gradient(180deg, #fffdf9, #f6f4ee); border-color:#e3e1db; }
+html[data-palette="light"] .model-rank-item:hover, html[data-palette="light"] .model-rank-item:focus-visible { background:#f4f1eb; border-color:#d8d3ca; }
+html[data-palette="light"] .model-rank-bar { background:#ece8e1; }
+html[data-palette="dark"] .model-rank-item { background:linear-gradient(180deg, #26231f, #1d1b18); border-color:#49433c; }
+html[data-palette="dark"] .model-rank-item:hover, html[data-palette="dark"] .model-rank-item:focus-visible { background:#2d2925; border-color:#5a534b; }
+html[data-palette="dark"] .model-rank-bar { background:#3a3530; }
+html[data-palette="dark"] .model-rank-item:nth-child(1) .model-rank-index { background:#5a4718; color:#f6e3a1; }
+html[data-palette="dark"] .model-rank-item:nth-child(2) .model-rank-index { background:#3a3f46; color:#d5dbe3; }
+html[data-palette="dark"] .model-rank-item:nth-child(3) .model-rank-index { background:#4a3422; color:#f0d2b4; }
 @media (max-width: 1080px) {
   .overview-dashboard { grid-template-columns:1fr; grid-template-rows:none; }
   .overview-trends-column { display:grid; gap:16px; min-width:0; }
-  .overview-trend-card:first-child, .overview-trend-card:last-child, .overview-share-card { grid-column:auto; grid-row:auto; }
-  .overview-share-card > #overviewModelShare, .overview-share-card > #overviewModelShare.overview-echart { min-height:300px; }
+  .overview-trend-card:first-child, .overview-trend-card:last-child, .overview-share-card, .overview-rank-card { grid-column:auto; grid-row:auto; }
+  .overview-share-body { grid-template-columns:minmax(180px, .8fr) minmax(0, 1.2fr); }
+  .overview-share-card #overviewModelShare, .overview-share-card #overviewModelShare.overview-echart { min-height:200px; }
   .overview-filter-grid, .filter-grid { grid-template-columns:repeat(3, minmax(140px, 1fr)); }
   .page-intro { align-items:flex-start; flex-direction:column; gap:12px; }
   .auth-quota-toolbar { width:100%; justify-content:flex-start; gap:14px; }
@@ -836,6 +921,7 @@ html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background
   .topbar { display:block; }
   .topbar-actions { width:100%; padding-top:0; margin-top:10px; gap:8px; }
   .unit-switch { flex:1 1 calc(50% - 8px); min-width:0; }
+  #tokenUnitSwitch { flex:1 1 100%; }
   .unit-switch-label { padding:0 6px 0 4px; font-size:.68rem; }
   .unit-switch button { min-width:0; flex:1 1 auto; padding:6px 7px; font-size:.76rem; }
   .rate-field { width:100%; }
@@ -868,7 +954,10 @@ html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background
   .overview-trend-card .trend-grain-switch { margin-left:auto; }
   .trend-metric-row { width:100%; }
   .overview-model-tools { width:100%; justify-content:space-between; }
-  .overview-share-card > #overviewModelShare.overview-echart { min-height:340px; height:340px; }
+  .overview-share-body { grid-template-columns:1fr; }
+  .overview-share-card #overviewModelShare.overview-echart { height:188px; min-height:188px; }
+  .share-legend-metrics { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+  .overview-rank-card .overview-model-tools { width:100%; justify-content:space-between; }
 }
 @media (max-width: 460px) {
   .overview-filter-grid, .filter-grid { grid-template-columns:1fr; }
@@ -929,12 +1018,15 @@ html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background
 #usageStats { margin-bottom:16px; }
 .usage-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; min-width:0; }
 .usage-grid > .card { min-width:0; padding:20px; margin-bottom:0; }
+.usage-grid .section-heading { margin-bottom:16px; align-items:baseline; }
+.usage-grid .section-heading .panel-title { font-weight:720; letter-spacing:-.018em; }
+.usage-grid .section-heading .muted { font-size:.78rem; font-weight:600; }
 .usage-grid > .card:not(.usage-recent-card) table th, .usage-grid > .card:not(.usage-recent-card) table td { padding:12px 10px; }
 .usage-grid .usage-recent-card { grid-column:1 / -1; }
 @media (max-width: 1080px) { .usage-grid { grid-template-columns:minmax(0, 1fr); } .usage-grid .usage-recent-card { grid-column:auto; } }
 @media (max-width: 760px) { .workspace { padding:20px 14px 36px; } .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
-.auth-quota-list { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:start; }
-.auth-quota-card { position:relative; display:flex; flex-direction:column; margin:0; overflow:hidden; padding:0; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.94)); box-shadow:0 8px 20px rgba(41,57,46,.05); }
+.auth-quota-list { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; align-items:stretch; }
+.auth-quota-card { position:relative; display:flex; flex-direction:column; height:100%; margin:0; overflow:hidden; padding:0; border-radius:16px; background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,252,249,.94)); box-shadow:0 8px 20px rgba(41,57,46,.05); }
 .auth-quota-card::before { content:""; position:absolute; top:0; right:0; left:0; height:3px; background:linear-gradient(90deg, var(--accent), #8de2c3 48%, var(--accent-2)); }
 .auth-quota-header { display:grid; flex:0 0 auto; gap:10px; padding:16px 16px 14px; }
 .auth-quota-identity { min-width:0; display:grid; gap:3px; }
@@ -952,7 +1044,7 @@ html[data-palette="dark"] .trend-metric:hover { border-color:#5a534b; background
 .auth-quota-header .auth-quota-filter span { display:none; }
 .auth-quota-header .auth-quota-filter select { min-width:0; width:100%; min-height:34px; padding:6px 28px 6px 10px; font-size:.8rem; background-position:right 8px center; }
 .auth-quota-error { flex:0 0 auto; margin:0 16px 10px; padding:8px 10px; border:1px solid #f1d3cf; border-radius:9px; background:#fff7f5; color:#bd443b; font-size:.78rem; line-height:1.4; overflow-wrap:anywhere; }
-.auth-quota-window-grid { display:grid; grid-template-columns:1fr; gap:8px; flex:0 0 auto; align-content:start; min-height:0; padding:12px 14px 14px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(247,250,247,.78), rgba(247,250,247,.48)); }
+.auth-quota-window-grid { display:grid; grid-template-columns:1fr; gap:8px; flex:1 1 auto; align-content:start; min-height:0; padding:12px 14px 14px; border-top:1px solid var(--line); background:linear-gradient(180deg, rgba(247,250,247,.78), rgba(247,250,247,.48)); }
 .auth-quota-window-grid > .empty-state { grid-column:1 / -1; padding:12px 8px; font-size:.8rem; }
 .auth-quota-window-card { position:relative; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:10px; align-items:center; min-width:0; padding:10px 12px; border:1px solid #e4ece6; border-radius:10px; background:rgba(255,255,255,.86); box-shadow:0 1px 0 rgba(255,255,255,.7) inset; transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
 .auth-quota-window-card:hover { transform:translateY(-1px); border-color:#bce9d5; box-shadow:0 4px 10px rgba(41,57,46,.06); }
@@ -1003,21 +1095,24 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       <div class="topbar-actions">
         <div class="unit-switch" id="tokenUnitSwitch" role="group" aria-label="Token 显示单位">
           <span class="unit-switch-label">Token</span>
-          <button type="button" data-token-unit="raw" title="原始数量">个</button>
-          <button type="button" data-token-unit="k" title="千 (×1,000)">千</button>
-          <button type="button" data-token-unit="w" title="万 (×10,000)">万</button>
-          <button type="button" data-token-unit="m" title="百万 (×1,000,000)">百万</button>
+          <button type="button" data-token-unit="raw" title="原始数量" data-no-i18n>个</button>
+          <button type="button" data-token-unit="qian" title="千 (×1,000)" data-no-i18n>千</button>
+          <button type="button" data-token-unit="k" title="k (×1,000)" data-no-i18n>k</button>
+          <button type="button" data-token-unit="wan" title="万 (×10,000)" data-no-i18n>万</button>
+          <button type="button" data-token-unit="w" title="w (×10,000)" data-no-i18n>w</button>
+          <button type="button" data-token-unit="baiwan" title="百万 (×1,000,000)" data-no-i18n>百万</button>
+          <button type="button" data-token-unit="m" title="m (×1,000,000)" data-no-i18n>m</button>
         </div>
         <div class="unit-switch" id="currencySwitch" role="group" aria-label="费用显示货币">
           <span class="unit-switch-label">费用</span>
           <button type="button" data-currency="USD" title="美元">USD</button>
           <button type="button" data-currency="CNY" title="人民币（按汇率换算）">CNY</button>
         </div>
-        <label class="rate-field hidden" id="usdCnyRateField" title="1 美元兑换多少人民币">
+        <span class="rate-field hidden" id="usdCnyRateField" title="实时美元兑人民币汇率">
           <span>1 USD =</span>
-          <input id="usdCnyRate" type="number" step="0.0001" min="0.0001" inputmode="decimal" aria-label="美元兑人民币汇率"/>
+          <b id="usdCnyRate" data-no-i18n>—</b>
           <span>CNY</span>
-        </label>
+        </span>
         <button class="btn ghost connection-trigger" id="btnOpenConnection">连接设置</button>
         <button class="btn primary" id="btnRefresh">刷新数据</button>
       </div>
@@ -1233,14 +1328,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           <h2 class="panel-title">概览筛选</h2>
           <p class="hint">筛选仅影响概览指标和图表；「今日」按本地自然日。</p>
         </div>
-        <span class="overview-filter-state" id="overviewFilterState">最近 30 天 · 全部数据</span>
+        <span class="overview-filter-state" id="overviewFilterState">今日 · 全部数据</span>
       </div>
       <div class="overview-filter-grid">
         <label>时间范围
           <select id="overviewRangeFilter">
-            <option value="today">今日</option>
+            <option value="today" selected>今日</option>
             <option value="7">最近 7 天</option>
-            <option value="30" selected>最近 30 天</option>
+            <option value="30">最近 30 天</option>
             <option value="90">最近 90 天</option>
             <option value="all">全部时间</option>
             <option value="custom">自定义范围</option>
@@ -1290,7 +1385,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         <div class="card overview-trend-card">
           <div class="section-heading">
             <div><h2 class="panel-title">Token 趋势</h2><p class="hint" id="overviewTrendHint">输入 / 输出 / 缓存读取 / 缓存命中率</p></div>
-            <div class="unit-switch trend-grain-switch" role="group" aria-label="趋势时间维度">
+            <div class="unit-switch trend-grain-switch" data-trend-chart="token" role="group" aria-label="Token 趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
               <button type="button" data-trend-grain="month">月</button>
@@ -1302,7 +1397,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         <div class="card overview-trend-card">
           <div class="section-heading">
             <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总实际费用</p></div>
-            <div class="unit-switch trend-grain-switch" role="group" aria-label="趋势时间维度">
+            <div class="unit-switch trend-grain-switch" data-trend-chart="cost" role="group" aria-label="费用趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
               <button type="button" data-trend-grain="month">月</button>
@@ -1324,7 +1419,25 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
             <span class="muted" id="overviewModelCount">—</span>
           </div>
         </div>
-        <div id="overviewModelShare"></div>
+        <div class="overview-share-body">
+          <div id="overviewModelShare"></div>
+          <div id="overviewModelShareLegend" class="share-legend" hidden></div>
+        </div>
+      </div>
+      <div class="card overview-rank-card">
+        <div class="section-heading">
+          <div><h2 class="panel-title">模型效率排行</h2><p class="hint" id="overviewRankHint">按每美元产出 Token 排序，越高越省</p></div>
+          <div class="overview-model-tools">
+            <div class="unit-switch" id="modelRankMetricSwitch" role="group" aria-label="模型效率指标">
+              <button type="button" data-rank-metric="value" class="active">性价比</button>
+              <button type="button" data-rank-metric="unit">单次</button>
+              <button type="button" data-rank-metric="cache">缓存</button>
+              <button type="button" data-rank-metric="tps">吞吐</button>
+            </div>
+            <span class="muted" id="overviewRankCount">—</span>
+          </div>
+        </div>
+        <div id="overviewModelRank" class="model-rank-list"></div>
       </div>
     </div>
   </section>
@@ -1372,11 +1485,11 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       <div class="filter-grid">
         <label>时间范围
           <select id="usageRangeFilter">
-            <option value="today">今日</option>
+            <option value="today" selected>今日</option>
             <option value="7">最近 7 天</option>
             <option value="30">最近 30 天</option>
             <option value="90">最近 90 天</option>
-            <option value="all" selected>全部时间</option>
+            <option value="all">全部时间</option>
             <option value="custom">自定义范围</option>
           </select>
         </label>
@@ -1503,11 +1616,11 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     '额度仪表盘': { 'zh-TW':'額度儀表板', en:'Credit Dashboard', ru:'Панель лимитов' }, '连接设置': { 'zh-TW':'連線設定', en:'Connection settings', ru:'Настройки подключения' }, '刷新数据': { 'zh-TW':'重新整理資料', en:'Refresh data', ru:'Обновить данные' },
     '概览': { 'zh-TW':'概覽', en:'Overview', ru:'Обзор' }, 'Key 管理': { 'zh-TW':'Key 管理', en:'Keys', ru:'Ключи' }, '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '使用统计': { 'zh-TW':'使用統計', en:'Usage analytics', ru:'Статистика использования' },
     '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、账号、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、帳號、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, account, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, аккаунту, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
-    '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；「今日」按本地自然日。': { 'zh-TW':'篩選僅影響概覽指標和圖表；「今天」按本地自然日。', en:'Filters affect overview metrics and charts only; Today uses the local calendar day.', ru:'Фильтры влияют только на метрики и диаграммы; «Сегодня» — локальный день.' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
+    '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；「今日」按本地自然日。': { 'zh-TW':'篩選僅影響概覽指標和圖表；「今天」按本地自然日。', en:'Filters affect overview metrics and charts only; Today uses the local calendar day.', ru:'Фильтры влияют только на метрики и диаграммы; «Сегодня» — локальный день.' }, '今日 · 全部数据': { 'zh-TW':'今天 · 全部資料', en:'Today · all data', ru:'Сегодня · все данные' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
     '时间范围': { 'zh-TW':'時間範圍', en:'Time range', ru:'Период' }, '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '时间范围（UTC）': { 'zh-TW':'時間範圍（UTC）', en:'Time range (UTC)', ru:'Период (UTC)' }, '至': { 'zh-TW':'至', en:'to', ru:'до' },
     'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '账号': { 'zh-TW':'帳號', en:'Account', ru:'Аккаунт' }, '搜索账号名称或 ID': { 'zh-TW':'搜尋帳號名稱或 ID', en:'Search account name or ID', ru:'Поиск аккаунта или ID' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
-    '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' }, '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
-    '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
+    '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' },     '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '模型效率排行': { 'zh-TW':'模型效率排行', en:'Model efficiency rank', ru:'Рейтинг эффективности' }, '模型效率指标': { 'zh-TW':'模型效率指標', en:'Efficiency metric', ru:'Метрика эффективности' }, '性价比': { 'zh-TW':'性價比', en:'Value', ru:'Выгода' }, '单次': { 'zh-TW':'單次', en:'Per call', ru:'За запрос' }, '吞吐': { 'zh-TW':'吞吐', en:'Throughput', ru:'Скорость' },     '按每美元产出 Token 排序，越高越省': { 'zh-TW':'依每美元產出 Token 排序，越高越省', en:'Ranked by tokens per dollar; higher is cheaper', ru:'По токенам на доллар; больше — выгоднее' }, '按每人民币产出 Token 排序，越高越省': { 'zh-TW':'依每人民幣產出 Token 排序，越高越省', en:'Ranked by tokens per yuan; higher is cheaper', ru:'По токенам на юань; больше — выгоднее' }, '平均每次请求费用，越低越省': { 'zh-TW':'平均每次請求費用，越低越省', en:'Average cost per request; lower is cheaper', ru:'Средняя цена запроса; меньше — выгоднее' }, '缓存读取占输入比例，越高越省': { 'zh-TW':'快取讀取佔輸入比例，越高越省', en:'Cache-read share of input; higher is cheaper', ru:'Доля чтения кэша во входе; больше — выгоднее' }, '平均生成速度，越高越快': { 'zh-TW':'平均生成速度，越高越快', en:'Average generation speed; higher is faster', ru:'Средняя скорость генерации; больше — быстрее' }, '当前筛选条件下暂无模型效率数据': { 'zh-TW':'目前篩選條件下暫無模型效率資料', en:'No model efficiency data for the current filters', ru:'Нет данных об эффективности моделей' }, '免费': { 'zh-TW':'免費', en:'Free', ru:'Бесплатно' }, '次': { 'zh-TW':'次', en:'calls', ru:'вызов.' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '占比': { 'zh-TW':'佔比', en:'Share', ru:'Доля' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
+    '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, 'Token 趋势时间维度': { 'zh-TW':'Token 趨勢時間維度', en:'Token trend interval', ru:'Интервал токенов' }, '费用趋势时间维度': { 'zh-TW':'費用趨勢時間維度', en:'Cost trend interval', ru:'Интервал расходов' }, '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
     '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有 Key': { 'zh-TW':'已有 Key', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
     '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
     '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' }, '按张计费': { 'zh-TW':'按張計費', en:'Per image', ru:'За картинку' },
@@ -1519,17 +1632,22 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。重新整理最多每 15 分鐘查詢一次。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card. Refresh is limited to once every 15 minutes.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке. Обновление не чаще одного раза в 15 минут.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
     'Token 显示单位': { 'zh-TW':'Token 顯示單位', en:'Token display unit', ru:'Единица отображения токенов' }, '原始数量': { 'zh-TW':'原始數量', en:'Raw count', ru:'Исходное количество' },
-    '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' },
-    '个': { 'zh-TW':'個', en:'1', ru:'шт' }, '千': { 'zh-TW':'千', en:'k', ru:'k' }, '万': { 'zh-TW':'萬', en:'w', ru:'w' }, '百万': { 'zh-TW':'百萬', en:'m', ru:'m' },
+    '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, 'k (×1,000)': { 'zh-TW':'k (×1,000)', en:'k (×1,000)', ru:'k (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, 'w (×10,000)': { 'zh-TW':'w (×10,000)', en:'w (×10,000)', ru:'w (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' }, 'm (×1,000,000)': { 'zh-TW':'m (×1,000,000)', en:'m (×1,000,000)', ru:'m (×1,000,000)' },
+    '个': { 'zh-TW':'個', en:'个', ru:'个' }, '千': { 'zh-TW':'千', en:'千', ru:'千' }, 'k': { 'zh-TW':'k', en:'k', ru:'k' }, '万': { 'zh-TW':'萬', en:'万', ru:'万' }, 'w': { 'zh-TW':'w', en:'w', ru:'w' }, '百万': { 'zh-TW':'百萬', en:'百万', ru:'百万' }, 'm': { 'zh-TW':'m', en:'m', ru:'m' },
+    '实时美元兑人民币汇率': { 'zh-TW':'即時美元兌人民幣匯率', en:'Live USD to CNY rate', ru:'Курс USD к CNY' },
+    '汇率获取失败，已使用上次汇率': { 'zh-TW':'匯率取得失敗，已使用上次匯率', en:'Could not refresh the rate; using the last saved value', ru:'Не удалось обновить курс; используется прошлое значение' },
   };
   const textSources = new WeakMap();
   const attributeSources = new WeakMap();
   let translationObserver;
   const TOKEN_UNITS = {
     raw: { div: 1, suffix: '', maxFrac: 0 },
-    k: { div: 1e3, suffix: '千', maxFrac: 2 },
-    w: { div: 1e4, suffix: '万', maxFrac: 2 },
-    m: { div: 1e6, suffix: '百万', maxFrac: 2 },
+    qian: { div: 1e3, suffix: '千', maxFrac: 2 },
+    k: { div: 1e3, suffix: 'k', maxFrac: 2 },
+    wan: { div: 1e4, suffix: '万', maxFrac: 2 },
+    w: { div: 1e4, suffix: 'w', maxFrac: 2 },
+    baiwan: { div: 1e6, suffix: '百万', maxFrac: 2 },
+    m: { div: 1e6, suffix: 'm', maxFrac: 2 },
   };
   const state = {
     overview: null,
@@ -1553,7 +1671,9 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     currentTab: 'overview',
     tabLoadSeq: 0,
     modelShareMetric: 'requests',
-    trendGrain: 'day',
+    modelRankMetric: 'value',
+    tokenTrendGrain: 'day',
+    costTrendGrain: 'day',
     charts: {},
     overviewShareObserver: null,
     locale: 'zh-CN',
@@ -1701,7 +1821,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const abs = Math.abs(scaled);
     // Preserve small non-zero values when a large display unit is selected.
     const maxFrac = abs > 0 && abs < 0.01 ? 6 : (abs >= 100 ? 1 : cfg.maxFrac);
-    return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + t(cfg.suffix);
+    return scaled.toLocaleString(undefined, { maximumFractionDigits: maxFrac }) + cfg.suffix;
   }
 
   function tokenTitle(value) {
@@ -1770,7 +1890,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     if (usd == null) return '';
     const usdText = '$' + formatUSDAmount(usd);
     if (getCurrency() === 'CNY') {
-      return usdText + ' · ¥' + formatCNYAmount(usd * getUsdCnyRate()) + ' @ ' + getUsdCnyRate();
+      return usdText + ' · ¥' + formatCNYAmount(usd * getUsdCnyRate()) + ' @ ' + formatUsdCnyRate(getUsdCnyRate());
     }
     return usdText;
   }
@@ -1782,10 +1902,37 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       btn.classList.toggle('active', btn.dataset.currency === currency);
     });
     const rateField = $('usdCnyRateField');
-    const rateInput = $('usdCnyRate');
+    const rateValue = $('usdCnyRate');
     if (rateField) rateField.classList.toggle('hidden', currency !== 'CNY');
-    if (rateInput && document.activeElement !== rateInput) {
-      rateInput.value = String(getUsdCnyRate());
+    if (rateValue) rateValue.textContent = formatUsdCnyRate(getUsdCnyRate());
+  }
+
+  function formatUsdCnyRate(value) {
+    return normalizeUsdCnyRate(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fxURL(refresh) {
+    const path = String(location.pathname || '').replace(/\/+$/, '');
+    const base = path.replace(/\/console$/, '');
+    return base + '/fx/usd-cny' + (refresh ? '?refresh=1' : '');
+  }
+
+  async function fetchUsdCnyRate(refresh) {
+    const field = $('usdCnyRateField');
+    const valueEl = $('usdCnyRate');
+    try {
+      const res = await fetch(fxURL(refresh), { cache: 'no-store', headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      const next = Number(data && data.usd_to_cny);
+      if (!res.ok || !Number.isFinite(next) || next <= 0) throw new Error((data && data.error) || '汇率获取失败');
+      setUsdCnyRate(next);
+      if (field) {
+        const asOf = data.fetched_at ? new Date(data.fetched_at).toLocaleString() : '';
+        field.title = t('实时美元兑人民币汇率') + (asOf ? ' · ' + asOf : '');
+      }
+    } catch (_) {
+      if (valueEl) valueEl.textContent = formatUsdCnyRate(getUsdCnyRate());
+      if (field) field.title = t('汇率获取失败，已使用上次汇率');
     }
   }
 
@@ -2015,6 +2162,14 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   function formatDateTimeLocal(date) {
     return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) + 'T' + padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes());
+  }
+
+  function formatDateTime(value) {
+    if (!value) return '—';
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) + ' ' +
+      padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes()) + ':' + padDatePart(date.getSeconds());
   }
 
   function parseDateTimeLocal(value) {
@@ -2416,10 +2571,20 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const usage = new Map();
     items.forEach(item => {
       const name = item.model || '未标记模型';
-      const current = usage.get(name) || { model: name, tokens: 0, requests: 0, cost: 0 };
+      const current = usage.get(name) || {
+        model: name, tokens: 0, requests: 0, cost: 0,
+        cacheRead: 0, cacheRelated: 0, tpsSum: 0, tpsCount: 0,
+      };
       current.tokens += usageTokens(item);
       current.requests += 1;
       current.cost += Number(item.cost_micro_usd || 0);
+      current.cacheRead += Number(item.cache_read_tokens || 0);
+      current.cacheRelated += usageCacheRelated(item);
+      const tps = Number(item.tokens_per_second);
+      if (Number.isFinite(tps) && tps > 0) {
+        current.tpsSum += tps;
+        current.tpsCount += 1;
+      }
       usage.set(name, current);
     });
     return [...usage.values()].sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
@@ -2450,11 +2615,6 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     return '请求次数';
   }
 
-  function truncateModelName(name, maxLength) {
-    const value = String(name || '');
-    return value.length > maxLength ? value.slice(0, Math.max(1, maxLength - 1)) + '…' : value;
-  }
-
   function syncModelShareMetricSwitch() {
     const metric = getModelShareMetric();
     document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
@@ -2466,6 +2626,82 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     state.modelShareMetric = metric === 'tokens' || metric === 'cost' ? metric : 'requests';
     syncModelShareMetricSwitch();
     if (state.overview) renderOverviewModels(state.overview.recent_usage || []);
+  }
+
+  function getModelRankMetric() {
+    const metric = state.modelRankMetric || 'value';
+    return metric === 'unit' || metric === 'cache' || metric === 'tps' ? metric : 'value';
+  }
+
+  function displaySpend(micro) {
+    const usd = Number(micro || 0) / 1e6;
+    return getCurrency() === 'CNY' ? usd * getUsdCnyRate() : usd;
+  }
+
+  function modelRankSpec(metric) {
+    const key = metric || getModelRankMetric();
+    if (key === 'unit') {
+      return {
+        key,
+        label: '单次',
+        hint: '平均每次请求费用，越低越省',
+        higher: false,
+        ready: item => item.requests > 0,
+        score: item => item.requests > 0 ? item.cost / item.requests : NaN,
+        format: value => formatMoney(value),
+      };
+    }
+    if (key === 'cache') {
+      return {
+        key,
+        label: '缓存',
+        hint: '缓存读取占输入比例，越高越省',
+        higher: true,
+        ready: item => item.cacheRelated > 0,
+        score: item => item.cacheRelated > 0 ? item.cacheRead / item.cacheRelated * 100 : NaN,
+        format: value => Number(value).toFixed(1) + '%',
+      };
+    }
+    if (key === 'tps') {
+      return {
+        key,
+        label: '吞吐',
+        hint: '平均生成速度，越高越快',
+        higher: true,
+        ready: item => item.tpsCount > 0,
+        score: item => item.tpsCount > 0 ? item.tpsSum / item.tpsCount : NaN,
+        format: value => Number(value).toFixed(value >= 10 ? 1 : 2) + ' tok/s',
+      };
+    }
+    return {
+      key: 'value',
+      label: '性价比',
+      hint: getCurrency() === 'CNY' ? '按每人民币产出 Token 排序，越高越省' : '按每美元产出 Token 排序，越高越省',
+      higher: true,
+      ready: item => item.tokens > 0,
+      score: item => {
+        const spend = displaySpend(item.cost);
+        if (spend <= 0) return item.tokens > 0 ? Infinity : 0;
+        return item.tokens / spend;
+      },
+      format: value => {
+        if (!Number.isFinite(value)) return t('免费');
+        return formatTokens(value) + (getCurrency() === 'CNY' ? '/¥' : '/$');
+      },
+    };
+  }
+
+  function syncModelRankMetricSwitch() {
+    const metric = getModelRankMetric();
+    document.querySelectorAll('#modelRankMetricSwitch [data-rank-metric]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.rankMetric === metric);
+    });
+  }
+
+  function setModelRankMetric(metric) {
+    state.modelRankMetric = metric === 'unit' || metric === 'cache' || metric === 'tps' ? metric : 'value';
+    syncModelRankMetricSwitch();
+    if (state.overview) renderOverviewRank(state.overview.recent_usage || []);
   }
 
   async function drillOverviewModel(model) {
@@ -2522,10 +2758,18 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       target.className = '';
       target.innerHTML = chartEmptyState('', true);
     });
-    ['overviewTrendTotal', 'overviewCostTrendTotal', 'overviewModelShareTotal'].forEach(id => {
+    renderOverviewModelShareLegend([]);
+    const rank = $('overviewModelRank');
+    if (rank) {
+      rank.className = 'model-rank-list';
+      rank.innerHTML = chartEmptyState('', true);
+    }
+    ['overviewTrendTotal', 'overviewCostTrendTotal', 'overviewModelShareTotal', 'overviewRankCount'].forEach(id => {
       const target = $(id);
       if (target) target.textContent = t('未连接');
     });
+    const rankHint = $('overviewRankHint');
+    if (rankHint) rankHint.textContent = t(modelRankSpec('value').hint);
   }
 
   function renderDisconnectedTabStates() {
@@ -2572,8 +2816,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     Object.values(state.charts).forEach(chart => chart.resize());
   }
 
-  function getTrendGrain() {
-    const grain = state.trendGrain || 'day';
+  function getTrendGrain(chart) {
+    const grain = chart === 'cost' ? state.costTrendGrain : state.tokenTrendGrain;
     return grain === 'hour' || grain === 'month' ? grain : 'day';
   }
 
@@ -2593,8 +2837,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     return { key: year + '-' + month + '-' + day, label: month + '-' + day };
   }
 
-  function overviewTrendSeries(items) {
-    const grain = getTrendGrain();
+  function overviewTrendSeries(items, grain) {
+    grain = grain === 'hour' || grain === 'month' ? grain : 'day';
     const buckets = new Map();
     (items || []).forEach(item => {
       const date = item.created_at ? new Date(item.created_at) : null;
@@ -2626,20 +2870,25 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       }));
   }
 
-  function syncTrendGrainSwitch() {
-    const grain = getTrendGrain();
-    document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.trendGrain === grain);
+  function syncTrendGrainSwitch(chart) {
+    const charts = chart ? [chart] : ['token', 'cost'];
+    charts.forEach(name => {
+      const grain = getTrendGrain(name);
+      document.querySelectorAll('.trend-grain-switch[data-trend-chart="'+name+'"] [data-trend-grain]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.trendGrain === grain);
+      });
     });
   }
 
-  function setTrendGrain(grain) {
-    state.trendGrain = grain === 'hour' || grain === 'month' ? grain : 'day';
-    syncTrendGrainSwitch();
+  function setTrendGrain(chart, grain) {
+    const next = grain === 'hour' || grain === 'month' ? grain : 'day';
+    if (chart === 'cost') state.costTrendGrain = next;
+    else state.tokenTrendGrain = next;
+    syncTrendGrainSwitch(chart);
     if (!state.overview) return;
     const items = state.overview.recent_usage || [];
-    renderOverviewTrend(items);
-    renderOverviewCostTrend(items);
+    if (chart === 'cost') renderOverviewCostTrend(items);
+    else renderOverviewTrend(items);
   }
 
   function trendMetric(label, value, color, title, series, dashed) {
@@ -2755,8 +3004,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function renderOverviewTrend(items) {
-    const grain = getTrendGrain();
-    const points = overviewTrendSeries(items);
+    const grain = getTrendGrain('token');
+    const points = overviewTrendSeries(items, grain);
     const totalInput = points.reduce((sum, point) => sum + point.input, 0);
     const totalOutput = points.reduce((sum, point) => sum + point.output, 0);
     const totalCacheRead = points.reduce((sum, point) => sum + point.cacheRead, 0);
@@ -2811,8 +3060,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   }
 
   function renderOverviewCostTrend(items) {
-    const grain = getTrendGrain();
-    const points = overviewTrendSeries(items);
+    const grain = getTrendGrain('cost');
+    const points = overviewTrendSeries(items, grain);
     const total = points.reduce((sum, point) => sum + point.cost, 0);
     $('overviewCostTrendTotal').innerHTML = points.length ? trendMetric('费用', formatMoney(total), '#1eb787', '', '费用') : '';
     $('overviewCostTrendHint').textContent = points.length
@@ -2837,6 +3086,47 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     bindTrendMetricToggles('overviewCostTrendTotal', 'overviewCostTrend');
   }
 
+  function renderOverviewModelShareLegend(models, metricTotal) {
+    const legend = $('overviewModelShareLegend');
+    if (!legend) return;
+    if (!models.length) {
+      legend.hidden = true;
+      legend.innerHTML = '';
+      return;
+    }
+    legend.hidden = false;
+    legend.innerHTML = models.map((item, index) => {
+      const value = modelShareMetricValue(item, getModelShareMetric());
+      const percent = metricTotal ? value / metricTotal * 100 : 0;
+      const color = MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length];
+      return '<button type="button" class="share-legend-item" data-model="'+esc(item.model)+'">' +
+        '<i class="share-legend-dot" style="background:'+color+'"></i>' +
+        '<span class="share-legend-body">' +
+          '<span class="share-legend-top">' +
+            '<span class="share-legend-name">'+esc(item.model)+'</span>' +
+            '<span class="share-legend-pct">'+percent.toFixed(1)+'%</span>' +
+          '</span>' +
+          '<span class="share-legend-metrics">' +
+            '<span class="share-legend-metric"><em>调用次数</em><b>'+esc(item.requests.toLocaleString())+'</b></span>' +
+            '<span class="share-legend-metric"><em>Token</em><b>'+esc(formatTokens(item.tokens))+'</b></span>' +
+            '<span class="share-legend-metric"><em>费用</em><b title="'+esc(moneyTitle(item.cost))+'">'+esc(formatMoney(item.cost))+'</b></span>' +
+          '</span>' +
+        '</span>' +
+      '</button>';
+    }).join('');
+    legend.querySelectorAll('.share-legend-item').forEach((btn, index) => {
+      btn.addEventListener('click', () => drillOverviewModel(btn.dataset.model));
+      btn.addEventListener('mouseenter', () => {
+        const chart = state.charts.overviewModelShare;
+        if (chart) chart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: index });
+      });
+      btn.addEventListener('mouseleave', () => {
+        const chart = state.charts.overviewModelShare;
+        if (chart) chart.dispatchAction({ type: 'downplay', seriesIndex: 0, dataIndex: index });
+      });
+    });
+  }
+
   function renderOverviewModels(items) {
     const metric = getModelShareMetric();
     const models = overviewModelUsage(items).sort((a, b) =>
@@ -2847,14 +3137,17 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     $('overviewModelCount').textContent = models.length ? models.length + ' 个模型' : '—';
     syncModelShareMetricSwitch();
     if (!models.length) {
+      renderOverviewModelShareLegend([]);
       renderOverviewEChart('overviewModelShare', '当前筛选条件下暂无模型使用数据', null);
       return;
     }
     const metricTotal = models.reduce((sum, item) => sum + modelShareMetricValue(item, metric), 0);
+    renderOverviewModelShareLegend(models, metricTotal);
     renderOverviewEChart('overviewModelShare', '当前筛选条件下暂无模型使用数据', {
       color: models.map((_, index) => MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length]),
       animationDuration: 420,
       animationEasing: 'cubicOut',
+      legend: { show: false },
       tooltip: {
         trigger: 'item',
         backgroundColor: 'rgba(26, 31, 28, .94)',
@@ -2864,41 +3157,17 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         formatter(param) {
           const item = param.data.item;
           return '<strong>'+esc(item.model)+'</strong><br/>'+
-            '<span style="color:#cdd6cf">'+esc(modelShareCenterLabel(metric))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatModelShareCenter(param.value, metric))+'</span><br/>'+
-            '<span style="color:#cdd6cf">请求 / Token</span><span style="float:right;margin-left:20px">'+esc(item.requests.toLocaleString() + ' / ' + formatTokens(item.tokens))+'</span><br/>'+
-            '<span style="color:#cdd6cf">占比</span><span style="float:right;margin-left:20px">'+param.percent.toFixed(1)+'%</span>';
-        },
-      },
-      legend: {
-        type: 'scroll',
-        orient: 'vertical',
-        left: '58%',
-        right: 4,
-        top: 'middle',
-        width: '38%',
-        itemWidth: 8,
-        itemHeight: 8,
-        itemGap: 12,
-        textStyle: {
-          color: '#344038',
-          fontSize: 12,
-          rich: {
-            name: { width: 96, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
-            value: { width: 48, align: 'right', color: '#5f6a61', fontWeight: 700 },
-          },
-        },
-        formatter(name) {
-          const item = models.find(model => model.model === name);
-          const value = item ? modelShareMetricValue(item, metric) : 0;
-          const percent = metricTotal ? value / metricTotal * 100 : 0;
-          return '{name|' + truncateModelName(name, 14) + '}{value|' + percent.toFixed(1) + '%}';
+            '<span style="color:#cdd6cf">'+esc(t('调用次数'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(item.requests.toLocaleString())+'</span><br/>'+
+            '<span style="color:#cdd6cf">Token</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatTokens(item.tokens))+'</span><br/>'+
+            '<span style="color:#cdd6cf">'+esc(t('费用'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatMoney(item.cost))+'</span><br/>'+
+            '<span style="color:#cdd6cf">'+esc(t('占比'))+'</span><span style="float:right;margin-left:20px">'+param.percent.toFixed(1)+'%</span>';
         },
       },
       series: [{
         name: modelShareCenterLabel(metric),
         type: 'pie',
-        radius: ['42%', '58%'],
-        center: ['30%', '50%'],
+        radius: ['42%', '66%'],
+        center: ['50%', '50%'],
         minAngle: 3,
         avoidLabelOverlap: true,
         itemStyle: { borderColor: '#fff', borderWidth: 3, borderRadius: 4 },
@@ -2907,56 +3176,89 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           position: 'center',
           formatter: '{total|' + formatModelShareCenter(metricTotal, metric) + '}\n{caption|' + modelShareCenterLabel(metric) + '}',
           rich: {
-            total: { color: '#1f2922', fontSize: 22, fontWeight: 700, lineHeight: 28 },
-            caption: { color: '#5f6a61', fontSize: 11, fontWeight: 600, lineHeight: 17 },
+            total: { color: '#1f2922', fontSize: 18, fontWeight: 700, lineHeight: 24 },
+            caption: { color: '#5f6a61', fontSize: 11, fontWeight: 600, lineHeight: 16 },
           },
         },
         labelLine: { show: false },
         emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(31,41,34,.18)' } },
         data: models.map(item => ({ name: item.model, value: modelShareMetricValue(item, metric), item })),
       }],
-      media: [{
-        query: { maxWidth: 560 },
-        option: {
-          legend: {
-            orient: 'vertical',
-            left: '8%',
-            right: '8%',
-            top: '65%',
-            width: '84%',
-            itemWidth: 8,
-            itemHeight: 8,
-            itemGap: 8,
-            textStyle: {
-              fontSize: 12,
-              rich: {
-                name: { width: 156, overflow: 'truncate', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontWeight: 650 },
-                value: { width: 48, align: 'right', color: '#5f6a61', fontWeight: 700 },
-              },
-            },
-          },
-          series: [{ center: ['50%', '31%'], radius: ['28%', '40%'] }],
-        },
-      }, {
-        query: { maxWidth: 420 },
-        option: {
-          legend: {
-            left: '5%',
-            right: '5%',
-            width: '90%',
-            textStyle: {
-              rich: {
-                name: { width: 130 },
-                value: { width: 46 },
-              },
-            },
-          },
-        },
-      }],
     }, {
       click: params => {
         if (params.componentType === 'series' && params.data && params.data.item) drillOverviewModel(params.data.item.model);
       },
+    });
+  }
+
+  function rankBarPercent(item, ranked, spec) {
+    if (!spec.ready(item)) return 0;
+    const score = spec.score(item);
+    if (score === Infinity) return 100;
+    const finite = ranked.filter(spec.ready).map(spec.score).filter(Number.isFinite);
+    if (!finite.length || !Number.isFinite(score)) return 0;
+    if (spec.higher) {
+      const max = Math.max(...finite);
+      return max > 0 ? Math.max(8, score / max * 100) : 0;
+    }
+    const min = Math.min(...finite.filter(value => value > 0));
+    if (!Number.isFinite(min) || score <= 0) return score <= 0 ? 100 : 0;
+    return Math.max(8, min / score * 100);
+  }
+
+  function renderOverviewRank(items) {
+    const spec = modelRankSpec();
+    const models = overviewModelUsage(items).sort((a, b) => {
+      const aReady = spec.ready(a);
+      const bReady = spec.ready(b);
+      if (aReady !== bReady) return aReady ? -1 : 1;
+      if (!aReady) return a.model.localeCompare(b.model);
+      const aScore = spec.score(a);
+      const bScore = spec.score(b);
+      if (aScore === bScore) return b.requests - a.requests || a.model.localeCompare(b.model);
+      if (aScore === Infinity) return -1;
+      if (bScore === Infinity) return 1;
+      if (!Number.isFinite(aScore)) return 1;
+      if (!Number.isFinite(bScore)) return -1;
+      return spec.higher ? (bScore - aScore) : (aScore - bScore);
+    });
+    const target = $('overviewModelRank');
+    const count = $('overviewRankCount');
+    const hint = $('overviewRankHint');
+    syncModelRankMetricSwitch();
+    if (hint) hint.textContent = t(spec.hint);
+    if (count) count.textContent = models.length ? models.length + ' 个模型' : '—';
+    if (!target) return;
+    if (!models.length) {
+      target.innerHTML = chartEmptyState(t('当前筛选条件下暂无模型效率数据'), false);
+      return;
+    }
+    target.innerHTML = models.map((item, index) => {
+      const ready = spec.ready(item);
+      const score = ready ? spec.score(item) : NaN;
+      const value = ready && (Number.isFinite(score) || score === Infinity) ? spec.format(score) : '—';
+      const width = rankBarPercent(item, models, spec);
+      const title = ['value', 'unit', 'cache', 'tps'].map(key => {
+        const metric = modelRankSpec(key);
+        const metricScore = metric.ready(item) ? metric.score(item) : NaN;
+        const metricValue = metric.ready(item) && (Number.isFinite(metricScore) || metricScore === Infinity)
+          ? metric.format(metricScore) : '—';
+        return t(metric.label) + ' ' + metricValue;
+      }).join('\n');
+      return '<button type="button" class="model-rank-item" data-model="'+esc(item.model)+'" title="'+esc(title)+'">' +
+        '<span class="model-rank-index">'+(index + 1)+'</span>' +
+        '<span class="model-rank-body">' +
+          '<span class="model-rank-top">' +
+            '<span class="model-rank-name">'+esc(item.model)+'</span>' +
+            '<span class="model-rank-value">'+esc(value)+'</span>' +
+          '</span>' +
+          '<span class="model-rank-bar" aria-hidden="true"><i style="width:'+width.toFixed(1)+'%"></i></span>' +
+          '<span class="model-rank-meta">'+esc(item.requests.toLocaleString() + ' ' + t('次') + ' · ' + formatTokens(item.tokens) + ' Token · ' + formatMoney(item.cost))+'</span>' +
+        '</span>' +
+      '</button>';
+    }).join('');
+    target.querySelectorAll('.model-rank-item').forEach(btn => {
+      btn.addEventListener('click', () => drillOverviewModel(btn.dataset.model));
     });
   }
 
@@ -3003,6 +3305,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     renderOverviewTrend(items);
     renderOverviewCostTrend(items);
     renderOverviewModels(items);
+    renderOverviewRank(items);
     requestAnimationFrame(resizeOverviewCharts);
   }
 
@@ -3040,7 +3343,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const quotaBlock = (k) => {
       const quota = Number(k.quota_micro_usd || 0);
       const used = Number(k.settled_spend_micro_usd || 0);
-      const periodLimits = '<span class="muted">日 '+esc(limitText(k.daily_quota_micro_usd))+' · 周 '+esc(limitText(k.weekly_quota_micro_usd))+' · 月 '+esc(limitText(k.monthly_quota_micro_usd))+' · 并发 '+esc(Number(k.max_concurrent_requests || 0) || '不限制')+'</span>';
+      const periodLimits = '<span class="quota-periods">' +
+        '<span>日 '+esc(limitText(k.daily_quota_micro_usd))+'</span>' +
+        '<span>周 '+esc(limitText(k.weekly_quota_micro_usd))+'</span>' +
+        '<span>月 '+esc(limitText(k.monthly_quota_micro_usd))+'</span>' +
+        '<span>并发 '+esc(Number(k.max_concurrent_requests || 0) || '不限制')+'</span>' +
+        '</span>';
       if (quota <= 0) {
         return '<div class="quota-cell">' +
           '<div class="quota-line"><strong>不限制</strong><span class="muted">限额</span></div>' +
@@ -3059,7 +3367,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       state.keys.map(k => {
         const st = k.revoked_at ? '<span class="badge bad">已删除</span>' : (k.enabled ? '<span class="badge ok">启用</span>' : '<span class="badge warn">禁用</span>');
         return '<tr>' +
-          '<td><div class="key-label"><strong>'+esc(k.label||'(无标签)')+'</strong></div></td>' +
+          '<td><div class="key-label"><strong title="'+esc(k.label||'(无标签)')+'">'+esc(k.label||'(无标签)')+'</strong></div></td>' +
           '<td>'+modelChips(k.allowed_models)+'</td>' +
           '<td>'+quotaBlock(k)+'</td>' +
           '<td><div class="spend-cell"><span class="primary">'+esc(money(k.settled_spend_micro_usd))+'</span><span class="secondary">剩余 '+(Number(k.quota_micro_usd||0) <= 0 ? '不限制' : esc(money(k.remaining_micro_usd)))+'</span></div></td>' +
@@ -3883,7 +4191,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       items.map(u => {
         const settledCost = u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
-        return '<tr><td class="mono">'+esc(u.created_at)+'</td>'+usageAuthCell(u)+
+        return '<tr><td class="mono" title="'+esc(u.created_at)+'">'+esc(formatDateTime(u.created_at))+'</td>'+usageAuthCell(u)+
           '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
           '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(settledCost))+'">'+esc(formatMoney(settledCost))+'</td></tr>';
@@ -4364,18 +4672,13 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   document.querySelectorAll('#modelShareMetricSwitch [data-model-metric]').forEach(btn => {
     btn.addEventListener('click', () => setModelShareMetric(btn.dataset.modelMetric));
   });
+  document.querySelectorAll('#modelRankMetricSwitch [data-rank-metric]').forEach(btn => {
+    btn.addEventListener('click', () => setModelRankMetric(btn.dataset.rankMetric));
+  });
   document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(btn => {
-    btn.addEventListener('click', () => setTrendGrain(btn.dataset.trendGrain));
+    btn.addEventListener('click', () => setTrendGrain(btn.closest('.trend-grain-switch').dataset.trendChart, btn.dataset.trendGrain));
   });
   window.addEventListener('resize', resizeOverviewCharts);
-  $('usdCnyRate').addEventListener('change', () => setUsdCnyRate($('usdCnyRate').value));
-  $('usdCnyRate').addEventListener('keydown', event => {
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      setUsdCnyRate($('usdCnyRate').value);
-      $('usdCnyRate').blur();
-    }
-  });
   $('btnCloseFlash').addEventListener('click', clearFlash);
   $('btnOpenConnection').addEventListener('click', openConnectionModal);
   $('btnCloseConnection').addEventListener('click', closeConnectionModal);
@@ -4479,7 +4782,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     } catch (e) { flash(e.message, false); }
   });
   $('btnResetOverview').addEventListener('click', async () => {
-    $('overviewRangeFilter').value = '30';
+    $('overviewRangeFilter').value = 'today';
     $('overviewKeyFilter').value = '';
     $('overviewAuthFilter').value = '';
     closeKeySearch('overview');
@@ -4488,7 +4791,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     $('overviewSourceFilter').value = '';
     $('overviewFromFilter').value = '';
     $('overviewToFilter').value = '';
-    setTrendGrain('day');
+    setTrendGrain('token', 'day');
+    setTrendGrain('cost', 'day');
     refreshCustomControls();
     setOverviewRangeVisibility();
     try {
@@ -4577,7 +4881,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     } catch (e) { flash(e.message, false); }
   });
   $('btnClearUsageFilters').addEventListener('click', async () => {
-    $('usageRangeFilter').value = 'all';
+    $('usageRangeFilter').value = 'today';
     ['usageKeyFilter', 'usageAuthFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
     closeKeySearch('usage');
     closeAuthSearch('usage');
@@ -4599,6 +4903,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   syncModelShareMetricSwitch();
   initCustomControls();
   initPreferences();
+  fetchUsdCnyRate(false);
+  window.setInterval(() => fetchUsdCnyRate(false), 30 * 60 * 1000);
   if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
