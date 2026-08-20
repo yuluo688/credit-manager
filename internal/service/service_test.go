@@ -1,7 +1,10 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -242,6 +245,195 @@ func TestBuildReservePlanPerImageUsesRequestCount(t *testing.T) {
 	}
 	if entries[0].CostMicroUSD != 120_000 {
 		t.Fatalf("image cost = %d, want 120000", entries[0].CostMicroUSD)
+	}
+}
+
+func TestBuildReservePlanDisabledModel(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 2_000_000},
+	}); err != nil {
+		t.Fatalf("put glob: %v", err)
+	}
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "gpt-4o", MatchKind: store.MatchExact, Pattern: "gpt-4o", Priority: 100, Enabled: false,
+		Price: money.PricePerMTok{Input: 2_500_000, Output: 10_000_000},
+	}); err != nil {
+		t.Fatalf("put exact: %v", err)
+	}
+
+	if _, err := svc.BuildReservePlan(ctx, "gpt-4o", []byte(`{"model":"gpt-4o","max_tokens":16,"messages":[{"role":"user","content":"hi"}]}`)); !errors.Is(err, store.ErrModelDisabled) {
+		t.Fatalf("disabled model error = %v, want %v", err, store.ErrModelDisabled)
+	}
+}
+
+func TestFilterModelDirectoryRemovesDisabled(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1},
+	}); err != nil {
+		t.Fatalf("put glob: %v", err)
+	}
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "gpt-4o", MatchKind: store.MatchExact, Pattern: "gpt-4o", Priority: 100, Enabled: false,
+		Price: money.PricePerMTok{Input: 1},
+	}); err != nil {
+		t.Fatalf("put exact: %v", err)
+	}
+
+	body := []byte(`{"object":"list","data":[{"id":"gpt-4o","object":"model"},{"id":"claude-sonnet","object":"model"}]}`)
+	filtered, changed, err := svc.FilterModelDirectory(ctx, body)
+	if err != nil || !changed {
+		t.Fatalf("filter = %s changed=%t err=%v", filtered, changed, err)
+	}
+	var payload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(filtered, &payload); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].ID != "claude-sonnet" {
+		t.Fatalf("filtered = %#v", payload.Data)
+	}
+
+	keyFiltered, keyChanged, err := svc.FilterModelDirectoryForKey(ctx, body, store.PluginKey{AllowedModels: []string{"gpt-4o"}})
+	if err != nil || !keyChanged {
+		t.Fatalf("key filter = %s changed=%t err=%v", keyFiltered, keyChanged, err)
+	}
+	if err := json.Unmarshal(keyFiltered, &payload); err != nil {
+		t.Fatalf("decode key filter: %v", err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].ID != "claude-sonnet" {
+		t.Fatalf("directory list should only drop globally disabled models, got %#v", payload.Data)
+	}
+
+	allowedBody := []byte(`{"object":"list","data":[{"id":"claude-sonnet","object":"model"},{"id":"other","object":"model"}]}`)
+	allowedFiltered, allowedChanged, err := svc.FilterModelDirectoryForKey(ctx, allowedBody, store.PluginKey{AllowedModels: []string{"claude-sonnet"}})
+	if err != nil {
+		t.Fatalf("allowlist filter err=%v", err)
+	}
+	if allowedChanged {
+		t.Fatalf("allowlist must not clip GET /v1/models, got %s", allowedFiltered)
+	}
+
+	hidden := svc.HiddenDirectoryModels(ctx, []string{"gpt-4o", "claude-sonnet", "other"})
+	if len(hidden) != 1 || hidden[0] != "gpt-4o" {
+		t.Fatalf("hidden = %#v", hidden)
+	}
+}
+
+func TestFilterModelDirectoryHidesGlobDisabled(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1},
+	}); err != nil {
+		t.Fatalf("put glob all: %v", err)
+	}
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "claude", MatchKind: store.MatchGlob, Pattern: "claude-*", Priority: 50, Enabled: false,
+		Price: money.PricePerMTok{Input: 1},
+	}); err != nil {
+		t.Fatalf("put glob claude: %v", err)
+	}
+
+	body := []byte(`{"object":"list","data":[{"id":"gpt-4o"},{"id":"claude-sonnet"},{"id":"claude-opus"}]}`)
+	filtered, changed, err := svc.FilterModelDirectory(ctx, body)
+	if err != nil || !changed {
+		t.Fatalf("filter = %s changed=%t err=%v", filtered, changed, err)
+	}
+	var payload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(filtered, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].ID != "gpt-4o" {
+		t.Fatalf("filtered = %#v", payload.Data)
+	}
+	hidden := svc.HiddenDirectoryModels(ctx, []string{"gpt-4o", "claude-sonnet", "claude-opus"})
+	if len(hidden) != 2 || hidden[0] != "claude-opus" || hidden[1] != "claude-sonnet" {
+		t.Fatalf("hidden = %#v", hidden)
+	}
+	disabled, err := svc.disabledDirectoryModels(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(disabled) != 2 || disabled[0] != "claude-opus" || disabled[1] != "claude-sonnet" {
+		t.Fatalf("sync hidden = %#v", disabled)
+	}
+}
+
+func TestMergeAuthExcludedModelsPreservesUserExclusions(t *testing.T) {
+	raw := []byte(`{"type":"gemini","excluded_models":["keep-me","old-hidden"],"credit_manager_excluded_models":["old-hidden"],"token":"abc&def","expires":1712345678901,"nested":{"n":1,"s":"x<y"}}`)
+	out, changed, err := MergeAuthExcludedModels(raw, []string{"gpt-4o", "old-hidden"})
+	if err != nil || !changed {
+		t.Fatalf("merge changed=%t err=%v", changed, err)
+	}
+	var meta map[string]json.RawMessage
+	if err := json.Unmarshal(out, &meta); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if string(meta["token"]) != `"abc&def"` {
+		t.Fatalf("token rewritten: %s", meta["token"])
+	}
+	if string(meta["expires"]) != "1712345678901" {
+		t.Fatalf("expires rewritten: %s", meta["expires"])
+	}
+	if string(meta["nested"]) != `{"n":1,"s":"x<y"}` {
+		t.Fatalf("nested rewritten: %s", meta["nested"])
+	}
+	got := stringSliceFromRaw(meta["excluded_models"])
+	if !stringSlicesEqual(got, []string{"gpt-4o", "keep-me", "old-hidden"}) {
+		t.Fatalf("excluded_models = %#v", got)
+	}
+	if idx := bytes.Index(out, []byte(`"type"`)); idx < 0 || bytes.Index(out, []byte(`"token"`)) < idx {
+		t.Fatalf("top-level key order changed: %s", out)
+	}
+	if _, changedAgain, err := MergeAuthExcludedModels(out, []string{"gpt-4o", "old-hidden"}); err != nil || changedAgain {
+		t.Fatalf("second merge changed=%t err=%v", changedAgain, err)
 	}
 }
 

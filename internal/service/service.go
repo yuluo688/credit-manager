@@ -46,6 +46,9 @@ type Service struct {
 	authQuotaMu        sync.RWMutex
 	authQuotaSource    AuthQuotaSource
 	authQuotaRefreshMu sync.Mutex
+	directorySyncer    ModelDirectorySyncer
+	directoryIDsMu     sync.Mutex
+	lastDirectoryIDs   []string
 }
 
 var current atomic.Pointer[Service]
@@ -90,6 +93,7 @@ func Open(ctx context.Context, cfg config.Config) (*Service, error) {
 		_ = svc.Close()
 		return nil, fmt.Errorf("release stale reservations: %w", err)
 	}
+	svc.RefreshModelDirectory(ctx)
 	return svc, nil
 }
 
@@ -265,6 +269,9 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 	rule, err := s.store.ResolvePricingRule(ctx, model)
 	switch {
 	case err == nil:
+		if !rule.Enabled {
+			return ReservePlan{}, fmt.Errorf("%w: %s", store.ErrModelDisabled, model)
+		}
 		plan.Price = rule.Price
 		id := rule.ID
 		plan.PricingRuleID = &id
@@ -800,6 +807,10 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 		// Keep the locked SQLite writer. Opening a second handle deadlocks on *.db.lock.
 		next := &Service{cfg: cfg, peppers: peppers, store: old.store}
 		next.SetAuthQuotaSource(old.authQuotaSourceValue())
+		next.SetModelDirectorySyncer(old.directorySyncer)
+		old.directoryIDsMu.Lock()
+		next.lastDirectoryIDs = append([]string(nil), old.lastDirectoryIDs...)
+		old.directoryIDsMu.Unlock()
 		if err := next.ensureBootstrap(ctx); err != nil {
 			return err
 		}
@@ -809,6 +820,7 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 		if !current.CompareAndSwap(old, next) {
 			return fmt.Errorf("service replaced concurrently during reconfigure")
 		}
+		next.RefreshModelDirectory(ctx)
 		// Leave old.store attached: in-flight callers may still hold *old.
 		// Ownership of Close stays with the published Service / Shutdown.
 		return nil
@@ -833,5 +845,6 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 		return fmt.Errorf("release stale reservations: %w", err)
 	}
 	current.Store(svc)
+	svc.RefreshModelDirectory(ctx)
 	return nil
 }
