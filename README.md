@@ -1,24 +1,27 @@
 # CPA Credit Manager（`credit-manager`）
 
-面向 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的原生 Go 插件，为模型代理请求提供独立鉴权、额度控制和基于实际 Token 用量的结算能力。
+面向 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的原生 Go 插件，为模型代理请求提供独立鉴权、额度控制和基于实际用量的结算。
 
 [English README](README.en.md)
 
-插件 ID：`credit-manager`
+插件 ID：`credit-manager`  
+当前版本：`1.4.0`  
+仓库：https://github.com/yuluo688/credit-manager
 
 ## 核心能力
 
-1. **独立插件 Key 鉴权**：代理请求使用插件签发的 Key，不依赖宿主 `api-keys`。
-2. **按 Key 严格预占额度**：请求转发前按保守 Token 上限预留额度，余额不足时拒绝请求。
-3. **按实际 Token 用量结算**：解析上游响应中的 usage，在同一请求链路内完成结算。
-4. **可视化与 API 管理**：支持 Key、可用模型、价格规则、额度、用量和审计记录的统一管理。
-5. **认证额度视图**：管理端可查看 Codex、Claude、Antigravity、Kimi、xAI OAuth 认证的上游额度窗口和安全的本地用量预测。
+1. **独立插件 Key 鉴权**：代理请求使用插件签发的 `tk-...` Key，不依赖宿主 `api-keys`。
+2. **按 Key 严格预占**：转发前按保守 Token 上限或出图张数预留额度，余额或并发不足时拒绝请求。
+3. **按实际用量结算**：解析上游 usage；文本按 Token 计价，纯出图按张计价。
+4. **可视化与 API 管理**：统一管理 Key、模型启停、价格规则、额度、用量和审计。
+5. **认证额度视图**：管理端可查看 Codex、Claude、Antigravity、Kimi、xAI OAuth 认证的上游额度窗口，以及可安全映射的本地用量预测。
+6. **Key 自助查询**：Key 持有人无需 CPA 管理密钥即可查看自己的额度和用量。
 
 ## 设计目标
 
-在高并发场景中，宿主 `api-keys` 与 usage 回调难以稳定关联调用身份和实际用量。本插件将鉴权、预占、透明转发与结算纳入同一执行链路，从而确保每笔用量均归属到明确的插件 Key。
+在高并发场景中，宿主 `api-keys` 与 usage 回调难以稳定关联调用身份和实际用量。本插件将鉴权、预占、透明转发与结算纳入同一执行链路，确保每笔用量归属到明确的插件 Key。
 
-请求使用以下鉴权头：
+请求只带签发出来的整串 Key，不要拆、也不要另传 ID：
 
 ```text
 Authorization: Bearer tk-...
@@ -26,47 +29,48 @@ Authorization: Bearer tk-...
 
 ## 快速开始
 
-1. 编译并部署动态库。Windows 可使用 `scripts\deploy.ps1` 部署至 `D:\CLIProxyAPI\plugins\windows\amd64`。
+1. 编译并部署动态库。Windows 可使用 `scripts\deploy.ps1`，默认复制到 `D:\CLIProxyAPI\plugins\windows\amd64`。
 2. 在 CLIProxyAPI 管理中心启用 `credit-manager`。宿主配置可为空；切换开关或重载配置通常无需重启。
 3. 仅在替换动态库文件后重启 CLIProxyAPI。Windows 已加载的 DLL 通常无法热替换。
-4. 在侧栏打开 **CPA 额度管理**，输入宿主管理密钥后，签发插件 Key 并设置总/日/周/月额度、最大并发、可用模型和模型计价规则；随后可查询按 Key 和模型聚合的用量统计。
+4. 在侧栏打开 **CPA 额度管理**，输入宿主管理密钥后，签发插件 Key，并设置总/日/周/月额度、最大并发、可用模型和计价规则。
 5. 客户端携带 `Authorization: Bearer tk-...` 调用模型接口。
 6. 可将 Key 自助查询链接提供给 Key 持有人，无需提供 CPA 管理密钥。
 
-> **重要：** 启用 `credit-manager` 后，插件会接管代理请求的前端鉴权。原先配置在 CPA 中的 `api-keys` 或其他宿主 Key 将无法用于模型请求；请在 **CPA 额度管理** 中签发 `tk-...` 格式的插件 Key，并将客户端改用该 Key。
+> **重要：** 启用后，插件独占代理请求的前端鉴权。原先配置在 CPA 中的 `api-keys` 或其他宿主 Key 不能再用于模型请求。请签发 `tk-...` 插件 Key，并让客户端改用该 Key。
 
-> 为兼容 CPA 管理中心的可用模型目录，插件允许匿名读取 `GET /v1/models`；该例外仅返回模型名称，不能调用模型或访问管理接口。
+> 为兼容 CPA 管理中心，`GET /v1/models` 与 `GET /v1beta/models` 可不带插件 Key。这只返回模型目录，不能据此调用模型。全局禁用的模型会从目录中去掉；某个 Key 的可用模型名单不会裁剪这份公共目录。
 
-首次启动时，插件会自动完成以下初始化：
+首次启动时，插件会自动完成：
 
 | 项 | 默认 |
 |----|------|
 | pepper | `data_dir/key-peppers` 自动生成 |
-| 归属记录 | `default`，仅用于 Key 归属与使用统计 |
-| 价格 | 全模型规则 `.*`，费用 0；`unknown_policy=allow` |
-| 插件 Key | **不自动创建**；请通过侧栏或管理 API 手动签发，并按需设置总/日/周/月额度及最大并发 |
+| 归属记录 | `default`，仅用于 Key 归属与使用统计，不承载额度 |
+| 价格 | 规则 `bootstrap-all-models`：regexp `.*`，费用 0；`unknown_policy=allow` |
+| 插件 Key | **不自动创建**；请通过侧栏或管理 API 签发，并按需设置额度 |
 
-> 生产环境应配置实际价格，并为每个插件 Key 设置合理额度。以下章节说明编译、部署及可选高级配置。
+> 生产环境应配置实际价格，并为每个插件 Key 设置合理额度。
 
 ### 前置要求
 
 | 组件 | 要求 |
 |------|------|
-| CLIProxyAPI | 建议使用 `v7.2.128+`，并确保模型代理已正常运行 |
+| CLIProxyAPI | 建议 `v7.2.128+`，并确保上游模型代理已正常运行 |
 | 本插件 | 编译成对应平台动态库（Windows `.dll` / Linux `.so` / macOS `.dylib`） |
-| C 工具链 | 编译插件需要 `gcc`/`clang`（CGO + `c-shared`） |
+| C 工具链 | 需要 `gcc`/`clang`（CGO + `c-shared`）。Windows 也可用 Zig（`zig cc`） |
+| Go | `1.26+` |
 
-> Windows 环境需要安装 MinGW-w64 或其他可用的 gcc 工具链。替换 DLL 后，必须重启 CLIProxyAPI 以加载新的二进制文件。
+> Windows 替换 DLL 后必须重启 CLIProxyAPI。商店升级写入带版本号的新 DLL 时，见下文「Windows 插件升级」。
 
 ### 1. 编译插件
 
 **Windows（PowerShell）**
 
 ```powershell
-# 需要 PATH 里有 gcc
-# 若 PowerShell 提示脚本执行受到限制，请选择以下任一方式：
+# 需要 PATH 里有 gcc，或已安装 Zig
+# 若脚本执行受限，请选择以下任一方式：
 
-# 方式 A：仅本次执行时绕过策略（推荐）
+# 方式 A：仅本次绕过策略（推荐）
 powershell -ExecutionPolicy Bypass -File .\scripts\build.ps1
 
 # 编译并复制至本机 CLIProxyAPI 插件目录
@@ -81,7 +85,7 @@ go build -buildmode=c-shared -o dist\credit-manager.dll .
 # Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-输出文件：`dist\credit-manager.dll` 及其同名 `.h` 头文件。
+输出：`dist\credit-manager.dll` 及同名 `.h` 头文件。
 
 **Linux / macOS**
 
@@ -94,24 +98,23 @@ chmod +x scripts/build.sh
 
 ### Pepper 管理
 
-插件 Key 的 HMAC 校验依赖 pepper。pepper **不得存储于 SQLite 数据库中**。
+插件 Key 的 HMAC 校验与可恢复存储依赖 pepper。pepper **不得写入 SQLite**。
 
-默认行为：
+默认顺序：
 
-1. 若设置了非空环境变量 `CREDIT_MANAGER_KEY_PEPPERS`，则使用该环境变量。
-2. 否则读取 `data_dir/key-peppers`。
-3. 若文件不存在，则在**首次启动时生成 32 字节随机 pepper 并写入该文件**，后续持续复用。
+1. 非空环境变量 `CREDIT_MANAGER_KEY_PEPPERS`
+2. 否则读取 `data_dir/key-peppers`
+3. 文件不存在时，首次启动生成 32 字节随机 pepper 并写入该文件（权限 `0600`）
 
 ```text
-# 自动生成后的文件示例（权限 0600）
 ./data/credit-manager/key-peppers
 # 内容形如：
 # active:a1b2c3...（64 位 hex）
 ```
 
-**备份 `data_dir` 时必须一并备份 `key-peppers`。** 删除 pepper 后重新启动会生成新的 pepper，现有插件 Key 将全部失效。
+**备份 `data_dir` 时必须一并备份 `key-peppers`。** 删除 pepper 后重启会生成新 pepper，现有 Key 全部失效，已加密保存的明文也无法再揭示。
 
-可选：通过环境变量覆盖文件配置，适用于运维托管或多节点共享密钥的场景：
+可选覆盖：
 
 ```powershell
 $env:CREDIT_MANAGER_KEY_PEPPERS = "active:0123456789abcdef0123456789abcdef"
@@ -121,12 +124,12 @@ $env:CREDIT_MANAGER_KEY_PEPPERS = "active:0123456789abcdef0123456789abcdef"
 export CREDIT_MANAGER_KEY_PEPPERS='active:0123456789abcdef0123456789abcdef'
 ```
 
-格式为 `id:pepper`；多个 pepper 可写为 `id1:p1,id2:p2`，或在文件中每行写入一个。`active_pepper_id` 用于指定签发新 Key 时使用的 pepper ID。
+格式为 `id:pepper`；多个 pepper 可写为 `id1:p1,id2:p2`，或在文件中每行一个。`active_pepper_id` 指定签发新 Key 时使用的 pepper ID。
 
 ### 部署到 CLIProxyAPI
 
 1. 将动态库复制到宿主插件目录。Windows 示例：`D:\CLIProxyAPI\plugins\windows\amd64\credit-manager.dll`；也可使用 `scripts\deploy.ps1`。
-2. 在 CPAMC 或管理中心的 **插件管理** 中启用 `credit-manager`，也可在宿主 YAML 中设置 `enabled: true`。
+2. 在 CLIProxyAPI 管理中心的 **插件管理** 中启用 `credit-manager`，也可在宿主 YAML 中设置 `enabled: true`。
 3. 替换动态库后，重启 CLIProxyAPI。
 
 **推荐的宿主配置（零配置）**：
@@ -141,7 +144,7 @@ plugins:
       # config 可完全省略；需要覆盖时再写
 ```
 
-可选：通过外部文件覆盖默认值：
+可选外部文件：
 
 ```yaml
 items:
@@ -152,64 +155,87 @@ items:
 ```
 
 ```bash
-# Linux/macOS：通过环境变量指定外部配置文件
 export CREDIT_MANAGER_CONFIG_FILE=/path/to/config.yaml
 ```
 
-宿主会将 `plugins.items.*.config` 作为 `config_yaml` 注入插件；插件随后解析 `config_file` 或环境变量。完整字段定义见 `config.example.yaml`。
+宿主会将 `plugins.items.*.config` 作为 `config_yaml` 注入插件；插件随后解析 `config_file` 或环境变量。完整字段见 `config.example.yaml`。宿主内联字段覆盖文件；文件内嵌套的 `config_file` 会被忽略。
 
 同时确保：
 
-- 宿主已配置**上游模型凭据**（OAuth、API Key 等）。本插件仅负责鉴权与额度管理，不处理上游登录。
-- **独占前端鉴权**：启用后，代理请求仅接受插件 `tk-...` Key；原先的宿主 `api-keys` 和其他 CPA Key 均不再可用于模型请求。
-- 默认 `data_dir`（`./data/credit-manager`）必须可写，其中保存 `key-peppers` 和 SQLite 数据库。
+- 宿主已配置**上游模型凭据**（OAuth、API Key 等）。本插件只做鉴权与额度，不处理上游登录。
+- **独占前端鉴权**：代理请求只接受插件 `tk-...` Key。
+- 默认 `data_dir`（`./data/credit-manager`）必须可写，其中保存 `key-peppers`、SQLite，以及可选的 `models-dev-api.json` 缓存。
 
 ### 签发插件 Key
 
-1. 确认宿主已启动且插件处于启用状态。
-2. 在侧栏打开 **CPA 额度管理**（资源页 `/console`），签发插件 Key 并设置额度。
-3. 也可调用 `POST /v0/management/credit-manager/keys`；可分别设置总、日、周、月额度和最大并发。
-4. 可选：通过以下接口进行健康检查。此处使用宿主管理密钥，而非插件 Key：
+1. 确认宿主已启动且插件已启用。
+2. 在侧栏打开 **CPA 额度管理**（资源页 `/console`），签发 Key 并设置额度。
+3. 也可调用 `POST /v0/management/credit-manager/keys`；可设置总/日/周/月额度、最大并发、可用模型、过期时间，或导入已有明文。
+4. 健康检查使用**宿主管理密钥**，不是插件 Key：
 
 ```bash
 curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/health" \
   -H "Authorization: Bearer <宿主管理密钥>"
 ```
 
-端口与管理鉴权头以宿主配置为准。若侧栏未显示菜单，请确认插件已启用、DLL 为包含 Resources 的最新构建，并在替换 DLL 后重启宿主。
+端口与管理鉴权头以宿主配置为准。若侧栏没有菜单，请确认插件已启用、动态库包含 Resources，并在替换文件后重启宿主。
 
 ### Key 自助查询页面
 
-Key 持有人可通过以下独立页面查看**自己的**额度和使用统计，无需登录 CPA 管理面板或持有宿主管理密钥：
+Key 持有人可通过独立页面查看**自己的**额度和使用统计，无需登录 CPA 管理面板：
 
 ```text
 http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup
 ```
 
-页面会要求输入 `tk-...` 插件 Key，并仅查询该 Key 的数据。可查看：
+页面要求输入整串 `tk-...`，并只返回该 Key 的数据：
 
-- 总/日/周/月额度、当前在途请求和最大并发进度。
-- 按时间范围与模型筛选的请求数、Token 和费用。
-- Token/费用趋势、模型调用占比和最近调用明细。
-- 最近调用的服务端分页。
+- 总/日/周/月额度、在途请求和最大并发。日/周/月额度按 UTC 计算。
+- 筛选里的「今日」按 **UTC 自然日**，与管理控制台的本地自然日不同。
+- Token/费用趋势（时/日/月相互独立）、模型调用占比和最近调用明细。
+- 显示货币可在 USD / CNY 间切换（汇率仅用于展示，不写入账本）。
 
 安全边界：
 
-- 页面不需要 CPA 管理登录，也不会显示在 CPA 管理侧栏中；请按需将上述 URL 分享给 Key 持有人。
-- Key 仅作为当前请求的 `Authorization: Bearer` 头发送，不写入 URL、页面持久存储或浏览器存储。
-- 公开响应不包含宿主账号、调用方 ID、插件 Key ID、认证文件路径或邮箱等内部字段。
-- 建议仅在受信任网络中暴露 CPA 的 `8317` 端口，并通过 HTTPS 反向代理对外提供访问。
+- 页面不出现在 CPA 管理侧栏，也不需要宿主管理密钥。
+- 插件 Key 只作为当前请求的 `Authorization: Bearer` 头发送，不写入 URL 或浏览器存储。主题、语言、显示单位等偏好除外。
+- 公开响应不包含宿主账号、caller ID、插件 Key ID、认证文件路径或邮箱。
+- 建议仅在受信任网络暴露 CPA 端口，并通过 HTTPS 反向代理对外提供访问。
 
-### 管理 API：生产配置
+### 管理控制台
 
-零配置会自动创建 `default` 归属记录与覆盖全部模型的免费价格规则，**不会自动创建插件 Key**。以下接口用于生产环境中管理额度、价格规则和多个插件 Key。示例假定：
+启用后，管理中心侧栏显示 **CPA 额度管理**：
+
+```text
+/v0/resource/plugins/credit-manager/console
+```
+
+页面在浏览器 `sessionStorage` 中保存宿主管理密钥，并调用管理 API。标签页：
+
+| 标签 | 内容 |
+|------|------|
+| 概览 | 按时间、Key、上游账号、模型、来源筛选。「今日」按浏览器本地自然日，与 Key 的 UTC 日额度不是同一口径 |
+| Key 管理 | 签发、查看、揭示、轮换、启停、撤销、删除；设置额度、并发和可用模型 |
+| 模型与价格 | 加载当前代理模型，按模型设 Token 价或按张价，启用/禁用模型；可从 models.dev 目录回填公开价格 |
+| 使用统计 | 与概览类似的筛选，外加费用/Token 区间；按 Key、按模型汇总和分页明细 |
+| 认证额度 | OAuth 认证的上游额度窗口与本地预测 |
+
+控制台里填写和展示的是美元（可切人民币显示）。管理 API 的额度/价格字段是 **micro-USD**（`1 USD = 1_000_000`）。不要把控制台里的 `10` 原样发到 API。汇率来自公开报价，缓存约 30 分钟，失败时回退 `7.2`，只用于显示。
+
+---
+
+## 管理 API：生产配置
+
+零配置会创建 `default` 归属记录和全模型免费规则，**不会自动创建插件 Key**。示例假定：
 
 - 宿主地址：`http://127.0.0.1:8317`
-- 管理密钥：`MGMT_TOKEN`（替换成你的）
+- 管理密钥：`MGMT_TOKEN`
+
+所有管理路由使用宿主管理密钥，路径是固定的，没有 `/keys/{id}` 这种路径参数。记录 ID 放在 JSON 或查询参数里。创建 Key 返回的 `id` 只给管理接口用，请求模型时仍只带整串 `tk-...`。
 
 #### 创建归属记录（caller）
 
-caller 用于组织插件 Key 并聚合用量记录，**不承载额度**。可直接使用默认 `default`，也可按团队或业务单元创建。
+caller 用于组织插件 Key 并聚合用量，**不承载额度**。可直接使用 `default`，也可按团队创建。
 
 ```bash
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/callers" \
@@ -222,13 +248,11 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/callers" \
   }'
 ```
 
-金额单位为 **micro-USD**，用于插件 Key 的 `quota_micro_usd`：
-
-- `1 USD = 1_000_000 micro-USD`
+金额单位为 **micro-USD**：`1 USD = 1_000_000 micro-USD`。
 
 #### 配置模型价格
 
-价格使用 **每 100 万 Token 的 micro-USD 单价**。
+文本模型价格是 **每 100 万 Token 的 micro-USD**。纯出图模型使用 `billing_mode: per_image`，`per_image` 为每张的 micro-USD。
 
 ```bash
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing" \
@@ -243,15 +267,30 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing" \
     "price": {
       "input": 2500000,
       "output": 10000000,
-      "reasoning": 0,
-      "cached": 0,
-      "cache_read": 0,
-      "cache_creation": 0
+      "cache_read": 1250000,
+      "cache_creation": 0,
+      "accounting_mode": "input_includes_cache"
     }
   }'
 ```
 
-也可使用通配规则：
+出图示例：
+
+```json
+{
+  "id": "gpt-image-1",
+  "match_kind": "exact",
+  "pattern": "gpt-image-1",
+  "priority": 100,
+  "enabled": true,
+  "price": {
+    "billing_mode": "per_image",
+    "per_image": 40000
+  }
+}
+```
+
+也可使用通配：
 
 ```json
 {
@@ -265,9 +304,9 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing" \
 ```
 
 `match_kind`：`exact` | `glob` | `regexp`  
-规则匹配时，**priority 值更高的规则优先**。最高优先级命中的规则若 `enabled: false`，该模型会被拒绝，并且不会出现在 `GET /v1/models` / `GET /v1beta/models` 中。
+匹配时 **priority 更高者优先**；同分再按规则 ID 升序。**禁用规则仍参与匹配。** 最高优先级命中的规则若 `enabled: false`，该模型会被拒绝，并从 `GET /v1/models` / `GET /v1beta/models` 中剔除；插件还会把这些模型合并进宿主认证文件的排除列表（只改插件管理的字段，其它 JSON 原样拷贝）。
 
-配置 `pricing.unknown_policy: deny` 后，**未命中价格规则的模型请求将被直接拒绝**。
+`pricing.unknown_policy: deny` 时，未命中任何规则的模型请求会被拒绝。
 
 ```bash
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing/enabled" \
@@ -276,10 +315,10 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing/ena
   -d '{"id":"gpt-4o","enabled":false}'
 ```
 
-#### 签发插件 Key（明文仅返回一次）
+#### 签发插件 Key（明文仅在创建/轮换/揭示时返回）
 
 ```bash
-curl -sS -D - -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys" \
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys" \
   -H "Authorization: Bearer MGMT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -289,47 +328,54 @@ curl -sS -D - -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys" 
     "daily_quota_micro_usd": 1000000,
     "weekly_quota_micro_usd": 5000000,
     "monthly_quota_micro_usd": 10000000,
-    "max_concurrent_requests": 3
+    "max_concurrent_requests": 3,
+    "allowed_models": ["gpt-4o", "claude-*"]
   }'
 ```
 
-响应里会有：
+响应包含：
 
 ```json
 {
   "id": "...",
-  "kid": "...",
   "fingerprint": "...",
-  "plaintext": "tk-xxxx_yyyy",
-  ...
+  "plaintext": "tk-..."
 }
 ```
 
-**请立即安全保存 `plaintext`。后续任何接口均不会返回完整密钥。**
+`plaintext` 才是客户端要带的 Key。`id` 是管理记录 ID，给 update/reveal/revoke 用，不能拿去当 Bearer。列表接口不返回明文。较新签发的 Key 可用 `POST .../keys/reveal` 再看一次；更早、尚未做可恢复存储的 Key 需要先轮换。
 
-#### 查询额度、用量与审计记录
+可选字段：
+
+| 字段 | 含义 |
+|------|------|
+| `key_material` | 导入已有 `tk-...` 明文，而不是随机签发 |
+| `expires_at` | RFC3339 过期时间 |
+| `allowed_models` | 空表示全部模型；否则仅允许列出的 exact/glob 模式 |
+| `quota_micro_usd` | `total_quota_micro_usd` 的别名 |
+
+#### 查询额度、用量与审计
 
 ```bash
-# Key 额度
 curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/balance?key_id=<plugin_key_id>" \
   -H "Authorization: Bearer MGMT_TOKEN"
 
-# 用量流水
 curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/usage?caller_id=team-a&limit=50" \
   -H "Authorization: Bearer MGMT_TOKEN"
 
-# 审计
 curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/audit?caller_id=team-a&limit=50" \
   -H "Authorization: Bearer MGMT_TOKEN"
 ```
 
+用量与概览还支持 `plugin_key_id`、`model`、`source`、`auth_id`、`auth_provider`、`from`、`to`、费用和 Token 区间等筛选。
+
 ### 调用模型接口
 
-**请勿使用宿主 `api-keys`。** 请通过侧栏或管理 API 手动签发设置了额度的插件 Key：
+**请勿使用宿主 `api-keys`。**
 
 ```bash
 curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
-  -H "Authorization: Bearer tk-xxxx_yyyy" \
+  -H "Authorization: Bearer tk-..." \
   -H "Content-Type: application/json" \
   -d '{
     "model": "gpt-4o",
@@ -338,14 +384,16 @@ curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
   }'
 ```
 
-请求处理过程如下：
+文本/对话请求：
 
 1. 校验 Bearer Key。
-2. 根据模型价格和保守 Token 上限执行**严格预占**。
-3. 通过宿主透明转发至实际的上游模型。
-4. 从响应 usage 结算；若未返回 usage，则按 `settlement.missing_usage` 策略处理，默认按预占额结算。
+2. 按模型价格和保守 Token 上限**严格预占**。
+3. 通过宿主透明转发至上游。
+4. 从上游 usage 或宿主后续用量回调结算。若始终没有 usage：文本默认记 `0` 费用（不会把预估 `max_tokens` 当实扣）；出图按预占张数结算。配置 `settlement.missing_usage=release` 时直接释放预占、不记账。
 
-额度不足时，请求将在预占阶段被直接拒绝（fail-closed）。额度按插件 Key 独立管理，互不共享。
+纯出图（如 `/v1/images/*`、`gpt-image-*`）走宿主原生出图接口：先预占，请求完成后再结算。
+
+额度不足时，请求在预占阶段被拒绝。额度按插件 Key 独立管理。Key 若限制了可用模型，不在名单里的调用会被拒绝；全局禁用的模型同样会被拒绝，并且不会出现在公共模型目录里。
 
 ---
 
@@ -363,29 +411,49 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/update
     "daily_quota_micro_usd":2000000,
     "weekly_quota_micro_usd":10000000,
     "monthly_quota_micro_usd":20000000,
-    "max_concurrent_requests":5
+    "max_concurrent_requests":5,
+    "set_allowed_models": true,
+    "allowed_models": ["gpt-4o"]
   }'
 ```
 
-### 禁用或启用插件 Key
+更新可用模型时必须带 `set_allowed_models: true`，否则不会改该字段。传入空数组表示允许全部模型。
+
+### 禁用、轮换、揭示、撤销、删除
 
 ```bash
+# 禁用
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/update" \
   -H "Authorization: Bearer MGMT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"id":"<plugin_key_id>","enabled":false}'
-```
 
-### 撤销插件 Key
+# 揭示明文（需要可恢复存储）
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/reveal" \
+  -H "Authorization: Bearer MGMT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"<plugin_key_id>"}'
 
-```bash
+# 轮换：签发新明文，并撤销旧 Key（旧明文立刻失效，不能再启用；历史用量留在旧记录上）
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/rotate" \
+  -H "Authorization: Bearer MGMT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"<plugin_key_id>"}'
+
+# 撤销：立刻失效且不能再启用
 curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/revoke" \
+  -H "Authorization: Bearer MGMT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"<plugin_key_id>"}'
+
+# 删除：效果等同撤销，数据库行仍在，控制台显示「已删除」，用量历史可查
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/delete" \
   -H "Authorization: Bearer MGMT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"id":"<plugin_key_id>"}'
 ```
 
-### 列出插件 Key（不包含明文）
+### 列出插件 Key（不含明文）
 
 ```bash
 curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team-a" \
@@ -396,77 +464,96 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 
 ## 管理 API
 
-所有接口均使用宿主 `/v0/management` 鉴权。路由采用**精确匹配**；ID 应放在请求体或查询参数中，而非路径参数中。
-
-启用插件后，管理中心侧栏将显示 **「CPA 额度管理」**（资源页：`/v0/resource/plugins/credit-manager/console`）。在页面中输入宿主管理密钥后，可视化管理插件 Key、可用模型、额度及按 Key 统计数据。若菜单未显示，请确认插件已启用，并在替换最新 DLL 构建后重启宿主。
-
 | 方法 | 路径 | 作用 |
 |------|------|------|
-| GET | `/v0/management/credit-manager/health` | 健康检查 |
-| GET | `/v0/management/credit-manager/overview` | 控制台总览（归属记录/Key/价格/统计） |
-| POST | `/v0/management/credit-manager/callers` | 创建插件 Key 归属记录 |
-| GET | `/v0/management/credit-manager/callers` | 列出插件 Key 归属记录 |
+| GET | `/v0/management/credit-manager/health` | 健康检查（含插件版本） |
+| GET | `/v0/management/credit-manager/overview` | 控制台总览 |
+| POST | `/v0/management/credit-manager/callers` | 创建归属记录 |
+| GET | `/v0/management/credit-manager/callers` | 列出归属记录 |
 | POST | `/v0/management/credit-manager/callers/enabled` | 启停归属记录 |
-| POST | `/v0/management/credit-manager/keys` | 签发插件 Key（可设置总/日/周/月额度、最大并发和 `allowed_models`） |
-| GET | `/v0/management/credit-manager/keys` | 列出插件 Key（`caller_id` 可选） |
-| POST | `/v0/management/credit-manager/keys/update` | 更新 Key 标签、启用状态、各额度、最大并发或可用模型 |
-| POST | `/v0/management/credit-manager/keys/revoke` | 撤销插件 Key |
+| POST | `/v0/management/credit-manager/keys` | 签发 Key |
+| GET | `/v0/management/credit-manager/keys` | 列出 Key |
+| POST | `/v0/management/credit-manager/keys/update` | 更新标签、启停、额度、并发、可用模型、过期时间 |
+| POST | `/v0/management/credit-manager/keys/rotate` | 轮换 Key |
+| POST | `/v0/management/credit-manager/keys/reveal` | 揭示明文 |
+| POST | `/v0/management/credit-manager/keys/revoke` | 撤销 Key（不可再启用） |
+| POST | `/v0/management/credit-manager/keys/delete` | 标记删除（行仍保留，控制台显示已删除） |
 | POST | `/v0/management/credit-manager/pricing` | 新增/更新价格规则 |
-| GET | `/v0/management/credit-manager/pricing` | 列价格规则 |
-| POST | `/v0/management/credit-manager/pricing/enabled` | 启用/禁用模型（禁用后无法调用，`GET /v1/models` 也不返回） |
+| GET | `/v0/management/credit-manager/pricing` | 列出价格规则 |
+| POST | `/v0/management/credit-manager/pricing/enabled` | 启用/禁用规则（从而启停模型） |
 | POST | `/v0/management/credit-manager/pricing/delete` | 删除价格规则 |
-| GET | `/v0/management/credit-manager/balance?key_id=` | 查询插件 Key 剩余额度 |
-| GET | `/v0/management/credit-manager/usage` | 查询用量流水（可按 `plugin_key_id` 或 `model` 过滤） |
-| GET | `/v0/management/credit-manager/usage/summary` | 按插件 Key 和模型汇总 |
-| GET | `/v0/management/credit-manager/audit?caller_id=` | 审计事件 |
-| GET | `/v0/management/credit-manager/auth-quotas` | OAuth 认证额度窗口和本地用量预测 |
+| GET | `/v0/management/credit-manager/balance?key_id=` | 查询 Key 余额 |
+| GET | `/v0/management/credit-manager/usage` | 用量流水（分页） |
+| GET | `/v0/management/credit-manager/usage/summary` | 按 Key 和模型汇总 |
+| GET | `/v0/management/credit-manager/audit` | 审计事件 |
+| GET | `/v0/management/credit-manager/auth-quotas` | OAuth 认证额度窗口 |
+
+浏览器页面不走宿主管理鉴权。控制台打开后仍要输入管理密钥；自助查询打开后仍要输入插件 Key。下面两个辅助地址给页面自己用，一般不必手调：
+
+| 路径 | 作用 |
+|------|------|
+| `/v0/resource/plugins/credit-manager/console` | 管理控制台页面 |
+| `/v0/resource/plugins/credit-manager/lookup` | Key 自助查询页面 |
+| `/v0/resource/plugins/credit-manager/lookup/data` | 自助查询数据（要带插件 Key） |
+| `/v0/resource/plugins/credit-manager/fx/usd-cny` | 控制台用的 USD/CNY 展示汇率 |
+| `/v0/resource/plugins/credit-manager/models-dev` | 控制台用的公开价格目录缓存 |
+
+签发、轮换、揭示和认证额度响应固定 `Cache-Control: no-store`。
 
 ### 认证额度视图
 
-侧栏 **认证额度** 标签和 `GET /v0/management/credit-manager/auth-quotas` 仅允许宿主管理鉴权访问，成功响应固定设置 `Cache-Control: no-store`；公开 Key 自助查询页面不会展示认证文件或认证额度数据。
+侧栏 **认证额度** 和 `GET /v0/management/credit-manager/auth-quotas` 仅允许宿主管理鉴权；公开自助查询页不展示认证文件或认证额度。
 
 - 支持 Codex/ChatGPT、Claude、Antigravity、Kimi、xAI 的 OAuth 认证；仅 API Key 的认证不会进入结果。
-- 采样通过 CLIProxyAPI 宿主 HTTP callback 和全局出站策略执行。管理 callback 无法、安全上也不会直接应用认证文件中的 `proxy_url`。
-- 单个认证最多每 15 分钟尝试刷新一次。刷新失败会保留最后成功快照并显示为 `stale`；从未成功采样的认证显示为 `unavailable`。
-- 百分比、请求数、credits 和 USD 等上游原生单位会分别展示。只有能安全映射到账本周期和模型池的窗口才会显示本地调用预测；网页、其他 CLI 或其他代理节点的使用会降低真实可用调用次数。
-- SQLite 快照与管理响应不会包含 OAuth Token、上游账户 ID、认证文件路径、proxy URL 或原始上游响应。私有上游接口可能随时调整。
+- 采样走 CLIProxyAPI 宿主 HTTP callback 和全局出站策略。管理 callback 不会套用认证文件里的 `proxy_url`。
+- 单个认证最多每 15 分钟尝试刷新一次。失败会保留最后成功快照并标为 `stale`；从未成功采样则为 `unavailable`。
+- 百分比、请求数、credits、USD 等上游单位分别展示。只有能安全映射到账本周期和模型池的窗口才显示本地调用预测；网页、其它 CLI 或其它代理节点的使用会降低真实剩余次数。
+- SQLite 快照与管理响应不包含 OAuth Token、上游账户 ID、认证文件路径、proxy URL 或原始上游响应。私有上游接口可能随时调整。
 
 ---
 
 ## 插件配置说明
 
-完整配置示例见 `config.example.yaml`。
+完整示例见 [`config.example.yaml`](config.example.yaml)。
 
 | 字段 | 含义 |
 |------|------|
-| `data_dir` | 插件数据目录，用于存放 SQLite、锁文件和 pepper 文件 |
-| `database_file` | 数据库文件名，默认值为 `credit-manager.db` |
-| `busy_timeout` | SQLite 忙等待时长，例如 `5s` |
-| `keys.pepper_env` | 可选的 pepper 环境变量名；存在有效值时优先于文件 |
-| `keys.pepper_file` | pepper 文件路径，可相对 `data_dir` 或使用绝对路径；默认 `key-peppers`，不存在时首次启动自动生成 |
-| `keys.active_pepper_id` | 签发新插件 Key 时使用的 pepper ID |
-| `limits.max_token_estimate` | 单个请求允许的 Token 预估上限，超过时直接拒绝 |
-| `limits.default_output_reserve` | 请求体未提供 `max_tokens` 时的默认输出 Token 预占量 |
-| `pricing.unknown_policy` | 未匹配价格规则时的策略：`deny`、`allow` 或 `default`；零配置默认 `allow` |
-| `settlement.missing_usage` | 上游未返回 usage 时的处理策略：`settle_reserved` 或 `release` |
-| `stream.max_buffer_bytes` | 流式结算的本地缓冲区上限 |
-| `stream.stale_reservation_timeout` | 无心跳的在途预约自动释放阈值，默认 `2h`；正常流式请求会定期更新心跳 |
+| `data_dir` | 插件数据目录：SQLite、锁文件、pepper、models.dev 缓存 |
+| `database_file` | 数据库文件名，默认 `credit-manager.db` |
+| `busy_timeout` | SQLite 忙等待，例如 `5s` |
+| `keys.pepper_env` | pepper 环境变量名；有有效值时优先于文件 |
+| `keys.pepper_file` | pepper 文件，相对 `data_dir` 或绝对路径；默认 `key-peppers` |
+| `keys.active_pepper_id` | 签发新 Key 使用的 pepper ID |
+| `limits.max_token_estimate` | 单请求 Token 预估上限，超过则拒绝 |
+| `limits.default_output_reserve` | 请求体未提供 `max_tokens` 时的默认输出预占 |
+| `limits.require_estimate` | `true` 时拒绝无法估计 Token 的请求 |
+| `pricing.unknown_policy` | 未匹配规则：`deny`、`allow` 或 `default`；零配置默认 `allow` |
+| `pricing.default` | 仅 `unknown_policy=default` 时需要的默认单价 |
+| `settlement.missing_usage` | 上游无 usage：`release` 直接放预占；`settle_reserved` 对文本记 0 并等回调，对出图按张结算。名字不代表按预占额实扣 |
+| `settlement.host_usage_wait` | 结算前等待宿主用量回调的时长，默认 `1500ms`；`0` 关闭 |
+| `stream.max_buffer_bytes` | 流式结算本地缓冲上限 |
+| `stream.stale_reservation_timeout` | 无心跳在途预约自动释放阈值，默认 `2h` |
+
+正常流式和非流式请求会刷新预约心跳。过期预约在启动、配置重载以及新预占前定期回收。
 
 ---
 
 ## 金额与计费
 
-- 账本仅存储整数 **micro-USD**，不使用浮点金额。
-- 价格单位为 **每 1M Token 的 micro-USD**。
-- 各 Token 类别的费用分别**向上取整**后相加。
+- 账本只存整数 **micro-USD**，不用浮点金额。
+- 文本价格单位为 **每 1M Token 的 micro-USD**。
+- 各 Token 类别费用分别**向上取整**后相加。
 - 计费口径与 [cap-token-usage-tracker](https://github.com/AITNR/cap-token-usage-tracker) 对齐：只对 Input、Output、Cache Read、Cache Creation 四项计价。
-- OpenAI 兼容 usage 的 `input`/`prompt_tokens` 已包含缓存，结算时会先扣除 Cache Read/Creation，避免重复计费。
+- OpenAI 兼容 usage 的 `input`/`prompt_tokens` 已包含缓存，结算时先扣除 Cache Read/Creation，避免重复计费。
 - Claude/Anthropic 的 `input_tokens` 不含缓存，四项独立计价。
-- Reasoning 与通用 Cached 计数只作统计，不再单独加价；未提供 `cache_read` 时回退使用 `cached`。
-- **严格预占**：单个插件 Key 的可用额度不足时，请求直接拒绝；Key 之间不共享额度。
-- Key 可分别设置总、日、周、月额度与最大并发请求数；`0` 或省略表示该项不限制。日/周/月按 UTC 自然周期计算，周从周一开始。
-- 周期额度按已结算费用加当前周期内的在途预占计算；并发额度按未结算或未释放的请求数计算，所有检查均在同一个预占事务内完成。
-- **实际结算可能超过预占额**：为避免遗漏真实用量，结算额可大于预占额。此时 Key 余额可能为负，后续请求将继续遵循 fail-closed 策略，直至额度恢复。
+- Reasoning 与通用 Cached 只作统计，不再单独加价；未提供 `cache_read` 时回退使用 `cached`。
+- 官方 `total_tokens` 优先作为展示用总 Token；否则为 input+output+reasoning。
+- 纯出图按张计费，不能套用 Token 价。缺 usage 时按请求里的张数（默认 1）结算，而不是按 Token 预估实扣。
+- **严格预占**：单个 Key 可用额度不足时直接拒绝；Key 之间不共享额度。
+- Key 可分别设置总、日、周、月额度和最大并发；`0` 或省略表示不限制。日/周/月按 UTC 自然周期，周从周一开始。
+- 周期额度 = 已结算费用 + 当前周期在途预占；并发按未结算或未释放的请求数计算。全部检查在同一个预占事务内完成。
+- **实际结算可能超过预占额**：文本按真实 usage 计价，可能大于预占。此时 Key 余额可能为负，后续请求继续 fail-closed，直到额度恢复。
+- 文本请求若始终没有 usage，默认**不会**把预估 Token 当成实扣；账本先记 0。若后来宿主补到官方用量，再按实际回填。
 
 ### 价格字段
 
@@ -474,28 +561,30 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 |------|------|
 | `input` | 输入 Token |
 | `output` | 输出 Token |
-| `reasoning` | 推理 Token |
-| `cached` | 通用缓存 Token |
+| `reasoning` | 推理 Token（统计用，默认不加价） |
+| `cached` | 通用缓存 Token；`cache_read` 为空时回退 |
 | `cache_read` | 缓存读取 Token |
 | `cache_creation` | 缓存创建 Token |
-| `accounting_mode` | 可选。`input_includes_cache`（OpenAI）或 `input_excludes_cache`（Claude）；空则按模型名自动判断 |
+| `accounting_mode` | `input_includes_cache`（OpenAI）或 `input_excludes_cache`（Claude）；空则按模型名判断 |
+| `billing_mode` | `token`（默认）或 `per_image` |
+| `per_image` | 每张图的 micro-USD，仅 `per_image` 模式使用 |
 
 ---
 
 ## 密钥安全
 
-- 明文格式：`tk-<kid>-<secret>`。
-- 数据库仅存储：`kid`、HMAC、pepper ID、指纹、principal 和 `caller_scope`。
-- pepper 仅保存在环境变量或 `data_dir/key-peppers` 中，不写入 SQLite、日志或管理查询结果。
-- 签发 Key 的响应包含 `Cache-Control: no-store`。
-- 认证额度快照不保存 OAuth 凭据、认证文件路径或原始上游响应；公开 `/lookup` 和 `/lookup/data` 不包含认证身份或认证额度字段。
+- 客户端把签发的 `tk-...` 当不透明字符串使用即可。
+- 数据库不存明文；管理端揭示依赖 pepper 派生的密文。pepper 丢失后现有 Key 全部失效。
+- pepper 只在环境变量或 `data_dir/key-peppers` 中，不进入 SQLite、日志或普通管理查询。
+- 签发 / 轮换 / 揭示响应带 `Cache-Control: no-store`。
+- 认证额度快照不保存 OAuth 凭据、认证文件路径或原始上游响应；公开 `/lookup` 不含认证身份或认证额度字段。
 
 ### Pepper 轮换建议
 
-1. 在 pepper 文件或环境变量中**追加**新的 pepper，例如 `newid:....,active:....`，也可使用多行格式。
+1. 在 pepper 文件或环境变量中**追加**新 pepper，例如 `newid:....,active:....`。
 2. 设置 `active_pepper_id: newid`。
-3. 重启宿主，并使用新的 pepper 签发后续插件 Key。
-4. 保留旧 pepper，直至依赖它的全部旧 Key 退役后再删除。
+3. 重启宿主，之后新 Key 使用新 pepper。
+4. 保留旧 pepper，直到依赖它的旧 Key 全部退役；删除旧 pepper 后，旧 Key 无法校验，其密文也无法揭示。
 
 ---
 
@@ -507,76 +596,95 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
   v
 CLIProxyAPI
   |  frontend_auth.authenticate  -> 本插件校验 Key，返回 principal
-  |  model.route                 -> 路由到本插件 executor
-  |  executor.execute / stream
-  |     1) 查询 Key，计算保守费用，并按 Key 原子预占
-  |     2) 使用 host.model.execute(_stream) 透明转发至上游
-  |     3) 解析 usage 并结算，或按策略兜底处理
+  |  GET /v1/models              -> 允许匿名读目录；全局禁用的模型不会出现
+  |  model.route                 -> 文本/对话路由到本插件 executor
+  |                              -> 纯出图交给宿主原生路径
+  |  executor.execute / stream   -> 预占、透明转发、结算
+  |  request interceptors        -> 出图预占 / 完成结算
+  |  宿主用量回调                 -> 补记官方 usage
   v
 上游模型
 ```
 
-宿主会跳过当前插件自身作为上游执行器，以避免递归调用。
+宿主会跳过当前插件自身作为上游执行器，避免递归。支持的协议包括 openai、chat-completions、claude、gemini、openai-response、responses、codex，以及 openai-image / openai-video。
 
 ---
 
 ## 运维注意事项
 
 1. **单写者限制**：同一数据库不应由多个进程同时写入。插件使用 `*.lock` 排他锁保护写操作。
-2. **数据备份**：备份整个 `data_dir`，包括 SQLite 数据库和 `key-peppers`。建议在停止写入后备份，或使用 SQLite 在线备份机制。
-3. **Windows 插件升级**：商店升级会写入带版本号的新 DLL，并在旧实例仍占用库锁时注册新实例。1.4.0+ 会通过 handover 把库锁交给新实例。从更旧版本第一次升到 1.4.0 时，旧实例还不认识该协议，需要卸载再安装一次（或重启宿主）；之后的商店升级无需卸载。若直接覆盖正在加载的同名 DLL，仍须重启宿主。
-4. **独占鉴权影响**：启用本插件后，宿主原有 `api-keys` 不再用于代理鉴权，应改用插件 Key。
-5. **未知模型处理**：零配置默认 `unknown_policy: allow`，并预置了全模型免费规则。生产环境应配置实际价格，必要时将策略调整为 `deny`。
-6. **侧栏菜单来源**：**CPA 额度管理** 由插件 Resources 注册，并非由 API 路由自动生成。插件未启用时不会显示该菜单。
+2. **数据备份**：备份整个 `data_dir`，包括 SQLite 和 `key-peppers`。建议停止写入后备份，或使用 SQLite 在线备份。
+3. **Windows 插件升级**：商店升级会写入带版本号的新 DLL，并在旧实例仍占用库锁时注册新实例。`1.4.0+` 会通过 handover 把库锁交给新实例。从更旧版本第一次升到 `1.4.0` 时，旧实例还不认识该协议，需要卸载再安装一次（或重启宿主）；之后的商店升级无需卸载。若直接覆盖正在加载的同名 DLL，仍须重启宿主。
+4. **独占鉴权**：启用后宿主原有 `api-keys` 不再用于代理鉴权。
+5. **未知模型**：零配置默认 `unknown_policy: allow`，并预置全模型免费规则。生产应配置实际价格，必要时改为 `deny`。
+6. **侧栏菜单**：**CPA 额度管理** 由插件 Resources 注册，不是由 API 路由自动生成。插件未启用时不会显示。
+7. **模型目录**：全局禁用会同步到宿主认证排除列表，但只改插件管理的 `credit_manager_excluded_models` 相关字段，避免整份认证 JSON round-trip 弄坏 OAuth 文件。
 
 ---
 
 ## 开发验证
 
 ```bash
-go build ./internal/...
-go vet ./internal/...
+go test ./...
+go test -race ./internal/store ./internal/service
+go vet ./...
 go run ./scripts/smoke_ledger.go
 ```
 
-`smoke_ledger` 会在临时目录中验证以下流程：创建归属记录、签发带额度的插件 Key、鉴权、按 Key 预占、usage 结算及撤销。
+`smoke_ledger` 会在临时目录中验证：创建归属记录、签发带额度的插件 Key、鉴权、按 Key 预占、usage 结算及撤销。
 
 ---
 
 ## 常见问题
 
-**Q：编译时出现 `gcc not found`，应如何处理？**
+**Q：编译时出现 `gcc not found`？**
 
-A：安装 MinGW-w64 或 MSYS2 提供的 gcc，并将其加入 `PATH`。
+A：安装 MinGW-w64、MSYS2 gcc，或 Zig，并加入 `PATH`。`scripts/build.ps1` 会优先用 gcc，否则尝试 `zig cc`。
 
-**Q：管理接口返回 401，原因是什么？**
+**Q：管理接口返回 401？**
 
-A：管理路由使用宿主管理鉴权，而非插件 Key。请使用宿主的 management token。
+A：管理路由使用宿主管理鉴权，不是插件 Key。
 
-**Q：代理请求返回 401，原因是什么？**
+**Q：代理请求返回 401？**
 
-A：确认请求使用了 `tk-...`，并确认当前 pepper 与 Key 签发时一致。请检查环境变量或 `data_dir/key-peppers` 未被替换或删除。
+A：确认请求带的是签发出来的整串 `tk-...`，且当前 pepper 与签发时一致。检查环境变量或 `data_dir/key-peppers` 未被替换。
 
-**Q：请求因 `no pricing rule` 被拒绝，如何处理？**
+**Q：请求因 `no pricing rule` 被拒绝？**
 
-A：零配置默认包含 `.*` 免费规则。若已删除所有规则并将 `unknown_policy` 设为 `deny`，请重新添加价格规则，或将策略改为 `allow` 或 `default`。
+A：零配置默认包含 `.*` 免费规则。若已删除全部规则并把 `unknown_policy` 设为 `deny`，请重新添加价格规则，或改为 `allow` / `default`。
 
-**Q：侧栏未显示「CPA 额度管理」，如何处理？**
+**Q：模型被禁用后，客户端目录里还看得到？**
 
-A：确认插件开关已启用，并已部署包含 console Resource 的 DLL。仅在替换 DLL 后需要重启宿主；CPAMC 仅在插件启用后显示该菜单。
+A：在「模型与价格」里禁用该模型后，调用会被拒绝，公共模型目录里也不应再出现。若还在，请确认已部署最新插件并重启宿主。某个 Key 的可用模型名单不会裁剪公共目录。
 
-**Q：管理中心显示「未注册」，重新启用后仍未恢复，如何处理？**
+**Q：侧栏未显示「CPA 额度管理」？**
 
-A：商店升级会先加载新的版本化 DLL 并调用 `plugin.register`，此时旧实例通常仍占着 `*.db.lock`。1.4.0+ 会让旧实例交出锁；若当前仍是更旧版本，请先卸载再安装一次（或重启宿主）以加载带 handover 的二进制。之后商店升级应能直接注册。若是同进程内重复申请锁导致的 reconfigure 失败，同样在加载 1.4.0+ 后恢复。
+A：确认插件已启用，并已部署包含 console Resource 的动态库。仅在替换文件后需要重启宿主。
+
+**Q：管理中心显示「未注册」，重新启用后仍未恢复？**
+
+A：商店升级会先加载新的版本化 DLL 并调用 `plugin.register`，此时旧实例通常仍占着 `*.db.lock`。`1.4.0+` 会让旧实例交锁。若当前仍是更旧版本，请先卸载再安装一次（或重启宿主）。之后商店升级应能直接注册。
 
 **Q：插件 Key 额度为何变为负数？**
 
-A：当实际 usage 超过预占额时，系统会按实际用量结算，以避免漏计费。这是预期行为；该 Key 后续请求将因额度不足被拒绝，直至上调其额度。
+A：当实际 usage 超过预占额时，系统按实际用量结算，避免漏计费。该 Key 后续请求会因额度不足被拒绝，直到上调额度。
+
+**Q：上游没返回 usage，会不会按 `max_tokens` 扣费？**
+
+A：文本不会。默认先记 0；如果后来拿到官方用量再按实际补记。出图在缺 usage 时按张数结算。若配置 `settlement.missing_usage=release`，则释放预占、不记账。
 
 **Q：客户端仍需使用原来的 `api-keys` 吗？**
 
-A：不需要。插件启用独占前端鉴权后，代理请求仅接受插件 Key。
+A：不需要。插件启用独占前端鉴权后，代理请求只接受插件 Key。
 
 **Q：Key 持有人如何查看自己的额度和用量？**
 
-A：访问 `http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup`，输入自己的 `tk-...` Key。该页面无需 CPA 管理密钥，只返回当前 Key 的信息。
+A：访问 `http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup`，输入自己的 `tk-...` Key。该页面无需 CPA 管理密钥。
+
+**Q：揭示 Key 失败，提示需要轮换？**
+
+A：该 Key 在可恢复存储之前签发，数据库没有加密明文。轮换会生成可揭示的新 Key，并撤销旧 Key。
+
+**Q：删除 Key 后列表里还能看到？**
+
+A：删除不会抹掉数据库行，只是撤销后标成「已删除」，用量历史还在。禁用可以再打开；撤销/删除不能再拿旧明文鉴权。
