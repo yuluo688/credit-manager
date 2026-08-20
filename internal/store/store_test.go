@@ -13,6 +13,22 @@ import (
 	"github.com/yuluo688/credit-manager/internal/money"
 )
 
+func TestModelAllowed(t *testing.T) {
+	if ModelAllowed(PluginKey{}, "") {
+		t.Fatal("empty model should be rejected")
+	}
+	if !ModelAllowed(PluginKey{}, "gpt-4o") {
+		t.Fatal("empty allowlist should allow gpt-4o")
+	}
+	key := PluginKey{AllowedModels: []string{"gpt-4o", "claude-*"}}
+	if !ModelAllowed(key, "gpt-4o") || !ModelAllowed(key, "claude-sonnet") {
+		t.Fatal("allowlist should match exact and glob")
+	}
+	if ModelAllowed(key, "gemini-pro") {
+		t.Fatal("unlisted model should be rejected")
+	}
+}
+
 func TestReserveEnforcesKeyLimits(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -573,6 +589,71 @@ func TestSummarizeUsageByModelIncludesCacheAndTPS(t *testing.T) {
 	item := got[0]
 	if item.Model != "grok-4.6" || item.RequestCount != 2 || item.CacheReadTokens != 100 || item.AvgTokensPerSecond == nil || *item.AvgTokensPerSecond != 30 {
 		t.Fatalf("model summary = %#v", item)
+	}
+}
+
+func TestResolvePricingRuleDisabledExactBlocksGlob(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+
+	if err := st.PutPricingRule(ctx, PricingRule{
+		ID: "all", MatchKind: MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 2_000_000},
+	}); err != nil {
+		t.Fatalf("put glob: %v", err)
+	}
+	if err := st.PutPricingRule(ctx, PricingRule{
+		ID: "gpt-4o", MatchKind: MatchExact, Pattern: "gpt-4o", Priority: 100, Enabled: false,
+		Price: money.PricePerMTok{Input: 2_500_000, Output: 10_000_000},
+	}); err != nil {
+		t.Fatalf("put exact: %v", err)
+	}
+
+	rule, err := st.ResolvePricingRule(ctx, "gpt-4o")
+	if err != nil {
+		t.Fatalf("resolve gpt-4o: %v", err)
+	}
+	if rule.ID != "gpt-4o" || rule.Enabled {
+		t.Fatalf("gpt-4o rule = %#v, want disabled exact", rule)
+	}
+}
+
+func TestSetPricingRuleEnabled(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+
+	if err := st.PutPricingRule(ctx, PricingRule{
+		ID: "gpt-4o", MatchKind: MatchExact, Pattern: "gpt-4o", Priority: 100, Enabled: true,
+		Price: money.PricePerMTok{Input: 1, Output: 2},
+	}); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+	if err := st.SetPricingRuleEnabled(ctx, "gpt-4o", false); err != nil {
+		t.Fatalf("disable: %v", err)
+	}
+	rule, err := st.GetPricingRule(ctx, "gpt-4o")
+	if err != nil || rule.Enabled {
+		t.Fatalf("after disable = %#v, err=%v", rule, err)
+	}
+	if err := st.SetPricingRuleEnabled(ctx, "missing", false); !errors.Is(err, ErrPricingRuleNotFound) {
+		t.Fatalf("missing error = %v, want %v", err, ErrPricingRuleNotFound)
+	}
+}
+
+func TestWinningPricingRuleUsesPriorityAndDisabled(t *testing.T) {
+	rules := []PricingRule{
+		{ID: "all", MatchKind: MatchGlob, Pattern: "*", Priority: 1, Enabled: true},
+		{ID: "gpt-4o", MatchKind: MatchExact, Pattern: "gpt-4o", Priority: 100, Enabled: false},
+	}
+	rule, err := WinningPricingRule(rules, "gpt-4o")
+	if err != nil || rule.ID != "gpt-4o" || rule.Enabled {
+		t.Fatalf("gpt-4o = %#v err=%v", rule, err)
+	}
+	rule, err = WinningPricingRule(rules, "claude-sonnet")
+	if err != nil || rule.ID != "all" || !rule.Enabled {
+		t.Fatalf("claude-sonnet = %#v err=%v", rule, err)
 	}
 }
 

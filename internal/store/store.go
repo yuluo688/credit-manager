@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -30,6 +31,7 @@ var (
 	ErrReservationFinalized = errors.New("reservation is already finalized")
 	ErrIdempotencyConflict  = errors.New("idempotency key is already used for a different request")
 	ErrPricingRuleNotFound  = errors.New("pricing rule not found")
+	ErrModelDisabled        = errors.New("model is disabled")
 	ErrPluginKeyNotFound    = errors.New("plugin key not found")
 	ErrPluginKeyDisabled    = errors.New("plugin key is disabled")
 	ErrPluginKeyRevoked     = errors.New("plugin key is revoked")
@@ -731,6 +733,19 @@ func (s *Store) DeletePricingRule(ctx context.Context, id string) error {
 	return requireOneRow(result, ErrPricingRuleNotFound)
 }
 
+func (s *Store) SetPricingRuleEnabled(ctx context.Context, id string, enabled bool) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return fmt.Errorf("%w: pricing rule id is required", ErrInvalidArgument)
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE pricing_rules SET enabled = ?, updated_at_unix_ms = ? WHERE id = ?`,
+		boolInt(enabled), nowUnixMilli(), id)
+	if err != nil {
+		return fmt.Errorf("set pricing rule enabled: %w", err)
+	}
+	return requireOneRow(result, ErrPricingRuleNotFound)
+}
+
 func (s *Store) ListPricingRules(ctx context.Context) ([]PricingRule, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT id, match_kind, pattern, priority,
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
@@ -772,7 +787,7 @@ func (s *Store) ResolvePricingRule(ctx context.Context, model string) (PricingRu
 		input_per_mtok_micro_usd, output_per_mtok_micro_usd, reasoning_per_mtok_micro_usd,
 		cached_per_mtok_micro_usd, cache_read_per_mtok_micro_usd, cache_creation_per_mtok_micro_usd,
 		accounting_mode, billing_mode, per_image_micro_usd, enabled, created_at_unix_ms, updated_at_unix_ms
-		FROM pricing_rules WHERE enabled = 1 ORDER BY priority DESC, id ASC`)
+		FROM pricing_rules ORDER BY priority DESC, id ASC`)
 	if err != nil {
 		return PricingRule{}, fmt.Errorf("list pricing rules: %w", err)
 	}
@@ -792,6 +807,30 @@ func (s *Store) ResolvePricingRule(ctx context.Context, model string) (PricingRu
 	}
 	if err := rows.Err(); err != nil {
 		return PricingRule{}, err
+	}
+	return PricingRule{}, ErrPricingRuleNotFound
+}
+
+func WinningPricingRule(rules []PricingRule, model string) (PricingRule, error) {
+	model = strings.TrimSpace(model)
+	if model == "" {
+		return PricingRule{}, fmt.Errorf("%w: model is required", ErrInvalidArgument)
+	}
+	sorted := append([]PricingRule(nil), rules...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		if sorted[i].Priority != sorted[j].Priority {
+			return sorted[i].Priority > sorted[j].Priority
+		}
+		return sorted[i].ID < sorted[j].ID
+	})
+	for _, rule := range sorted {
+		matched, err := ruleMatches(rule, model)
+		if err != nil {
+			return PricingRule{}, err
+		}
+		if matched {
+			return rule, nil
+		}
 	}
 	return PricingRule{}, ErrPricingRuleNotFound
 }
