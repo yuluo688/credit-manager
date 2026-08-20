@@ -59,6 +59,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -111,6 +112,7 @@ type registrationCapability struct {
 	ManagementAPI                 bool     `json:"management_api"`
 	RequestInterceptor            bool     `json:"request_interceptor"`
 	RequestLifecyclePlugin        bool     `json:"request_lifecycle_plugin"`
+	ResponseInterceptor           bool     `json:"response_interceptor"`
 }
 
 type imageHold struct {
@@ -277,6 +279,8 @@ func handleMethod(method string, request []byte) ([]byte, error) {
 		return interceptRequestAfterAuth(request)
 	case pluginabi.MethodRequestComplete:
 		return completeInterceptedRequest(request)
+	case pluginabi.MethodResponseInterceptAfter:
+		return interceptModelDirectoryResponse(request)
 	default:
 		return errorEnvelope("unknown_method", "unknown method: "+method), nil
 	}
@@ -287,6 +291,8 @@ func configure(req lifecycleRequest) error {
 		return err
 	}
 	service.Current().SetAuthQuotaSource(hostAuthQuotaSource{})
+	service.Current().SetModelDirectorySyncer(hostModelDirectorySyncer{})
+	_ = service.Current().RefreshModelDirectory(context.Background())
 	return nil
 }
 
@@ -329,6 +335,7 @@ func pluginRegistration(schemaVersion uint32) registration {
 			ManagementAPI:                 true,
 			RequestInterceptor:            true,
 			RequestLifecyclePlugin:        true,
+			ResponseInterceptor:           true,
 		},
 	}
 }
@@ -344,6 +351,8 @@ func authenticate(raw []byte) ([]byte, error) {
 	}
 	// CLIProxyAPI's management center queries the read-only model directory
 	// without a client Key. Keep model execution exclusively Key-authenticated.
+	// Globally disabled models are stripped by the response interceptor; Key
+	// allowlists are enforced at reserve/execute time.
 	if publicModelDirectoryRequest(req.Method, req.Path) {
 		return okEnvelope(pluginapi.FrontendAuthResponse{
 			Authenticated: true,
@@ -363,7 +372,15 @@ func authenticate(raw []byte) ([]byte, error) {
 }
 
 func publicModelDirectoryRequest(method, path string) bool {
-	return strings.EqualFold(strings.TrimSpace(method), http.MethodGet) && strings.TrimRight(strings.TrimSpace(path), "/") == "/v1/models"
+	if !strings.EqualFold(strings.TrimSpace(method), http.MethodGet) {
+		return false
+	}
+	switch strings.TrimRight(strings.TrimSpace(path), "/") {
+	case "/v1/models", "/v1beta/models":
+		return true
+	default:
+		return false
+	}
 }
 
 func routeModel(raw []byte) ([]byte, error) {
@@ -438,10 +455,16 @@ func interceptRequestAfterAuth(raw []byte) ([]byte, error) {
 	}
 	plan, err := svc.BuildReservePlan(ctx, firstNonEmpty(req.RequestedModel, req.Model), req.Body)
 	if err != nil {
+		if errors.Is(err, store.ErrModelDisabled) {
+			return okEnvelope(modelDisabledRejectResponse(err.Error()))
+		}
 		return okEnvelope(quotaRejectResponse(http.StatusPaymentRequired, err.Error()))
 	}
 	reservation, err := svc.Reserve(ctx, key, plan, "")
 	if err != nil {
+		if errors.Is(err, store.ErrModelNotAllowed) {
+			return okEnvelope(modelNotAllowedRejectResponse(err.Error()))
+		}
 		return okEnvelope(quotaRejectResponse(http.StatusTooManyRequests, err.Error()))
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model, req.RequestedModel)
@@ -483,6 +506,47 @@ func completeInterceptedRequest(raw []byte) ([]byte, error) {
 	return okEnvelope(map[string]any{})
 }
 
+func interceptModelDirectoryResponse(raw []byte) ([]byte, error) {
+	svc := service.Current()
+	if svc == nil {
+		return okEnvelope(pluginapi.ResponseInterceptResponse{})
+	}
+	var req pluginapi.ResponseInterceptRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		return nil, err
+	}
+	filtered, changed, err := svc.FilterModelDirectory(context.Background(), req.Body)
+	if err != nil {
+		return nil, err
+	}
+	if !changed {
+		return okEnvelope(pluginapi.ResponseInterceptResponse{})
+	}
+	return okEnvelope(pluginapi.ResponseInterceptResponse{Body: filtered})
+}
+
+func modelNotAllowedRejectResponse(message string) pluginapi.RequestInterceptResponse {
+	body, _ := json.Marshal(map[string]any{
+		"error": map[string]any{"message": message, "type": "model_not_allowed", "code": "model_not_allowed"},
+	})
+	return pluginapi.RequestInterceptResponse{
+		Terminate:    true,
+		StatusCode:   http.StatusForbidden,
+		ResponseBody: body,
+	}
+}
+
+func modelDisabledRejectResponse(message string) pluginapi.RequestInterceptResponse {
+	body, _ := json.Marshal(map[string]any{
+		"error": map[string]any{"message": message, "type": "model_disabled", "code": "model_disabled"},
+	})
+	return pluginapi.RequestInterceptResponse{
+		Terminate:    true,
+		StatusCode:   http.StatusForbidden,
+		ResponseBody: body,
+	}
+}
+
 func quotaRejectResponse(status int, message string) pluginapi.RequestInterceptResponse {
 	if status <= 0 {
 		status = http.StatusForbidden
@@ -514,10 +578,16 @@ func execute(raw []byte) ([]byte, error) {
 	body := requestBody(req.ExecutorRequest)
 	plan, err := svc.BuildReservePlan(ctx, req.Model, body)
 	if err != nil {
+		if errors.Is(err, store.ErrModelDisabled) {
+			return errorEnvelope("model_disabled", err.Error()), nil
+		}
 		return errorEnvelope("reserve_rejected", err.Error()), nil
 	}
 	reservation, err := svc.Reserve(ctx, key, plan, "")
 	if err != nil {
+		if errors.Is(err, store.ErrModelNotAllowed) {
+			return errorEnvelope("model_not_allowed", err.Error()), nil
+		}
 		return errorEnvelope("limit_rejected", err.Error()), nil
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
@@ -726,6 +796,83 @@ func hostModelExecute(hostCallbackID string, req pluginapi.ExecutorRequest, body
 		return nil, nil, 0, err
 	}
 	return resp.Body, resp.Headers, resp.StatusCode, nil
+}
+
+type hostModelDirectorySyncer struct{}
+
+func (hostModelDirectorySyncer) SyncExcludedModels(_ context.Context, disabled []string) error {
+	raw, err := callHost(pluginabi.MethodHostAuthList, map[string]any{})
+	if err != nil {
+		return err
+	}
+	var listed struct {
+		Files []pluginapi.HostAuthFileEntry `json:"files"`
+	}
+	if err := json.Unmarshal(raw, &listed); err != nil {
+		return err
+	}
+	var errs []string
+	for _, file := range listed.Files {
+		if file.RuntimeOnly || strings.TrimSpace(file.AuthIndex) == "" {
+			continue
+		}
+		if err := syncAuthExcludedModels(file, disabled); err != nil {
+			name := strings.TrimSpace(file.Name)
+			if name == "" {
+				name = strings.TrimSpace(file.AuthIndex)
+			}
+			errs = append(errs, name+": "+err.Error())
+		}
+	}
+	if len(errs) > 0 {
+		return errors.New("sync excluded models: " + strings.Join(errs, "; "))
+	}
+	return nil
+}
+
+func syncAuthExcludedModels(file pluginapi.HostAuthFileEntry, disabled []string) error {
+	load := func() (pluginapi.HostAuthGetResponse, error) {
+		got, err := callHost(pluginabi.MethodHostAuthGet, pluginapi.HostAuthGetRequest{AuthIndex: file.AuthIndex})
+		if err != nil {
+			return pluginapi.HostAuthGetResponse{}, err
+		}
+		var auth pluginapi.HostAuthGetResponse
+		if err := json.Unmarshal(got, &auth); err != nil {
+			return pluginapi.HostAuthGetResponse{}, err
+		}
+		if len(auth.JSON) == 0 {
+			return pluginapi.HostAuthGetResponse{}, errors.New("empty auth json")
+		}
+		return auth, nil
+	}
+	auth, err := load()
+	if err != nil {
+		return err
+	}
+	next, changed, err := service.MergeAuthExcludedModels(auth.JSON, disabled)
+	if err != nil || !changed {
+		return err
+	}
+	fresh, err := load()
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(auth.JSON, fresh.JSON) {
+		next, changed, err = service.MergeAuthExcludedModels(fresh.JSON, disabled)
+		if err != nil || !changed {
+			return err
+		}
+		auth = fresh
+	}
+	name := strings.TrimSpace(file.Name)
+	if name == "" {
+		name = strings.TrimSpace(auth.Name)
+	}
+	if name == "" || !strings.HasSuffix(strings.ToLower(name), ".json") {
+		return errors.New("auth file name is required")
+	}
+	_, err = callHost(pluginabi.MethodHostAuthSave, pluginapi.HostAuthSaveRequest{Name: name, JSON: next})
+	return err
 }
 
 const maxAuthQuotaHTTPResponseBytes = 1 << 20

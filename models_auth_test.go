@@ -16,6 +16,7 @@ func TestPublicModelDirectoryRequest(t *testing.T) {
 	}{
 		{"GET", "/v1/models", true},
 		{"get", "/v1/models/", true},
+		{"GET", "/v1beta/models", true},
 		{"POST", "/v1/models", false},
 		{"GET", "/v1/chat/completions", false},
 		{"GET", "/v0/management/config", false},
@@ -50,8 +51,8 @@ func TestAllowedAuthQuotaRequest(t *testing.T) {
 
 func TestPluginRegistrationIncludesImageFormats(t *testing.T) {
 	reg := pluginRegistration(negotiateRPCSchema(0))
-	if !reg.Capabilities.RequestInterceptor || !reg.Capabilities.RequestLifecyclePlugin {
-		t.Fatalf("image intercept capabilities missing: %+v", reg.Capabilities)
+	if !reg.Capabilities.RequestInterceptor || !reg.Capabilities.RequestLifecyclePlugin || !reg.Capabilities.ResponseInterceptor {
+		t.Fatalf("intercept capabilities missing: %+v", reg.Capabilities)
 	}
 	want := []string{"openai-image", "openai-video"}
 	got := map[string]bool{}
