@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/yuluo688/credit-manager/internal/fx"
 	"github.com/yuluo688/credit-manager/internal/keys"
+	"github.com/yuluo688/credit-manager/internal/modelsdev"
 	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/service"
 	"github.com/yuluo688/credit-manager/internal/store"
@@ -37,6 +39,7 @@ func Routes() []pluginapi.ManagementRoute {
 		{http.MethodPost, "credit-manager/keys/delete"},
 		{http.MethodPost, "credit-manager/pricing"},
 		{http.MethodGet, "credit-manager/pricing"},
+		{http.MethodPost, "credit-manager/pricing/enabled"},
 		{http.MethodPost, "credit-manager/pricing/delete"},
 		{http.MethodGet, "credit-manager/usage"},
 		{http.MethodGet, "credit-manager/usage/summary"},
@@ -72,6 +75,9 @@ func Resources() []pluginapi.ResourceRoute {
 		{
 			Path: "/fx/usd-cny",
 		},
+		{
+			Path: "/models-dev",
+		},
 	}
 }
 
@@ -93,6 +99,9 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		}
 		if req.Method == http.MethodGet && resourcePath == "fx/usd-cny" {
 			return usdCNYRate(ctx, req.Query)
+		}
+		if req.Method == http.MethodGet && resourcePath == "models-dev" {
+			return modelsDevCatalog(ctx, req.Query)
 		}
 		return htmlErr(http.StatusNotFound, "unknown resource"), nil
 	}
@@ -135,6 +144,8 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return putPricing(ctx, svc, req.Body)
 	case req.Method == http.MethodGet && path == "credit-manager/pricing":
 		return listPricing(ctx, svc)
+	case req.Method == http.MethodPost && path == "credit-manager/pricing/enabled":
+		return setPricingEnabled(ctx, svc, req.Body)
 	case req.Method == http.MethodPost && path == "credit-manager/pricing/delete":
 		return deletePricing(ctx, svc, req.Body)
 	case req.Method == http.MethodGet && path == "credit-manager/usage":
@@ -163,6 +174,29 @@ func usdCNYRate(ctx context.Context, _ map[string][]string) (pluginapi.Managemen
 		"fetched_at": rate.FetchedAt.UTC(),
 		"cached":     rate.Cached,
 	}), nil
+}
+
+func modelsDevCatalog(ctx context.Context, query map[string][]string) (pluginapi.ManagementResponse, error) {
+	if svc := service.Current(); svc != nil {
+		if dir := strings.TrimSpace(svc.Config().DataDir); dir != "" {
+			modelsdev.Default.SetCacheFile(filepath.Join(dir, "models-dev-api.json"))
+		}
+	}
+	catalog := modelsdev.Get(ctx, firstQuery(query, "refresh") == "1")
+	providers := catalog.Providers
+	if len(providers) == 0 {
+		providers = json.RawMessage(`{}`)
+	}
+	body := map[string]any{
+		"catalog":    providers,
+		"source":     catalog.Source,
+		"fetched_at": catalog.FetchedAt.UTC(),
+		"cached":     catalog.Cached,
+	}
+	if catalog.Error != "" {
+		body["error"] = catalog.Error
+	}
+	return jsonOKNoStore(body), nil
 }
 
 func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, query map[string][]string) (pluginapi.ManagementResponse, error) {
@@ -704,6 +738,13 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
 	}
 	enabled := true
+	if id := strings.TrimSpace(req.ID); id != "" {
+		if existing, err := svc.Store().GetPricingRule(ctx, id); err == nil {
+			enabled = existing.Enabled
+		} else if !errors.Is(err, store.ErrPricingRuleNotFound) {
+			return jsonErr(http.StatusInternalServerError, err.Error()), nil
+		}
+	}
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
@@ -721,7 +762,36 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 	if err := svc.Store().PutPricingRule(ctx, rule); err != nil {
 		return jsonErr(http.StatusBadRequest, err.Error()), nil
 	}
+	if err := svc.RefreshModelDirectory(ctx); err != nil {
+		return jsonErr(http.StatusBadGateway, err.Error()), nil
+	}
 	return jsonOK(map[string]any{"id": rule.ID, "saved": true}), nil
+}
+
+func setPricingEnabled(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
+	var req struct {
+		ID      string `json:"id"`
+		Enabled *bool  `json:"enabled"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		return jsonErr(http.StatusBadRequest, "invalid json"), nil
+	}
+	if strings.TrimSpace(req.ID) == "" {
+		return jsonErr(http.StatusBadRequest, "id is required"), nil
+	}
+	if req.Enabled == nil {
+		return jsonErr(http.StatusBadRequest, "enabled is required"), nil
+	}
+	if err := svc.Store().SetPricingRuleEnabled(ctx, req.ID, *req.Enabled); err != nil {
+		if errors.Is(err, store.ErrPricingRuleNotFound) {
+			return jsonErr(http.StatusNotFound, err.Error()), nil
+		}
+		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
+	if err := svc.RefreshModelDirectory(ctx); err != nil {
+		return jsonErr(http.StatusBadGateway, err.Error()), nil
+	}
+	return jsonOK(map[string]any{"id": strings.TrimSpace(req.ID), "enabled": *req.Enabled}), nil
 }
 
 func listPricing(ctx context.Context, svc *service.Service) (pluginapi.ManagementResponse, error) {
@@ -744,6 +814,9 @@ func deletePricing(ctx context.Context, svc *service.Service, body []byte) (plug
 			return jsonErr(http.StatusNotFound, err.Error()), nil
 		}
 		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
+	if err := svc.RefreshModelDirectory(ctx); err != nil {
+		return jsonErr(http.StatusBadGateway, err.Error()), nil
 	}
 	return jsonOK(map[string]any{"id": req.ID, "deleted": true}), nil
 }

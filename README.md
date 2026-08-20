@@ -265,9 +265,16 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing" \
 ```
 
 `match_kind`：`exact` | `glob` | `regexp`  
-规则匹配时，**priority 值更高的规则优先**。
+规则匹配时，**priority 值更高的规则优先**。最高优先级命中的规则若 `enabled: false`，该模型会被拒绝，并且不会出现在 `GET /v1/models` / `GET /v1beta/models` 中。
 
 配置 `pricing.unknown_policy: deny` 后，**未命中价格规则的模型请求将被直接拒绝**。
+
+```bash
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing/enabled" \
+  -H "Authorization: Bearer MGMT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"gpt-4o","enabled":false}'
+```
 
 #### 签发插件 Key（明文仅返回一次）
 
@@ -406,6 +413,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | POST | `/v0/management/credit-manager/keys/revoke` | 撤销插件 Key |
 | POST | `/v0/management/credit-manager/pricing` | 新增/更新价格规则 |
 | GET | `/v0/management/credit-manager/pricing` | 列价格规则 |
+| POST | `/v0/management/credit-manager/pricing/enabled` | 启用/禁用模型（禁用后无法调用，`GET /v1/models` 也不返回） |
 | POST | `/v0/management/credit-manager/pricing/delete` | 删除价格规则 |
 | GET | `/v0/management/credit-manager/balance?key_id=` | 查询插件 Key 剩余额度 |
 | GET | `/v0/management/credit-manager/usage` | 查询用量流水（可按 `plugin_key_id` 或 `model` 过滤） |

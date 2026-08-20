@@ -8,6 +8,45 @@ import (
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
+func TestModelsDevResourceRoute(t *testing.T) {
+	var found bool
+	for _, resource := range Resources() {
+		if resource.Path != "/models-dev" {
+			continue
+		}
+		found = true
+		if resource.Menu != "" {
+			t.Fatalf("models-dev menu = %q, want no sidebar entry", resource.Menu)
+		}
+	}
+	if !found {
+		t.Fatal("models-dev resource is not registered")
+	}
+	path, ok := resourceRelativePath("/v0/resource/plugins/" + service.PluginID + "/models-dev")
+	if !ok || path != "models-dev" {
+		t.Fatalf("resourceRelativePath models-dev = %q, %t", path, ok)
+	}
+}
+
+func TestConsoleModelsDevCatalogIsProxiedAndOptional(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"function modelsDevURL",
+		"function fetchModelsDevCatalog",
+		"/models-dev",
+		"Promise.allSettled",
+		"价格目录暂不可用",
+		"已连接到 CPA，可稍后重试",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing models.dev fallback support: %q", text)
+		}
+	}
+	if strings.Contains(page, "https://models.dev/api.json") {
+		t.Fatal("console still fetches models.dev directly from the browser")
+	}
+}
+
 func TestFXResourceRoute(t *testing.T) {
 	var found bool
 	for _, resource := range Resources() {
@@ -315,6 +354,9 @@ func TestConsoleClosesConnectionAfterSuccessfulLoad(t *testing.T) {
 	if !strings.Contains(page, successPath) {
 		t.Fatal("connection dialog is not closed after a successful load")
 	}
+	if !strings.Contains(page, "已连接到 CPA，可稍后重试") {
+		t.Fatal("connection still fails when the models.dev catalog is unavailable")
+	}
 }
 
 func TestConsoleTokenTotalsMatchCapTracker(t *testing.T) {
@@ -376,6 +418,42 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	for _, forbidden := range []string{"auth-quotas", "认证额度"} {
 		if strings.Contains(lookup, forbidden) {
 			t.Fatalf("public lookup page exposes auth quota UI: %q", forbidden)
+		}
+	}
+}
+
+func TestPricingEnabledRoute(t *testing.T) {
+	var found bool
+	for _, route := range Routes() {
+		if route.Method == "POST" && route.Path == "credit-manager/pricing/enabled" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("pricing enabled route is not registered")
+	}
+}
+
+func TestConsolePricingEnableDisable(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`id="priceEnabled"`,
+		"data-toggle-price",
+		"credit-manager/pricing/enabled",
+		"function ruleEnabled",
+		"function setModelPricingEnabled",
+		"function modelIsDisabled",
+		"function winningPricingRule",
+		"function nextExactPriority",
+		"'[^/]*'",
+		"function comparePricingModels",
+		"function pricingModelPriceAmount",
+		"禁用后无法调用",
+		"也不会出现在客户端模型列表中",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing model enable/disable support: %q", text)
 		}
 	}
 }

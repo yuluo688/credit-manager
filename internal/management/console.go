@@ -617,12 +617,14 @@ html[data-palette="light"] th, html[data-palette="light"] .keys-table th, html[d
 html[data-palette="light"] tbody tr:hover td, html[data-palette="light"] .keys-table tbody tr:hover td { background:#f4f1eb; }
 html[data-palette="dark"] tbody tr:hover td, html[data-palette="dark"] .keys-table tbody tr:hover td { background:#2d2925; }
 @media (max-width: 760px) {
-  html[data-palette="light"] .keys-table tbody tr { background:#fffdf9; border-color:#e3e1db; }
-  html[data-palette="dark"] .keys-table tbody tr { background:#1d1b18; border-color:#3a3530; }
-  html[data-palette="light"] .keys-table tbody tr:hover { border-color:#d8d3ca; }
-  html[data-palette="dark"] .keys-table tbody tr:hover { border-color:#5a534b; }
+  html[data-palette="light"] .keys-table tbody tr, html[data-palette="light"] .pricing-table tbody tr { background:#fffdf9; border-color:#e3e1db; }
+  html[data-palette="dark"] .keys-table tbody tr, html[data-palette="dark"] .pricing-table tbody tr { background:#1d1b18; border-color:#3a3530; }
+  html[data-palette="light"] .keys-table tbody tr:hover, html[data-palette="light"] .pricing-table tbody tr:hover { border-color:#d8d3ca; }
+  html[data-palette="dark"] .keys-table tbody tr:hover, html[data-palette="dark"] .pricing-table tbody tr:hover { border-color:#5a534b; }
   html[data-palette="light"] .keys-table tbody tr:hover td,
-  html[data-palette="dark"] .keys-table tbody tr:hover td { background:transparent; }
+  html[data-palette="dark"] .keys-table tbody tr:hover td,
+  html[data-palette="light"] .pricing-table tbody tr:hover td,
+  html[data-palette="dark"] .pricing-table tbody tr:hover td { background:transparent; }
 }
 html[data-palette="light"] .modal-section, html[data-palette="light"] .custom-date-panel { background:linear-gradient(180deg, #fffdf9, #f6f4ee); border-color:var(--line); }
 html[data-palette="dark"] .modal-section, html[data-palette="dark"] .custom-date-panel { background:linear-gradient(180deg, #282521, #1d1b18); border-color:var(--line); }
@@ -796,6 +798,33 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
   .keys-table .model-chip-row { max-height:none; }
   .keys-table .key-label strong { white-space:normal; overflow:visible; text-overflow:unset; }
   .keys-table .quota-line { justify-content:flex-start; gap:10px; }
+  .pricing-table { min-width:0; width:100%; table-layout:auto; }
+  .pricing-table thead { display:none; }
+  .pricing-table, .pricing-table tbody { display:block; width:100%; }
+  .pricing-table tbody { display:grid; gap:10px; }
+  .pricing-table tbody tr {
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) auto;
+    gap:8px 10px;
+    padding:14px 14px 12px;
+    border:1px solid #e8ece6;
+    border-radius:12px;
+    background:#fff;
+  }
+  .pricing-table tbody tr:hover { border-color:#c8eddd; }
+  .pricing-table td, .pricing-table tbody tr:hover td, .pricing-table tbody tr:last-child td {
+    width:auto;
+    padding:0;
+    border:0;
+    background:transparent;
+    white-space:normal;
+  }
+  .pricing-table td:nth-child(1) { grid-column:1; grid-row:1; min-width:0; }
+  .pricing-table td:nth-child(4) { grid-column:2; grid-row:1; align-self:center; }
+  .pricing-table td:nth-child(2),
+  .pricing-table td:nth-child(3),
+  .pricing-table td:nth-child(5) { grid-column:1 / -1; }
+  .pricing-table .pricing-actions { justify-content:flex-start; flex-wrap:wrap; }
 }
 .overview-layout { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:16px; }
 .overview-layout .stats { grid-template-columns:repeat(3, minmax(150px, 1fr)); align-content:start; }
@@ -996,13 +1025,14 @@ html[data-palette="dark"] .model-rank-item:nth-child(3) .model-rank-index { back
 .form-card .row label:last-child { grid-column:1 / -1; }
 .pricing-layout { display:block; }
 .pricing-layout .list-card { width:100%; }
-.pricing-table { min-width:840px; table-layout:fixed; }
-.pricing-table th:nth-child(1) { width:24%; }
-.pricing-table th:nth-child(2) { width:29%; }
-.pricing-table th:nth-child(3) { width:26%; }
+.pricing-table { min-width:960px; table-layout:fixed; }
+.pricing-table th:nth-child(1) { width:20%; }
+.pricing-table th:nth-child(2) { width:24%; }
+.pricing-table th:nth-child(3) { width:22%; }
 .pricing-table th:nth-child(4) { width:10%; }
-.pricing-table th:nth-child(5) { width:11%; }
+.pricing-table th:nth-child(5) { width:24%; }
 .pricing-table td { vertical-align:middle; }
+.pricing-table tbody tr.is-disabled td { opacity:.78; }
 .pricing-rule-id { font-weight:650; }
 .pricing-pattern { display:flex; align-items:center; gap:7px; min-width:0; }
 .pricing-pattern .mono { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1255,6 +1285,12 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
                 <label>priority（大优先）
                   <input id="pricePriority" type="number" value="100"/>
                 </label>
+                <label>状态
+                  <select id="priceEnabled">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </label>
                 <label class="field-span-2">pattern
                   <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
                 </label>
@@ -1463,7 +1499,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     </div>
     <div class="pricing-layout">
     <div class="card list-card">
-      <div class="section-heading"><div><h2 class="panel-title">当前代理模型</h2><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可直接为任一模型设置或编辑价格。</p></div><div class="actions"><span class="muted" id="modelCatalogCount">未加载</span><button class="btn primary" id="btnLoadModelCatalog">加载全部模型</button></div></div>
+      <div class="section-heading"><div><h2 class="panel-title">当前代理模型</h2><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="actions"><span class="muted" id="modelCatalogCount">未加载</span><button class="btn primary" id="btnLoadModelCatalog">加载全部模型</button></div></div>
       <div id="pricingTable"></div>
     </div>
     </div>
@@ -1622,7 +1658,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' },     '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '模型效率排行': { 'zh-TW':'模型效率排行', en:'Model efficiency rank', ru:'Рейтинг эффективности' }, '模型效率指标': { 'zh-TW':'模型效率指標', en:'Efficiency metric', ru:'Метрика эффективности' }, '性价比': { 'zh-TW':'性價比', en:'Value', ru:'Выгода' }, '单次': { 'zh-TW':'單次', en:'Per call', ru:'За запрос' }, '吞吐': { 'zh-TW':'吞吐', en:'Throughput', ru:'Скорость' },     '按每美元产出 Token 排序，越高越省': { 'zh-TW':'依每美元產出 Token 排序，越高越省', en:'Ranked by tokens per dollar; higher is cheaper', ru:'По токенам на доллар; больше — выгоднее' }, '按每人民币产出 Token 排序，越高越省': { 'zh-TW':'依每人民幣產出 Token 排序，越高越省', en:'Ranked by tokens per yuan; higher is cheaper', ru:'По токенам на юань; больше — выгоднее' }, '平均每次请求费用，越低越省': { 'zh-TW':'平均每次請求費用，越低越省', en:'Average cost per request; lower is cheaper', ru:'Средняя цена запроса; меньше — выгоднее' }, '缓存读取占输入比例，越高越省': { 'zh-TW':'快取讀取佔輸入比例，越高越省', en:'Cache-read share of input; higher is cheaper', ru:'Доля чтения кэша во входе; больше — выгоднее' }, '平均生成速度，越高越快': { 'zh-TW':'平均生成速度，越高越快', en:'Average generation speed; higher is faster', ru:'Средняя скорость генерации; больше — быстрее' }, '当前筛选条件下暂无模型效率数据': { 'zh-TW':'目前篩選條件下暫無模型效率資料', en:'No model efficiency data for the current filters', ru:'Нет данных об эффективности моделей' }, '免费': { 'zh-TW':'免費', en:'Free', ru:'Бесплатно' }, '次': { 'zh-TW':'次', en:'calls', ru:'вызов.' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '占比': { 'zh-TW':'佔比', en:'Share', ru:'Доля' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
     '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, 'Token 趋势时间维度': { 'zh-TW':'Token 趨勢時間維度', en:'Token trend interval', ru:'Интервал токенов' }, '费用趋势时间维度': { 'zh-TW':'費用趨勢時間維度', en:'Cost trend interval', ru:'Интервал расходов' }, '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
     '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有 Key': { 'zh-TW':'已有 Key', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
-    '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' },
+    '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' }, '加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。': { 'zh-TW':'載入目前代理公開的模型後，可設定價格，或啟用/停用單一模型。停用後無法呼叫，也不會出現在客戶端模型列表中。', en:'After loading proxy models, set prices or enable/disable a model. Disabled models cannot be called and are omitted from the client model list.', ru:'После загрузки моделей задайте цены или включите/отключите модель. Отключённые модели нельзя вызвать, и они не попадают в клиентский список.' },     '启用': { 'zh-TW':'啟用', en:'Enable', ru:'Включить' }, '禁用': { 'zh-TW':'停用', en:'Disable', ru:'Отключить' }, '状态': { 'zh-TW':'狀態', en:'Status', ru:'Статус' }, '模型已启用': { 'zh-TW':'模型已啟用', en:'Model enabled', ru:'Модель включена' }, '模型已禁用': { 'zh-TW':'模型已停用', en:'Model disabled', ru:'Модель отключена' },
     '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' }, '按张计费': { 'zh-TW':'按張計費', en:'Per image', ru:'За картинку' },
     '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按 Key 汇总': { 'zh-TW':'依 Key 彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
@@ -1659,6 +1695,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     allKeys: [],
     usedAuths: [],
     modelPrices: {},
+    modelCatalogError: '',
     availableModels: [],
     usagePage: 1,
     usagePageSize: 50,
@@ -1915,6 +1952,26 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const path = String(location.pathname || '').replace(/\/+$/, '');
     const base = path.replace(/\/console$/, '');
     return base + '/fx/usd-cny' + (refresh ? '?refresh=1' : '');
+  }
+
+  function modelsDevURL(refresh) {
+    const path = String(location.pathname || '').replace(/\/+$/, '');
+    const base = path.replace(/\/console$/, '');
+    return base + '/models-dev' + (refresh ? '?refresh=1' : '');
+  }
+
+  async function fetchModelsDevCatalog(refresh) {
+    const res = await fetch(modelsDevURL(refresh), {
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' },
+      signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(12000) : undefined,
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error((data && data.error) || 'models.dev HTTP ' + res.status);
+    const catalog = data && data.catalog && typeof data.catalog === 'object' && !Array.isArray(data.catalog) ? data.catalog : {};
+    const error = String((data && data.error) || '').trim();
+    if (!Object.keys(catalog).length) throw new Error(error || 'models.dev 价格目录不可用');
+    return { catalog, source: (data && data.source) || '', cached: Boolean(data && data.cached) };
   }
 
   async function fetchUsdCnyRate(refresh) {
@@ -3597,7 +3654,8 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   function setKeyModels(models) {
     const selected = new Set((models || []).map(value => String(value).trim()).filter(Boolean));
-    const available = [...new Set([...(state.availableModels || []), ...selected])].sort();
+    const rules = (state.overview && state.overview.pricing) || [];
+    const available = [...new Set([...(state.availableModels || []), ...selected])].filter(modelID => selected.has(modelID) || !modelIsDisabled(modelID, rules)).sort();
     const picker = $('keyModalModels');
     picker.innerHTML = available.map(modelID =>
       '<option value="' + esc(modelID) + '"' + (selected.has(modelID) ? ' selected' : '') + '>' + esc(modelID) + '</option>'
@@ -3695,6 +3753,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     $('priceAccountingMode').value = priceValue(price, 'AccountingMode', 'accounting_mode') || '';
     $('priceBillingMode').value = (priceValue(price, 'BillingMode', 'billing_mode') === 'per_image') ? 'per_image' : 'token';
     $('pricePerImage').value = Number(priceValue(price, 'PerImage', 'per_image') || 0) / 1e6;
+    $('priceEnabled').value = ruleEnabled(rule) ? 'true' : 'false';
     $('priceModelPicker').value = '';
     $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」。可同步并选择当前可用模型的 models.dev 价格进行回填。' : '价格来源：models.dev。仅匹配当前代理公开的模型；同步不会自动保存。';
     syncPriceBillingFields();
@@ -3947,8 +4006,21 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     syncPriceBillingFields();
   }
 
+  function ruleEnabled(rule) {
+    if (!rule) return true;
+    return (rule.Enabled != null ? rule.Enabled : rule.enabled) !== false;
+  }
+
   function pricingRuleIndex(rules) {
     return new Map((rules || []).filter(rule => (rule.MatchKind || rule.match_kind) === 'exact').map(rule => [rule.Pattern || rule.pattern, rule]));
+  }
+
+  function nextExactPriority(modelID, rules) {
+    const winning = winningPricingRule(modelID, rules);
+    const current = Number(winning && (winning.Priority != null ? winning.Priority : winning.priority) || 0);
+    const winningID = winning ? String(winning.ID || winning.id || '') : '';
+    if (winningID && winningID === modelID) return Math.max(100, current);
+    return Math.max(100, current + 1);
   }
 
   function modelsDevPricingRule(modelID, item) {
@@ -3957,7 +4029,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       id: modelID,
       match_kind: 'exact',
       pattern: modelID,
-      priority: 100,
+      priority: nextExactPriority(modelID, (state.overview && state.overview.pricing) || []),
       enabled: true,
         price: {
           input: Math.round(priceNumber(cost.input) * 1e6),
@@ -3995,17 +4067,19 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     const status = $('modelCatalogStatus');
     const button = $('btnLoadModelCatalog');
     button.disabled = true;
-    status.textContent = '正在读取当前代理模型与 models.dev 价格目录…';
+    status.textContent = '正在读取当前代理模型与价格目录…';
     try {
-      const [available, catalog] = await Promise.all([
+      const catalogResult = await Promise.allSettled([
         fetchAvailableModels(),
-        fetch('https://models.dev/api.json').then(async response => {
-          if (!response.ok) throw new Error('models.dev HTTP ' + response.status);
-          return response.json();
-        }),
+        fetchModelsDevCatalog(false),
       ]);
+      if (catalogResult[0].status !== 'fulfilled') {
+        throw catalogResult[0].reason || new Error('无法读取当前代理模型');
+      }
+      const available = catalogResult[0].value;
+      const catalogError = catalogResult[1].status === 'fulfilled' ? '' : String((catalogResult[1].reason && catalogResult[1].reason.message) || catalogResult[1].reason || 'models.dev 价格目录不可用');
+      const catalog = catalogResult[1].status === 'fulfilled' ? catalogResult[1].value.catalog : {};
       const models = modelIDs(available);
-      const source = available && available.source ? available.source : 'unknown';
       const prices = {};
       const ambiguous = [];
       models.forEach(modelID => {
@@ -4027,9 +4101,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
           prices[modelID] = { provider: '', cost: {}, modalities, imageGen: true, tokenPriced: false };
         }
       });
-      const sync = await syncModelsDevPrices(prices, (state.overview && state.overview.pricing) || []);
+      const sync = catalogError ? { saved: 0, skipped: Object.keys(prices).length, failed: [] } : await syncModelsDevPrices(prices, (state.overview && state.overview.pricing) || []);
       state.availableModels = models;
       state.modelPrices = prices;
+      state.modelCatalogError = catalogError;
       const picker = $('priceModelPicker');
       picker.innerHTML = '<option value="">选择已匹配价格的当前模型</option>' + Object.keys(prices).sort().map(modelID =>
         '<option value="' + esc(modelID) + '">' + esc(modelID + ' · ' + prices[modelID].provider) + '</option>'
@@ -4038,9 +4113,11 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       const tokenCount = Object.values(prices).filter(item => item.tokenPriced).length;
       const imageCount = Object.values(prices).filter(item => item.imageGen && !item.tokenPriced).length;
       $('modelCatalogCount').textContent = models.length + ' 个模型 · ' + tokenCount + ' 个 Token 价 · ' + imageCount + ' 个出图';
-      const syncText = '新增 ' + sync.saved + '，保留 ' + sync.skipped + (sync.failed.length ? '，失败 ' + sync.failed.length : '');
+      const syncText = catalogError ? '价格目录暂不可用，未自动同步' : ('新增 ' + sync.saved + '，保留 ' + sync.skipped + (sync.failed.length ? '，失败 ' + sync.failed.length : ''));
       const ambiguousText = ambiguous.length ? '；' + ambiguous.length + ' 个未自动匹配' : '';
-      status.textContent = '已加载 ' + models.length + ' 个模型，Token 价 ' + tokenCount + '，出图 ' + imageCount + '；' + syncText + ambiguousText + '。出图模型不会按 Token 价自动保存。';
+      status.textContent = catalogError
+        ? ('已加载 ' + models.length + ' 个代理模型。' + syncText + '（' + catalogError + '）。仍可手动设置价格，稍后可重试同步。')
+        : ('已加载 ' + models.length + ' 个模型，Token 价 ' + tokenCount + '，出图 ' + imageCount + '；' + syncText + ambiguousText + '。出图模型不会按 Token 价自动保存。');
       renderPricing((state.overview && state.overview.pricing) || []);
       if (sync.failed.length) throw new Error('部分 models.dev 价格未保存：' + sync.failed.join('；'));
     } finally {
@@ -4050,13 +4127,160 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   async function loadModelPrices() {
     await loadModelCatalog();
-    $('modelPriceStatus').textContent = '模型目录与价格规则已同步。选择模型可查看或调整 models.dev 价格。';
+    $('modelPriceStatus').textContent = state.modelCatalogError
+      ? ('价格目录暂不可用：' + state.modelCatalogError + '。仍可手动设置价格。')
+      : '模型目录与价格规则已同步。选择模型可查看或调整 models.dev 价格。';
+  }
+
+  function ruleMatchesModel(rule, modelID) {
+    const kind = rule.MatchKind || rule.match_kind;
+    const pattern = String(rule.Pattern || rule.pattern || '');
+    if (kind === 'exact') return pattern === modelID;
+    if (kind === 'glob') {
+      let escaped = '';
+      for (const ch of pattern) {
+        if (ch === '*') escaped += '[^/]*';
+        else if (ch === '?') escaped += '[^/]';
+        else escaped += ch.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+      }
+      return new RegExp('^' + escaped + '$').test(modelID);
+    }
+    if (kind === 'regexp') {
+      try { return new RegExp(pattern).test(modelID); } catch (_) { return false; }
+    }
+    return false;
+  }
+
+  function winningPricingRule(modelID, rules) {
+    return [...(rules || [])].sort((a, b) => {
+      const pa = Number(a.Priority != null ? a.Priority : a.priority) || 0;
+      const pb = Number(b.Priority != null ? b.Priority : b.priority) || 0;
+      if (pb !== pa) return pb - pa;
+      return String(a.ID || a.id || '').localeCompare(String(b.ID || b.id || ''));
+    }).find(rule => ruleMatchesModel(rule, modelID)) || null;
+  }
+
+  function modelIsDisabled(modelID, rules) {
+    const winning = winningPricingRule(modelID, rules);
+    return Boolean(winning) && !ruleEnabled(winning);
+  }
+
+  function cloneRulePrice(rule) {
+    const price = (rule && (rule.Price || rule.price)) || {};
+    return {
+      input: Number(priceValue(price, 'Input', 'input') || 0),
+      output: Number(priceValue(price, 'Output', 'output') || 0),
+      reasoning: Number(priceValue(price, 'Reasoning', 'reasoning') || 0),
+      cached: Number(priceValue(price, 'Cached', 'cached') || 0),
+      cache_read: Number(priceValue(price, 'CacheRead', 'cache_read') || 0),
+      cache_creation: Number(priceValue(price, 'CacheCreation', 'cache_creation') || 0),
+      accounting_mode: priceValue(price, 'AccountingMode', 'accounting_mode') || '',
+      billing_mode: priceValue(price, 'BillingMode', 'billing_mode') || 'token',
+      per_image: Number(priceValue(price, 'PerImage', 'per_image') || 0),
+    };
+  }
+
+  function modelPricingPayload(modelID, enabled) {
+    const matched = state.modelPrices[modelID];
+    if (matched && matched.tokenPriced) {
+      return Object.assign(modelsDevPricingRule(modelID, matched), { enabled });
+    }
+    const rules = (state.overview && state.overview.pricing) || [];
+    const inherited = winningPricingRule(modelID, rules);
+    if (inherited && ruleEnabled(inherited)) {
+      return {
+        id: modelID,
+        match_kind: 'exact',
+        pattern: modelID,
+        priority: nextExactPriority(modelID, rules),
+        enabled,
+        price: cloneRulePrice(inherited),
+      };
+    }
+    const imageGen = (matched && matched.imageGen) || isImageGenerationModel(modelID);
+    return {
+      id: modelID,
+      match_kind: 'exact',
+      pattern: modelID,
+      priority: nextExactPriority(modelID, rules),
+      enabled,
+      price: {
+        input: 0, output: 0, cache_read: 0, cache_creation: 0,
+        accounting_mode: '',
+        billing_mode: imageGen ? 'per_image' : 'token',
+        per_image: 0,
+      },
+    };
+  }
+
+  function pricingModelImageGen(modelID) {
+    const matched = state.modelPrices[modelID];
+    return Boolean(matched && matched.imageGen) || isImageGenerationModel(modelID);
+  }
+
+  function pricingModelPriceAmount(modelID, rule, imageGen) {
+    const price = rule && (rule.Price || rule.price) || {};
+    const billing = priceValue(price, 'BillingMode', 'billing_mode');
+    if (billing === 'per_image' || (imageGen && billing !== 'token')) {
+      const perImage = Number(priceValue(price, 'PerImage', 'per_image') || 0);
+      return perImage > 0 ? perImage : Number.POSITIVE_INFINITY;
+    }
+    const output = Number(priceValue(price, 'Output', 'output') || 0);
+    const input = Number(priceValue(price, 'Input', 'input') || 0);
+    if (output > 0 || input > 0) return output > 0 ? output : input;
+    const cost = state.modelPrices[modelID] && state.modelPrices[modelID].cost;
+    if (cost) {
+      const out = priceNumber(cost.output);
+      const inn = priceNumber(cost.input);
+      if (out > 0 || inn > 0) return Math.round((out > 0 ? out : inn) * 1e6);
+    }
+    return Number.POSITIVE_INFINITY;
+  }
+
+  function pricingModelStatusRank(modelID, rule, rules) {
+    if (modelIsDisabled(modelID, rules)) return 2;
+    if (!rule) return 1;
+    return 0;
+  }
+
+  function comparePricingModels(a, b, rulesByModel) {
+    const rules = (state.overview && state.overview.pricing) || [];
+    const ruleA = rulesByModel.get(a), ruleB = rulesByModel.get(b);
+    const statusCmp = pricingModelStatusRank(a, ruleA, rules) - pricingModelStatusRank(b, ruleB, rules);
+    if (statusCmp) return statusCmp;
+    const imageA = pricingModelImageGen(a), imageB = pricingModelImageGen(b);
+    if (imageA !== imageB) return imageA ? -1 : 1;
+    const nameCmp = String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+    if (nameCmp) return nameCmp;
+    return pricingModelPriceAmount(a, ruleA, imageA) - pricingModelPriceAmount(b, ruleB, imageB);
+  }
+
+  async function refreshPricingRules() {
+    const result = await api('GET', 'credit-manager/pricing');
+    const items = result.items || [];
+    state.overview = { ...(state.overview || {}), pricing: items };
+    renderPricing(items);
+  }
+
+  async function setModelPricingEnabled(modelID, enabled) {
+    const rules = (state.overview && state.overview.pricing) || [];
+    const exact = pricingRuleIndex(rules).get(modelID);
+    const winning = winningPricingRule(modelID, rules);
+    const exactID = exact ? String(exact.ID || exact.id || '') : '';
+    const winningID = winning ? String(winning.ID || winning.id || '') : '';
+    if (exactID && exactID === winningID) {
+      await api('POST', 'credit-manager/pricing/enabled', { id: exactID, enabled });
+    } else {
+      await api('POST', 'credit-manager/pricing', modelPricingPayload(modelID, enabled));
+    }
+    await refreshPricingRules();
+    flash(enabled ? '模型已启用' : '模型已禁用', true);
   }
 
   function renderPricing(items) {
     const rules = items || [];
     const rulesByModel = pricingRuleIndex(rules);
-    const models = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort();
+    const models = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort((a, b) => comparePricingModels(a, b, rulesByModel));
     if (!models.length) {
       $('pricingTable').innerHTML = '<p class="hint">尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。</p>';
       return;
@@ -4065,23 +4289,35 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
       models.map(modelID => {
         const matched = state.modelPrices[modelID];
         const rule = rulesByModel.get(modelID);
-        const price = rule && (rule.Price || rule.price) || {};
+        const winning = winningPricingRule(modelID, rules);
+        const price = (rule && (rule.Price || rule.price)) || (winning && (winning.Price || winning.price)) || {};
         const imageGen = matched && matched.imageGen || isImageGenerationModel(modelID);
         const tokenPriced = matched && matched.tokenPriced;
+        const enabled = !modelIsDisabled(modelID, rules);
         const pricePairs = tokenPriced ? [
           ['输入', matched.cost.input], ['输出', matched.cost.output], ['缓存读取', matched.cost.cache_read], ['缓存创建', matched.cost.cache_write],
         ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') : (imageGen ? '<span class="muted">按张计费，不能套用 Token 价</span>' : '<span class="muted">未找到唯一匹配价格</span>');
         const ruleBilling = priceValue(price, 'BillingMode', 'billing_mode');
         const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">'+(ruleBilling === 'per_image' ? '每张 '+esc(formatMoney(priceValue(price, 'PerImage', 'per_image'))) : '输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output'))))+'</div>' : '<span class="muted">未设置</span>';
-        const status = rule ? ((rule.Enabled != null ? rule.Enabled : rule.enabled) ? '<span class="badge ok">已设置</span>' : '<span class="badge warn">已停用</span>') : (tokenPriced ? '<span class="badge">待保存</span>' : (imageGen ? '<span class="badge warn">出图</span>' : '<span class="badge bad">无价格</span>'));
-        return '<tr>' +
+        const status = rule ? (enabled ? '<span class="badge ok">启用</span>' : '<span class="badge warn">禁用</span>') : (tokenPriced ? '<span class="badge">待保存</span>' : (imageGen ? '<span class="badge warn">出图</span>' : '<span class="badge bad">无价格</span>'));
+        return '<tr'+(!enabled ? ' class="is-disabled"' : '')+'>' +
           '<td><div class="pricing-rule-id mono">'+esc(modelID)+'</div>'+(matched && matched.provider ? '<div class="hint">models.dev / '+esc(matched.provider)+(imageGen ? ' · 出图' : '')+'</div>' : (imageGen ? '<div class="hint">出图模型</div>' : ''))+'</td>' +
           '<td><div class="price-pairs">'+pricePairs+'</div></td>' +
           '<td>'+currentRule+'</td>' +
           '<td><div class="pricing-meta">'+status+'</div></td>' +
-          '<td><div class="actions pricing-actions"><button class="btn soft sm" data-configure-model="'+esc(modelID)+'">'+(rule ? '编辑' : '设置价格')+'</button>'+(rule ? '<button class="btn danger sm" data-del-price="'+esc(rule.ID || rule.id)+'">删除</button>' : '')+'</div></td>' +
+          '<td><div class="actions pricing-actions"><button class="btn '+(enabled ? 'ghost' : 'soft')+' sm" data-toggle-price="'+esc(modelID)+'">'+(enabled ? '禁用' : '启用')+'</button><button class="btn soft sm" data-configure-model="'+esc(modelID)+'">'+(rule ? '编辑' : '设置价格')+'</button>'+(rule ? '<button class="btn danger sm" data-del-price="'+esc(rule.ID || rule.id)+'">删除</button>' : '')+'</div></td>' +
           '</tr>';
       }).join('') + '</tbody></table></div>';
+    $('pricingTable').querySelectorAll('[data-toggle-price]').forEach(btn => btn.addEventListener('click', async () => {
+      const modelID = btn.dataset.togglePrice;
+      const rule = rulesByModel.get(modelID);
+      const nextEnabled = !modelIsDisabled(modelID, rules);
+      btn.disabled = true;
+      try {
+        await setModelPricingEnabled(modelID, nextEnabled);
+      } catch (e) { flash(e.message, false); }
+      finally { btn.disabled = false; }
+    }));
     $('pricingTable').querySelectorAll('[data-configure-model]').forEach(btn => btn.addEventListener('click', () => {
       const modelID = btn.dataset.configureModel;
       const rule = rulesByModel.get(modelID);
@@ -4614,7 +4850,10 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
 
   async function reloadWithModelCatalog() {
     await reload();
-    await loadModelCatalog();
+    loadModelCatalog().catch(error => {
+      const status = $('modelCatalogStatus');
+      if (status) status.textContent = '模型目录加载失败：' + (error && error.message ? error.message : error) + '。已连接到 CPA，可稍后重试。';
+    });
   }
 
   function openDeleteKeyModal(id) {
@@ -4709,7 +4948,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     try {
       await reloadWithModelCatalog();
       closeConnectionModal();
-      flash('已加载数据并同步模型价格', true);
+      flash('已加载数据', true);
     } catch (e) { flash(e.message, false); }
   });
   $('btnClearToken').addEventListener('click', () => {
@@ -4742,7 +4981,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
   $('btnRefresh').addEventListener('click', async () => {
     try {
       if (state.currentTab === 'auth-quotas') { await loadAuthQuotas(); flash('认证额度已重新加载', true); }
-      else { await reloadWithModelCatalog(); flash('模型与价格已刷新并同步', true); }
+      else { await reloadWithModelCatalog(); flash('数据已刷新', true); }
     } catch (e) { flash(e.message, false); }
   });
   $('overviewRangeFilter').addEventListener('change', setOverviewRangeVisibility);
@@ -4801,7 +5040,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
     } catch (e) { flash(e.message, false); }
   });
   $('btnLoadModelCatalog').addEventListener('click', async () => {
-    try { await loadModelCatalog(); flash('已加载全部模型并同步新价格规则', true); } catch (e) { $('modelCatalogStatus').textContent = '加载失败：' + e.message; flash(e.message, false); }
+    try { await loadModelCatalog(); flash(state.modelCatalogError ? '已加载代理模型，价格目录暂不可用' : '已加载全部模型并同步新价格规则', true); } catch (e) { $('modelCatalogStatus').textContent = '加载失败：' + e.message; flash(e.message, false); }
   });
   $('btnOpenCreateKey').addEventListener('click', () => openKeyModal('create'));
   $('btnClosePriceModal').addEventListener('click', closePriceModal);
@@ -4856,7 +5095,7 @@ html[data-palette="dark"] .auth-quota-error { border-color:#70413b; background:#
         match_kind: $('priceKind').value,
         pattern: $('pricePattern').value.trim(),
         priority: Number($('pricePriority').value || 0),
-        enabled: true,
+        enabled: $('priceEnabled').value === 'true',
         price: {
           input: microFromUSD($('priceIn').value) || 0,
           output: microFromUSD($('priceOut').value) || 0,
