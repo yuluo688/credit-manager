@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
-const authQuotaRequestTimeout = 15 * time.Second
+const (
+	authQuotaRequestTimeout     = 15 * time.Second
+	authQuotaWeeklyHistoryLimit = 8
+)
 
 type AuthQuotaFile struct {
 	ID        string    `json:"id"`
@@ -235,6 +239,12 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 	snap, fetchErr := s.fetch(requestCtx, source, callback, provider, creds)
 	cancel()
 	if fetchErr == nil {
+		if savedErr == nil && hasQuotaSnapshot(saved) {
+			var prev quotaSnapshot
+			if json.Unmarshal([]byte(saved.SnapshotJSON), &prev) == nil {
+				snap = mergeHistoricalQuotaWindows(prev, snap)
+			}
+		}
 		data, e := json.Marshal(snap)
 		if e != nil {
 			fetchErr = e
@@ -356,16 +366,21 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 	now := time.Now().UTC()
 	for i := range item.Windows {
 		w := &item.Windows[i]
-		if w.ResetsAt == nil || !w.ResetsAt.After(now) {
+		if w.ResetsAt == nil {
 			w.LocalAttributionStatus = "unavailable"
 			continue
+		}
+		to := now
+		closed := !w.ResetsAt.After(now)
+		if closed {
+			to = w.ResetsAt.UTC()
 		}
 		if w.Scope != "account" && !(item.Provider == "antigravity" && w.Scope == "model_pool") {
 			w.LocalAttributionStatus = "unsupported"
 			continue
 		}
 		from := cycleStart(item.Provider, w)
-		if from.IsZero() || !now.After(from) {
+		if from.IsZero() || !to.After(from) {
 			w.LocalAttributionStatus = "unavailable"
 			continue
 		}
@@ -373,7 +388,7 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 		if item.Provider == "xai" && w.CycleStartSource == "" {
 			w.CycleStartSource = "inferred_month_start"
 		}
-		filter := store.AuthQuotaUsageFilter{Provider: item.Provider, AuthID: item.AuthID, AuthIndex: item.AuthIndex, From: from, To: now}
+		filter := store.AuthQuotaUsageFilter{Provider: item.Provider, AuthID: item.AuthID, AuthIndex: item.AuthIndex, From: from, To: to}
 		usage, complete, e := s.windowUsage(ctx, filter, item.Provider, w.ScopeID)
 		if e != nil {
 			w.LocalAttributionStatus = "unavailable"
@@ -386,6 +401,11 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 		tokens := totalAuthQuotaTokens(usage)
 		w.LocalAttributionStatus = "complete"
 		w.LocalUsage = authQuotaLocalUsage(usage)
+		if closed {
+			w.PredictionAvailable = false
+			w.EstimatedRemainingRequests = nil
+			continue
+		}
 		observed, baseline, ok := s.observedWindowUsed(ctx, item, w, usage.RequestCount)
 		if ok {
 			w.ObservedUsed = &observed
@@ -403,4 +423,55 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 		}
 	}
 	return item
+}
+
+func mergeHistoricalQuotaWindows(prev, next quotaSnapshot) quotaSnapshot {
+	current := make(map[string]struct{}, len(next.Windows))
+	for i := range next.Windows {
+		current[windowHistoryKey(&next.Windows[i])] = struct{}{}
+	}
+	type hist struct {
+		window AuthQuotaWindow
+		reset  int64
+		cycle  string
+	}
+	extra := make([]hist, 0, len(prev.Windows))
+	for _, window := range prev.Windows {
+		if !quotaWindowIsWeekly(window) {
+			continue
+		}
+		key := windowHistoryKey(&window)
+		if _, ok := current[key]; ok {
+			continue
+		}
+		cycle := windowCycleKey(&window)
+		if cycle == "" {
+			continue
+		}
+		reset := int64(0)
+		if window.ResetsAt != nil {
+			reset = window.ResetsAt.UTC().UnixMilli()
+		}
+		cleared := window
+		cleared.PredictionAvailable = false
+		cleared.EstimatedRemainingRequests = nil
+		cleared.AverageTokensPerRequest = nil
+		cleared.LocalUsage = nil
+		cleared.LocalAttributionStatus = ""
+		cleared.ObservedUsed = nil
+		cleared.BaselineUsed = nil
+		extra = append(extra, hist{cleared, reset, cycle})
+	}
+	sort.Slice(extra, func(i, j int) bool { return extra[i].reset > extra[j].reset })
+	keptCycles := make(map[string]struct{}, authQuotaWeeklyHistoryLimit)
+	for _, item := range extra {
+		if _, ok := keptCycles[item.cycle]; !ok {
+			if len(keptCycles) >= authQuotaWeeklyHistoryLimit {
+				continue
+			}
+			keptCycles[item.cycle] = struct{}{}
+		}
+		next.Windows = append(next.Windows, item.window)
+	}
+	return next
 }

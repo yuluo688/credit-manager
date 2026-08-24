@@ -242,6 +242,31 @@ func windowCycleKey(window *AuthQuotaWindow) string {
 	return ""
 }
 
+func windowHistoryKey(window *AuthQuotaWindow) string {
+	return windowBaselineID(window) + "|" + windowCycleKey(window)
+}
+
+func quotaWindowIsWeekly(window AuthQuotaWindow) bool {
+	id := strings.ToLower(strings.TrimSpace(window.ID))
+	label := strings.ToLower(strings.TrimSpace(window.Label))
+	if strings.Contains(id, "weekly") || strings.Contains(id, "seven_day") || strings.Contains(id, "7d") || strings.Contains(id, "secondary") || id == "summary" {
+		return true
+	}
+	if strings.Contains(label, "week") || strings.Contains(label, "secondary") || strings.Contains(label, "周") || strings.Contains(label, "週") {
+		return true
+	}
+	if window.DurationSeconds != nil && *window.DurationSeconds >= 500000 && *window.DurationSeconds <= 700000 {
+		return true
+	}
+	if window.CycleStartAt != nil && window.ResetsAt != nil {
+		hours := window.ResetsAt.Sub(*window.CycleStartAt).Hours()
+		if hours >= 120 && hours <= 200 {
+			return true
+		}
+	}
+	return false
+}
+
 const authQuotaMinObservedRatio = 0.005
 
 func estimateRemainingRequests(requestCount int64, window *AuthQuotaWindow, observed float64) (int64, bool) {

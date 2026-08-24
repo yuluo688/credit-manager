@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -223,6 +224,88 @@ func TestAuthQuotaOverviewDoesNotFetchUpstream(t *testing.T) {
 	if _, err := s.RefreshAuthQuota(context.Background(), "", "codex", "", ""); err == nil {
 		t.Fatal("expected provider-only refresh to fail")
 	}
+}
+
+func TestMergeHistoricalQuotaWindowsKeepsPreviousWeek(t *testing.T) {
+	pastReset := time.Date(2026, 8, 14, 0, 0, 0, 0, time.UTC)
+	pastStart := pastReset.Add(-7 * 24 * time.Hour)
+	nowReset := time.Date(2026, 8, 21, 0, 0, 0, 0, time.UTC)
+	nowStart := pastReset
+	usedOld, remOld := 80.0, 20.0
+	usedNew, remNew := 5.0, 95.0
+	week := int64(604800)
+	hour := int64(18000)
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", Label: "周限额", DurationSeconds: &week, CycleStartAt: &pastStart, ResetsAt: &pastReset, Used: &usedOld, Remaining: &remOld},
+		{ID: "five_hour", DurationSeconds: &hour},
+	}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", Label: "周限额", DurationSeconds: &week, CycleStartAt: &nowStart, ResetsAt: &nowReset, Used: &usedNew, Remaining: &remNew},
+		{ID: "five_hour", DurationSeconds: &hour},
+	}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	weekly, fiveHour := 0, 0
+	var oldUsed *float64
+	for _, window := range got.Windows {
+		if window.ID == "weekly" {
+			weekly++
+			if window.ResetsAt != nil && window.ResetsAt.Equal(pastReset) {
+				oldUsed = window.Used
+			}
+		}
+		if window.ID == "five_hour" {
+			fiveHour++
+		}
+	}
+	if weekly != 2 || fiveHour != 1 || oldUsed == nil || *oldUsed != 80 {
+		t.Fatalf("windows=%#v", got.Windows)
+	}
+}
+
+func TestAuthQuotaRefreshKeepsPreviousWeeklyCycle(t *testing.T) {
+	s := quotaService(t)
+	oldReset := time.Now().UTC().Add(-time.Hour).Unix()
+	newReset := time.Now().UTC().Add(7 * 24 * time.Hour).Unix()
+	src := &fakeQuotaSource{
+		files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "codex"}},
+		auth:  quotaJSON("codex"),
+		responses: map[string]string{
+			"chatgpt.com": `{"rate_limit":{"primary_window":{"used_percent":10,"limit_window_seconds":18000,"reset_at":` + itoa(oldReset) + `},"secondary_window":{"used_percent":40,"limit_window_seconds":604800,"reset_at":` + itoa(oldReset) + `}}}`,
+		},
+	}
+	s.SetAuthQuotaSource(src)
+	if _, err := s.RefreshAuthQuota(context.Background(), "", "codex", "auth", "idx"); err != nil {
+		t.Fatal(err)
+	}
+	src.responses["chatgpt.com"] = `{"rate_limit":{"primary_window":{"used_percent":1,"limit_window_seconds":18000,"reset_at":` + itoa(newReset) + `},"secondary_window":{"used_percent":5,"limit_window_seconds":604800,"reset_at":` + itoa(newReset) + `}}}`
+	second, err := s.RefreshAuthQuota(context.Background(), "", "codex", "auth", "idx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	weekly := 0
+	for _, window := range second.Windows {
+		if quotaWindowIsWeekly(window) {
+			weekly++
+		}
+	}
+	if weekly < 2 {
+		t.Fatalf("second=%#v", second.Windows)
+	}
+}
+
+func TestAuthQuotaForecastClosedWeeklyUsesCycleBounds(t *testing.T) {
+	s := quotaService(t)
+	reset := time.Now().UTC().Add(-time.Hour)
+	duration := int64(604800)
+	used, remaining := 90.0, 10.0
+	got := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{ID: "weekly", Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
+	if got.LocalAttributionStatus != "complete" || got.LocalUsage == nil || got.PredictionAvailable {
+		t.Fatalf("window=%#v", got)
+	}
+}
+
+func itoa(v int64) string {
+	return strconv.FormatInt(v, 10)
 }
 
 func TestAuthQuotaAPIKeyOnlyIsHidden(t *testing.T) {
