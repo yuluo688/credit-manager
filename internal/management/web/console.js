@@ -29,7 +29,7 @@
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
-    '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。刷新最多每 15 分钟查询一次。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。重新整理最多每 15 分鐘查詢一次。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card. Refresh is limited to once every 15 minutes.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке. Обновление не чаще одного раза в 15 минут.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' },
+     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' }, '重新加载': { 'zh-TW':'重新載入', en:'Reload', ru:'Обновить' }, '加载中': { 'zh-TW':'載入中', en:'Loading', ru:'Загрузка' }, '未同步': { 'zh-TW':'未同步', en:'Not synced', ru:'Не синхронизировано' }, '认证额度已刷新': { 'zh-TW':'認證額度已刷新', en:'Auth quota refreshed', ru:'Квота авторизации обновлена' }, '认证额度已从缓存刷新': { 'zh-TW':'認證額度已從快取刷新', en:'Auth quotas reloaded from cache', ru:'Квоты авторизации загружены из кэша' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
     'Token 显示单位': { 'zh-TW':'Token 顯示單位', en:'Token display unit', ru:'Единица отображения токенов' }, '原始数量': { 'zh-TW':'原始數量', en:'Raw count', ru:'Исходное количество' },
     '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, 'k (×1,000)': { 'zh-TW':'k (×1,000)', en:'k (×1,000)', ru:'k (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, 'w (×10,000)': { 'zh-TW':'w (×10,000)', en:'w (×10,000)', ru:'w (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' }, 'm (×1,000,000)': { 'zh-TW':'m (×1,000,000)', en:'m (×1,000,000)', ru:'m (×1,000,000)' },
@@ -54,6 +54,7 @@
     keys: [],
     authQuotas: null,
     authQuotaWeeks: {},
+    authQuotaRefreshing: {},
     authQuotaProvider: '',
     authQuotaName: '',
     allKeys: [],
@@ -3150,6 +3151,7 @@
     switch (String(status || '').toLowerCase()) {
       case 'fresh': return { tone: 'ok', text: '最新' };
       case 'stale': return { tone: 'warn', text: '缓存过期' };
+      case 'idle': return { tone: 'warn', text: '未同步' };
       case 'unavailable': return { tone: 'bad', text: '不可用' };
       default: return { tone: 'warn', text: authQuotaText(status) };
     }
@@ -3198,12 +3200,37 @@
       const weekSelect = weeks.length
         ? '<label class="auth-quota-filter"><span>额度周</span><select class="auth-quota-week-select" data-auth-id="'+esc(itemKey)+'" title="额度周">'+weeks.map(week => '<option value="'+esc(week.key)+'"'+(week.key === selected ? ' selected' : '')+'>'+esc(week.label)+'</option>').join('')+'</select></label>'
         : '<label class="auth-quota-filter"><span>额度周</span><select disabled title="额度周"><option>暂无额度周</option></select></label>';
-      return '<article class="card auth-quota-card"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><p class="auth-quota-provider">'+esc(authQuotaValue(item, 'provider') || '未知提供商')+'</p><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'">'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'</h2><p class="auth-quota-sync">同步 '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>当前费用</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>预估剩余</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>预计可用</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div></div><div class="auth-quota-header-tools">'+weekSelect+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
+      const refreshing = !!state.authQuotaRefreshing[itemKey];
+      const reloadBtn = '<button type="button" class="btn sm ghost auth-quota-reload" data-provider="'+esc(authQuotaValue(item, 'provider') || '')+'" data-auth-id="'+esc(authQuotaValue(item, 'auth_id') || '')+'" data-auth-index="'+esc(authQuotaValue(item, 'auth_index') || '')+'" data-item-key="'+esc(itemKey)+'"'+(refreshing ? ' disabled' : '')+' title="重新加载">'+(refreshing ? '加载中' : '重新加载')+'</button>';
+      return '<article class="card auth-quota-card'+(refreshing ? ' is-refreshing' : '')+'"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><p class="auth-quota-provider">'+esc(authQuotaValue(item, 'provider') || '未知提供商')+'</p><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'">'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'</h2><p class="auth-quota-sync">同步 '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>当前费用</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>预估剩余</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>预计可用</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div></div><div class="auth-quota-header-tools">'+weekSelect+reloadBtn+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
     }).join('');
   }
 
   async function loadAuthQuotas() {
     renderAuthQuotas(await api('GET', 'credit-manager/auth-quotas'));
+  }
+  function replaceAuthQuotaItem(item) {
+    const items = state.authQuotas && Array.isArray(authQuotaValue(state.authQuotas, 'items')) ? authQuotaValue(state.authQuotas, 'items') : [];
+    const key = authQuotaItemKey(item);
+    const provider = String(authQuotaValue(item, 'provider') || '');
+    const idx = items.findIndex(existing => authQuotaItemKey(existing) === key && String(authQuotaValue(existing, 'provider') || '') === provider);
+    if (idx >= 0) items[idx] = item;
+    else items.push(item);
+    state.authQuotas = { items };
+  }
+  async function refreshAuthQuota(itemKey, provider, authID, authIndex) {
+    if (!itemKey || state.authQuotaRefreshing[itemKey]) return;
+    state.authQuotaRefreshing[itemKey] = true;
+    renderAuthQuotas();
+    try {
+      const result = await api('POST', 'credit-manager/auth-quotas/refresh', { provider, auth_id: authID, auth_index: authIndex });
+      const item = authQuotaValue(result, 'item') || result;
+      if (item) replaceAuthQuotaItem(item);
+      flash('认证额度已刷新', true);
+    } finally {
+      delete state.authQuotaRefreshing[itemKey];
+      renderAuthQuotas();
+    }
   }
   async function reload() {
     clearFlash();
@@ -3337,14 +3364,22 @@
     state.authQuotaWeeks[authID] = select.value || '';
     renderAuthQuotas();
   });
-  $('btnLoadAuthQuotas').addEventListener('click', async () => {
-    try { await loadAuthQuotas(); flash('认证额度已刷新', true); }
-    catch (e) { flash(e.message, false); }
+  $('authQuotaList').addEventListener('click', async event => {
+    const button = event.target.closest('.auth-quota-reload');
+    if (!button) return;
+    try {
+      await refreshAuthQuota(
+        button.getAttribute('data-item-key') || '',
+        button.getAttribute('data-provider') || '',
+        button.getAttribute('data-auth-id') || '',
+        button.getAttribute('data-auth-index') || ''
+      );
+    } catch (e) { flash(e.message, false); }
   });
 
   $('btnRefresh').addEventListener('click', async () => {
     try {
-      if (state.currentTab === 'auth-quotas') { await loadAuthQuotas(); flash('认证额度已重新加载', true); }
+      if (state.currentTab === 'auth-quotas') { await loadAuthQuotas(); flash('认证额度已从缓存刷新', true); }
       else { await reloadWithModelCatalog(); flash('数据已刷新', true); }
     } catch (e) { flash(e.message, false); }
   });

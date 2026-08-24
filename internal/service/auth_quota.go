@@ -11,7 +11,6 @@ import (
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
-const authQuotaCacheTTL = 15 * time.Minute
 const authQuotaRequestTimeout = 15 * time.Second
 
 type AuthQuotaFile struct {
@@ -106,73 +105,154 @@ func (s *Service) authQuotaSourceValue() AuthQuotaSource {
 	return s.authQuotaSource
 }
 func (s *Service) AuthQuotaOverview(ctx context.Context, callback string) ([]AuthQuotaOverviewItem, error) {
-	// The host callback bridge is process-global. Serializing refreshes also
-	// coalesces concurrent console loads into one cache population.
+	// Listing is cache-only so opening the console does not query every
+	// upstream account. The host callback bridge is still process-global.
 	s.authQuotaRefreshMu.Lock()
 	defer s.authQuotaRefreshMu.Unlock()
-	source := s.authQuotaSourceValue()
-	if source == nil {
-		return nil, fmt.Errorf("auth quota source unavailable")
-	}
-	files, err := source.ListAuthQuotaFiles(ctx)
+	source, files, err := s.authQuotaFiles(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("auth quota files unavailable: %w", err)
+		return nil, err
 	}
 	out := make([]AuthQuotaOverviewItem, 0, len(files))
 	for _, file := range files {
-		provider := quotaProvider(file.Provider)
-		id := first(file.ID, file.Name, file.AuthIndex)
-		if provider == "" || id == "" {
-			continue
+		item, ok := s.loadAuthQuotaItem(ctx, source, callback, file, false)
+		if ok {
+			out = append(out, item)
 		}
-		item := quotaItem(file, provider, id)
-		saved, savedErr := s.store.GetAuthQuotaSnapshot(ctx, provider, id)
-		if savedErr == nil && quotaFresh(saved, file.ModTime) {
-			out = append(out, s.fromSnapshot(ctx, item, saved, "fresh"))
-			continue
-		}
-		if savedErr == nil && quotaAttemptThrottled(saved, file.ModTime) {
-			out = append(out, s.fromSnapshot(ctx, item, saved, "stale"))
-			continue
-		}
-		raw, err := source.GetAuthQuotaJSON(ctx, file.AuthIndex)
-		if err != nil {
-			out = append(out, s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, fmt.Errorf("read auth configuration failed")))
-			continue
-		}
-		creds, oauth, err := readCredentials(raw)
-		if !oauth {
-			continue
-		}
-		if err != nil {
-			out = append(out, s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, err))
-			continue
-		}
-		requestCtx, cancel := context.WithTimeout(ctx, authQuotaRequestTimeout)
-		snap, fetchErr := s.fetch(requestCtx, source, callback, provider, creds)
-		cancel()
-		if fetchErr == nil {
-			data, e := json.Marshal(snap)
-			if e != nil {
-				fetchErr = e
-			} else {
-				fetchErr = s.store.UpsertAuthQuotaSuccess(ctx, provider, id, string(data), modTime(file.ModTime))
-			}
-		}
-		if fetchErr == nil {
-			now := time.Now().UTC()
-			item.Status = "fresh"
-			item.Plan = snap.Plan
-			item.ResetCredits = snap.ResetCredits
-			item.Windows = snap.Windows
-			item.LastAttemptAt = &now
-			item.LastSuccessAt = &now
-			out = append(out, s.forecast(ctx, item))
-			continue
-		}
-		out = append(out, s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, fetchErr))
 	}
 	return out, nil
+}
+
+func (s *Service) RefreshAuthQuota(ctx context.Context, callback, provider, authID, authIndex string) (AuthQuotaOverviewItem, error) {
+	s.authQuotaRefreshMu.Lock()
+	defer s.authQuotaRefreshMu.Unlock()
+	source, files, err := s.authQuotaFiles(ctx)
+	if err != nil {
+		return AuthQuotaOverviewItem{}, err
+	}
+	for _, file := range files {
+		if !matchAuthQuotaFile(file, provider, authID, authIndex) {
+			continue
+		}
+		item, ok := s.loadAuthQuotaItem(ctx, source, callback, file, true)
+		if !ok {
+			continue
+		}
+		return item, nil
+	}
+	return AuthQuotaOverviewItem{}, fmt.Errorf("auth quota not found")
+}
+
+func (s *Service) authQuotaFiles(ctx context.Context) (AuthQuotaSource, []AuthQuotaFile, error) {
+	source := s.authQuotaSourceValue()
+	if source == nil {
+		return nil, nil, fmt.Errorf("auth quota source unavailable")
+	}
+	files, err := source.ListAuthQuotaFiles(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("auth quota files unavailable: %w", err)
+	}
+	return source, files, nil
+}
+
+func matchAuthQuotaFile(file AuthQuotaFile, provider, authID, authIndex string) bool {
+	provider, authID, authIndex = strings.TrimSpace(provider), strings.TrimSpace(authID), strings.TrimSpace(authIndex)
+	if authID == "" && authIndex == "" {
+		return false
+	}
+	fileProvider := quotaProvider(file.Provider)
+	fileID := first(file.ID, file.Name, file.AuthIndex)
+	if provider != "" {
+		want := quotaProvider(provider)
+		if want == "" {
+			want = strings.ToLower(provider)
+		}
+		if fileProvider != want {
+			return false
+		}
+	}
+	if authIndex != "" && file.AuthIndex != authIndex {
+		return false
+	}
+	if authID != "" && fileID != authID && file.ID != authID && file.AuthIndex != authID {
+		return false
+	}
+	return true
+}
+
+func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource, callback string, file AuthQuotaFile, fetch bool) (AuthQuotaOverviewItem, bool) {
+	provider := quotaProvider(file.Provider)
+	id := first(file.ID, file.Name, file.AuthIndex)
+	if provider == "" || id == "" {
+		return AuthQuotaOverviewItem{}, false
+	}
+	item := quotaItem(file, provider, id)
+	saved, savedErr := s.store.GetAuthQuotaSnapshot(ctx, provider, id)
+	if !fetch && savedErr == nil {
+		if quotaFresh(saved, file.ModTime) {
+			return s.fromSnapshot(ctx, item, saved, "fresh"), true
+		}
+		return s.fromSnapshot(ctx, item, saved, "stale"), true
+	}
+	raw, err := source.GetAuthQuotaJSON(ctx, file.AuthIndex)
+	if err != nil {
+		if !fetch {
+			item.Status = "unavailable"
+			item.Error = "read auth configuration failed"
+			return item, true
+		}
+		return s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, fmt.Errorf("read auth configuration failed")), true
+	}
+	creds, oauth, err := readCredentials(raw)
+	if !oauth {
+		return AuthQuotaOverviewItem{}, false
+	}
+	if err != nil {
+		if !fetch {
+			item.Status = "unavailable"
+			item.Error = err.Error()
+			return item, true
+		}
+		return s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, err), true
+	}
+	if !fetch {
+		item.Status = "idle"
+		if savedErr == nil {
+			item.LastSuccessAt = saved.LastSuccessAt
+			if !saved.LastAttemptAt.IsZero() {
+				attempt := saved.LastAttemptAt
+				item.LastAttemptAt = &attempt
+			}
+			if saved.LastError != "" {
+				item.Status = "unavailable"
+				item.Error = saved.LastError
+				item.LastErrorAt = saved.LastErrorAt
+			}
+		}
+		return item, true
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, authQuotaRequestTimeout)
+	snap, fetchErr := s.fetch(requestCtx, source, callback, provider, creds)
+	cancel()
+	if fetchErr == nil {
+		data, e := json.Marshal(snap)
+		if e != nil {
+			fetchErr = e
+		} else {
+			fetchErr = s.store.UpsertAuthQuotaSuccess(ctx, provider, id, string(data), modTime(file.ModTime))
+		}
+	}
+	if fetchErr == nil {
+		now := time.Now().UTC()
+		item.Status = "fresh"
+		item.Plan = snap.Plan
+		item.ResetCredits = snap.ResetCredits
+		item.Windows = snap.Windows
+		item.LastAttemptAt = &now
+		item.LastSuccessAt = &now
+		return s.forecast(ctx, item), true
+	}
+	return s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, fetchErr), true
 }
 
 func (s *Service) failedQuotaItem(ctx context.Context, item AuthQuotaOverviewItem, saved store.AuthQuotaSnapshot, savedErr error, provider, id string, fileModTime time.Time, fail error) AuthQuotaOverviewItem {
@@ -208,19 +288,7 @@ func modTime(t time.Time) *time.Time {
 	return &v
 }
 func quotaFresh(x store.AuthQuotaSnapshot, t time.Time) bool {
-	return x.LastError == "" && x.LastSuccessAt != nil && time.Since(*x.LastSuccessAt) < authQuotaCacheTTL && x.SnapshotJSON != "" && sameQuotaAuthVersion(x, t) && snapshotWindowsCurrent(x.SnapshotJSON)
-}
-
-func quotaAttemptThrottled(x store.AuthQuotaSnapshot, t time.Time) bool {
-	if x.LastAttemptAt.IsZero() || time.Since(x.LastAttemptAt) >= authQuotaCacheTTL || !sameQuotaAuthVersion(x, t) {
-		return false
-	}
-	// A successful snapshot whose windows have all expired must refresh even
-	// inside the attempt TTL; otherwise the console stays stuck on a dead cycle.
-	if x.LastError == "" && hasQuotaSnapshot(x) && !snapshotWindowsCurrent(x.SnapshotJSON) {
-		return false
-	}
-	return true
+	return x.LastError == "" && x.LastSuccessAt != nil && hasQuotaSnapshot(x) && sameQuotaAuthVersion(x, t) && snapshotWindowsCurrent(x.SnapshotJSON)
 }
 
 func sameQuotaAuthVersion(x store.AuthQuotaSnapshot, t time.Time) bool {

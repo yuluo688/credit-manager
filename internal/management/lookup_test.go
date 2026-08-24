@@ -401,15 +401,15 @@ func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "刷新最多每 15 分钟查询一次", "auth-quota-window-card",
-		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'",
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", "auth-quota-window-card", "auth-quota-reload",
+		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
 		"align-items:stretch", "flex-direction:column", "height:100%",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console auth quota view is missing %q", text)
 		}
 	}
-	for _, removed := range []string{"auth-quota-windows", "本地归因", "平均 Token/请求", "预计剩余请求", "authQuotaWeekFilter", "authQuotaPeriodFilter", "额度区间"} {
+	for _, removed := range []string{"auth-quota-windows", "本地归因", "平均 Token/请求", "预计剩余请求", "authQuotaWeekFilter", "authQuotaPeriodFilter", "额度区间", "btnLoadAuthQuotas", "刷新最多每 15 分钟查询一次", "请在卡片内单独刷新该账号"} {
 		if strings.Contains(page, removed) {
 			t.Fatalf("console auth quota view still exposes removed field %q", removed)
 		}
@@ -419,6 +419,19 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		if strings.Contains(lookup, forbidden) {
 			t.Fatalf("public lookup page exposes auth quota UI: %q", forbidden)
 		}
+	}
+}
+
+func TestAuthQuotaRefreshRoute(t *testing.T) {
+	var found bool
+	for _, route := range Routes() {
+		if route.Method == "POST" && route.Path == "credit-manager/auth-quotas/refresh" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("auth quota refresh route is not registered")
 	}
 }
 

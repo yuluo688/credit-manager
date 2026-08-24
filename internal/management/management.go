@@ -38,6 +38,7 @@ func Routes() []pluginapi.ManagementRoute {
 		{http.MethodGet, "credit-manager/audit"},
 		{http.MethodGet, "credit-manager/balance"},
 		{http.MethodGet, "credit-manager/auth-quotas"},
+		{http.MethodPost, "credit-manager/auth-quotas/refresh"},
 	}
 	out := make([]pluginapi.ManagementRoute, 0, len(paths))
 	for _, item := range paths {
@@ -150,6 +151,8 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return getBalance(ctx, svc, req.Query)
 	case req.Method == http.MethodGet && path == "credit-manager/auth-quotas":
 		return getAuthQuotas(ctx, svc)
+	case req.Method == http.MethodPost && path == "credit-manager/auth-quotas/refresh":
+		return refreshAuthQuota(ctx, svc, req.Body)
 	default:
 		return jsonErr(http.StatusNotFound, "unknown management route"), nil
 	}
