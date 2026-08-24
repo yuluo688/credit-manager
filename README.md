@@ -5,7 +5,7 @@
 [English README](README.en.md)
 
 插件 ID：`credit-manager`  
-当前版本：`1.4.1`  
+当前版本：`1.4.2`  
 仓库：https://github.com/yuluo688/credit-manager
 
 ## 核心能力
