@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto" data-palette="white">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CPA 额度管理</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="./console.css">
+
+</head>
+<body>
+  <main class="workspace">
+    <header class="workspace-top topbar">
+      <div>
+        <p class="eyebrow">Credit Manager</p>
+        <h1>额度仪表盘</h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="unit-switch" id="tokenUnitSwitch" role="group" aria-label="Token 显示单位">
+          <span class="unit-switch-label">Token</span>
+          <button type="button" data-token-unit="raw" title="原始数量" data-no-i18n>个</button>
+          <button type="button" data-token-unit="qian" title="千 (×1,000)" data-no-i18n>千</button>
+          <button type="button" data-token-unit="k" title="k (×1,000)" data-no-i18n>k</button>
+          <button type="button" data-token-unit="wan" title="万 (×10,000)" data-no-i18n>万</button>
+          <button type="button" data-token-unit="w" title="w (×10,000)" data-no-i18n>w</button>
+          <button type="button" data-token-unit="baiwan" title="百万 (×1,000,000)" data-no-i18n>百万</button>
+          <button type="button" data-token-unit="m" title="m (×1,000,000)" data-no-i18n>m</button>
+        </div>
+        <div class="unit-switch" id="currencySwitch" role="group" aria-label="费用显示货币">
+          <span class="unit-switch-label">费用</span>
+          <button type="button" data-currency="USD" title="美元">USD</button>
+          <button type="button" data-currency="CNY" title="人民币（按汇率换算）">CNY</button>
+        </div>
+        <span class="rate-field hidden" id="usdCnyRateField" title="实时美元兑人民币汇率">
+          <span>1 USD =</span>
+          <b id="usdCnyRate" data-no-i18n>—</b>
+          <span>CNY</span>
+        </span>
+        <button class="btn ghost connection-trigger" id="btnOpenConnection">连接设置</button>
+        <button class="btn primary" id="btnRefresh">刷新数据</button>
+      </div>
+    </header>
+
+    <div id="flash" class="flash" role="status" aria-live="polite" aria-atomic="true">
+      <div class="flash-message" id="flashMessage"></div>
+      <button type="button" class="flash-close" id="btnCloseFlash" aria-label="关闭提示">×</button>
+    </div>
+
+    <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
+      <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="connectionModalTitle">连接设置</h2><p class="hint">连接信息仅保存于当前浏览器会话。</p></div>
+          <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="connection-form">
+            <label>CLIProxyAPI 根地址
+              <input id="apiBase" type="text" placeholder="例如 http://127.0.0.1:8317" autocomplete="off"/>
+            </label>
+            <label>宿主管理密钥（Bearer）
+              <input id="mgmtToken" type="password" placeholder="remote-management secret" autocomplete="off"/>
+            </label>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnClearToken">清除本地信息</button>
+              <button class="btn primary" id="btnSaveToken">连接并加载</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    </div>
+
+    <div class="modal-backdrop" id="keyModal" aria-hidden="true">
+      <section class="connection-modal key-modal" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="keyModalTitle">添加 Key</h2><p class="hint" id="keyModalHint">设置额度和模型策略后创建凭据。</p></div>
+          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭 Key 弹窗">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="keyModalMode" value="create"/>
+          <input type="hidden" id="keyModalId"/>
+          <div class="connection-form">
+            <div class="modal-section">
+              <p class="modal-section-title">基础信息<span>标签与额度</span></p>
+              <div class="form-grid-2">
+                <label>标签
+                  <input id="keyModalLabel" placeholder="team-a / bot"/>
+                </label>
+                <label>总额度（USD）
+                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>日额度（USD）
+                  <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>周额度（USD）
+                  <input id="keyModalWeeklyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>月额度（USD）
+                  <input id="keyModalMonthlyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>最大并发请求数
+                  <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label class="field-span-2">可用模型（多选；不选=全部）
+                  <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
+                  <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">凭据设置<span>启停与生成方式</span></p>
+              <div class="form-grid-2">
+                <label id="keyModalEnabledWrap">启用
+                  <select id="keyModalEnabled">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </label>
+                <label id="keyMaterialWrap" class="field-span-2">自定义 Key
+                  <span class="key-material-field">
+                    <span class="key-material-prefix">tk-</span>
+                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入 Key 后缀" spellcheck="false"/>
+                    <button class="btn soft" id="btnGenerateKeyMaterial" type="button">生成</button>
+                  </span>
+                  <span class="hint">固定前缀无需输入；后缀格式为 &lt;kid&gt;-&lt;secret&gt;。</span>
+                </label>
+              </div>
+            </div>
+            <div id="keyModalManageActions" class="actions key-modal-manage-actions hidden">
+              <button class="btn soft" id="btnRevealManagedKey">查看 Key</button>
+              <button class="btn ghost" id="btnRotateManagedKey">轮换 Key</button>
+            </div>
+            <div id="keyPlainResult" class="hidden">
+              <p class="hint">Key 明文已加密保存，可在已有 Key 中再次查看。</p>
+              <pre class="plain" id="keyPlaintext"></pre>
+              <div class="actions" style="margin-top:10px"><button class="btn ghost" id="btnCopyKeyPlaintext">复制 Key</button></div>
+            </div>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnCancelKeyModal">取消</button>
+              <button class="btn primary" id="btnSubmitKeyModal">创建 Key</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-backdrop" id="priceModal" aria-hidden="true">
+      <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
+        <div class="modal-header">
+          <div><h2 class="panel-title" id="priceModalTitle">新增价格规则</h2><p class="hint">文本模型按 USD / 1M tokens；纯出图模型按张计费，不要套用 Token 价。</p></div>
+          <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗">×</button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="priceModalMode" value="create"/>
+          <div class="connection-form">
+            <div class="modal-section">
+              <p class="modal-section-title">规则标识<span>ID 与参考价格</span></p>
+              <div class="form-grid-2">
+                <label>规则 ID
+                  <input id="priceId" placeholder="gpt-4o"/>
+                </label>
+                <label>可用模型价格
+                  <select id="priceModelPicker"><option value="">加载后选择模型</option></select>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">匹配条件<span>类型 / pattern / 优先级</span></p>
+              <div class="form-grid-2">
+                <label>匹配类型
+                  <select id="priceKind">
+                    <option value="exact">exact</option>
+                    <option value="glob">glob</option>
+                    <option value="regexp">regexp</option>
+                  </select>
+                </label>
+                <label>priority（大优先）
+                  <input id="pricePriority" type="number" value="100"/>
+                </label>
+                <label>状态
+                  <select id="priceEnabled">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </label>
+                <label class="field-span-2">pattern
+                  <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
+                </label>
+              </div>
+            </div>
+            <div class="modal-section">
+              <p class="modal-section-title">计费价格<span>Token 或按张</span></p>
+              <div class="form-grid-4">
+                <label class="field-span-2">计费方式
+                  <select id="priceBillingMode">
+                    <option value="token">按 Token（USD / 1M）</option>
+                    <option value="per_image">按张（出图）</option>
+                  </select>
+                </label>
+                <div id="priceTokenFields" class="field-span-2 form-grid-4">
+                <label>input USD/1M
+                  <input id="priceIn" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>output USD/1M
+                  <input id="priceOut" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存读取 USD/1M
+                  <input id="priceCacheRead" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存创建 USD/1M
+                  <input id="priceCacheCreation" type="number" step="0.000001" value="0"/>
+                </label>
+                <label class="field-span-2">缓存会计
+                  <select id="priceAccountingMode">
+                    <option value="">按模型自动（OpenAI 含缓存 / Claude 不含）</option>
+                    <option value="input_includes_cache">input 含缓存（OpenAI）</option>
+                    <option value="input_excludes_cache">input 不含缓存（Claude）</option>
+                  </select>
+                </label>
+                </div>
+                <div id="priceImageFields" class="field-span-2 hidden">
+                <label>每张 USD
+                  <input id="pricePerImage" type="number" step="0.000001" value="0"/>
+                </label>
+                </div>
+              </div>
+            </div>
+            <p class="modal-status" id="modelPriceStatus">价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。</p>
+            <div class="modal-actions">
+              <button class="btn ghost" id="btnLoadModelPrices">同步当前模型价格</button>
+              <button class="btn ghost" id="btnCancelPriceModal">取消</button>
+              <button class="btn primary" id="btnSavePrice">保存规则</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="workspace-content">
+      <div class="tabs" id="tabs">
+        <button class="tab active" data-tab="overview">概览</button>
+        <button class="tab" data-tab="keys">Key 管理</button>
+        <button class="tab" data-tab="pricing">模型与价格</button>
+        <button class="tab" data-tab="usage">使用统计</button>
+        <button class="tab" data-tab="auth-quotas">认证额度</button>
+      </div>
+
+  <section id="tab-overview" class="tabpane">
+    <div class="page-intro">
+      <div><h2>额度概览</h2><p>按时间、Key、账号、模型和来源聚合账本数据。</p></div>
+      <span class="badge ok">账本运行中</span>
+    </div>
+    <div class="card filter-card overview-filter-card">
+      <div class="filter-heading">
+        <div>
+          <h2 class="panel-title">概览筛选</h2>
+          <p class="hint">筛选仅影响概览指标和图表；「今日」按本地自然日。</p>
+        </div>
+        <span class="overview-filter-state" id="overviewFilterState">今日 · 全部数据</span>
+      </div>
+      <div class="overview-filter-grid">
+        <label>时间范围
+          <select id="overviewRangeFilter">
+            <option value="today" selected>今日</option>
+            <option value="7">最近 7 天</option>
+            <option value="30">最近 30 天</option>
+            <option value="90">最近 90 天</option>
+            <option value="all">全部时间</option>
+            <option value="custom">自定义范围</option>
+          </select>
+        </label>
+        <label id="overviewDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+          <span class="overview-date-range">
+            <input id="overviewFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
+            <span aria-hidden="true">至</span>
+            <input id="overviewToFilter" type="datetime-local" aria-label="结束时间" disabled/>
+          </span>
+        </label>
+        <label>Key
+          <span class="key-search-control" id="overviewKeySearch">
+            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="overviewKeyOptions" hidden></span>
+          </span>
+        </label>
+        <label>账号
+          <span class="key-search-control" id="overviewAuthSearch">
+            <input id="overviewAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="overviewAuthOptions" hidden></span>
+          </span>
+        </label>
+        <label>模型
+          <select id="overviewModelFilter"><option value="">全部已使用模型</option></select>
+        </label>
+        <label>来源
+          <select id="overviewSourceFilter">
+            <option value="">全部来源</option>
+            <option value="openai">openai</option>
+            <option value="claude">claude</option>
+            <option value="gemini">gemini</option>
+            <option value="responses">responses</option>
+            <option value="reserved_fallback">reserved_fallback</option>
+          </select>
+        </label>
+      </div>
+      <div class="actions overview-actions">
+        <button class="btn ghost" id="btnResetOverview">重置</button>
+        <button class="btn primary" id="btnLoadOverview">刷新概览</button>
+      </div>
+    </div>
+    <div class="grid stats" id="overviewStats"></div>
+    <div class="overview-dashboard">
+      <div class="overview-trends-column">
+        <div class="card overview-trend-card">
+          <div class="section-heading">
+            <div><h2 class="panel-title">Token 趋势</h2><p class="hint" id="overviewTrendHint">输入 / 输出 / 缓存读取 / 缓存命中率</p></div>
+            <div class="unit-switch trend-grain-switch" data-trend-chart="token" role="group" aria-label="Token 趋势时间维度">
+              <button type="button" data-trend-grain="hour">时</button>
+              <button type="button" data-trend-grain="day" class="active">日</button>
+              <button type="button" data-trend-grain="month">月</button>
+            </div>
+          </div>
+          <div class="trend-metric-row" id="overviewTrendTotal"></div>
+          <div id="overviewTrend"></div>
+        </div>
+        <div class="card overview-trend-card">
+          <div class="section-heading">
+            <div><h2 class="panel-title">费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总实际费用</p></div>
+            <div class="unit-switch trend-grain-switch" data-trend-chart="cost" role="group" aria-label="费用趋势时间维度">
+              <button type="button" data-trend-grain="hour">时</button>
+              <button type="button" data-trend-grain="day" class="active">日</button>
+              <button type="button" data-trend-grain="month">月</button>
+            </div>
+          </div>
+          <div class="trend-metric-row" id="overviewCostTrendTotal"></div>
+          <div id="overviewCostTrend"></div>
+        </div>
+      </div>
+      <div class="card overview-share-card">
+        <div class="section-heading">
+          <div><h2 class="panel-title">模型调用占比</h2><p class="hint">点击区块或模型名称下钻</p></div>
+          <div class="overview-model-tools">
+            <div class="unit-switch" id="modelShareMetricSwitch" role="group" aria-label="模型占比指标">
+              <button type="button" data-model-metric="requests" class="active">调用次数</button>
+              <button type="button" data-model-metric="tokens">Token</button>
+              <button type="button" data-model-metric="cost">费用</button>
+            </div>
+            <span class="muted" id="overviewModelCount">—</span>
+          </div>
+        </div>
+        <div class="overview-share-body">
+          <div id="overviewModelShare"></div>
+          <div id="overviewModelShareLegend" class="share-legend" hidden></div>
+        </div>
+      </div>
+      <div class="card overview-rank-card">
+        <div class="section-heading">
+          <div><h2 class="panel-title">模型效率排行</h2><p class="hint" id="overviewRankHint">按每美元产出 Token 排序，越高越省</p></div>
+          <div class="overview-model-tools">
+            <div class="unit-switch" id="modelRankMetricSwitch" role="group" aria-label="模型效率指标">
+              <button type="button" data-rank-metric="value" class="active">性价比</button>
+              <button type="button" data-rank-metric="unit">单次</button>
+              <button type="button" data-rank-metric="cache">缓存</button>
+              <button type="button" data-rank-metric="tps">吞吐</button>
+            </div>
+            <span class="muted" id="overviewRankCount">—</span>
+          </div>
+        </div>
+        <div id="overviewModelRank" class="model-rank-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-keys" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>Key 管理</h2><p>按 Key 设置额度、启停状态和可用模型策略。</p></div>
+      <div class="actions">
+        <span class="badge ok">额度隔离</span>
+        <button class="btn primary" id="btnOpenCreateKey">添加 Key</button>
+      </div>
+    </div>
+    <div class="card keys-card">
+      <div class="section-heading"><h2 class="panel-title">已有 Key</h2><span class="muted" id="keysCount">额度与状态一览</span></div>
+      <div id="keysTable"></div>
+    </div>
+  </section>
+
+  <section id="tab-pricing" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>模型与价格</h2><p>文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。</p></div>
+      <span class="badge">定价规则</span>
+    </div>
+    <div class="pricing-layout">
+    <div class="card list-card">
+      <div class="section-heading"><div><h2 class="panel-title">当前代理模型</h2><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="actions"><span class="muted" id="modelCatalogCount">未加载</span><button class="btn primary" id="btnLoadModelCatalog">加载全部模型</button></div></div>
+      <div id="pricingTable"></div>
+    </div>
+    </div>
+  </section>
+
+  <section id="tab-usage" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>使用统计</h2><p>从请求、Token 到费用的可筛选账本视图。</p></div>
+      <span class="badge ok">实时汇总</span>
+    </div>
+    <div class="card filter-card">
+      <div class="filter-heading">
+        <div>
+          <h2 class="panel-title">统计筛选</h2>
+          <p class="hint">汇总和明细共用以下条件。「今日」按本地自然日，金额单位为 USD。</p>
+        </div>
+        <span class="filter-state" id="usageFilterState">未设置筛选</span>
+      </div>
+      <div class="filter-grid">
+        <label>时间范围
+          <select id="usageRangeFilter">
+            <option value="today" selected>今日</option>
+            <option value="7">最近 7 天</option>
+            <option value="30">最近 30 天</option>
+            <option value="90">最近 90 天</option>
+            <option value="all">全部时间</option>
+            <option value="custom">自定义范围</option>
+          </select>
+        </label>
+        <label id="usageDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+          <span class="overview-date-range">
+            <input id="usageFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
+            <span aria-hidden="true">至</span>
+            <input id="usageToFilter" type="datetime-local" aria-label="结束时间" disabled/>
+          </span>
+        </label>
+        <label>Key
+          <span class="key-search-control" id="usageKeySearch">
+            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="usageKeyOptions" hidden></span>
+          </span>
+        </label>
+        <label>账号
+          <span class="key-search-control" id="usageAuthSearch">
+            <input id="usageAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <span class="custom-control-panel key-search-panel" id="usageAuthOptions" hidden></span>
+          </span>
+        </label>
+        <label>模型
+          <select id="usageModelFilter"><option value="">全部已使用模型</option></select>
+        </label>
+        <label>来源
+          <select id="usageSourceFilter">
+            <option value="">全部来源</option>
+            <option value="openai">openai</option>
+            <option value="claude">claude</option>
+            <option value="gemini">gemini</option>
+            <option value="responses">responses</option>
+            <option value="reserved_fallback">reserved_fallback</option>
+          </select>
+        </label>
+        <label>最低费用（USD）
+          <input id="usageMinCost" type="number" min="0" step="0.000001" placeholder="例如 0.01"/>
+        </label>
+        <label>最高费用（USD）
+          <input id="usageMaxCost" type="number" min="0" step="0.000001" placeholder="不限制"/>
+        </label>
+        <label>最低 Token 数
+          <input id="usageMinTokens" type="number" min="0" step="1" placeholder="不限制"/>
+        </label>
+        <label>最高 Token 数
+          <input id="usageMaxTokens" type="number" min="0" step="1" placeholder="不限制"/>
+        </label>
+      </div>
+      <div class="actions filter-actions">
+        <button class="btn primary" id="btnLoadUsage">应用筛选</button>
+        <button class="btn ghost" id="btnClearUsageFilters">清除筛选</button>
+      </div>
+    </div>
+    <div class="grid stats" id="usageStats"></div>
+    <div class="usage-grid">
+    <div class="card">
+      <div class="section-heading"><h2 class="panel-title">按 Key 汇总</h2><span class="muted" id="usageByKeyCount"></span></div>
+      <div id="usageByKey"></div>
+    </div>
+    <div class="card">
+      <div class="section-heading"><h2 class="panel-title">按模型汇总</h2><span class="muted" id="usageByModelCount"></span></div>
+      <div id="usageByModel"></div>
+    </div>
+    <div class="card usage-recent-card">
+      <div class="section-heading"><h2 class="panel-title">最近明细</h2><span class="muted" id="usageRecentCount"></span></div>
+      <div id="usageRecent"></div>
+      <div class="usage-pagination" id="usagePagination"></div>
+    </div>
+    </div>
+  </section>
+
+  <section id="tab-auth-quotas" class="tabpane hidden">
+    <div class="page-intro">
+      <div><h2>认证额度</h2><p>每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。</p></div>
+      <div class="auth-quota-toolbar">
+        <div class="auth-quota-toolbar-filters">
+          <label class="auth-quota-filter">
+            <span>平台</span>
+            <select id="authQuotaProviderFilter"><option value="">全部平台</option></select>
+          </label>
+          <label class="auth-quota-filter">
+            <span>名称</span>
+            <input id="authQuotaNameFilter" autocomplete="off" placeholder="搜索账号或名称"/>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div id="authQuotaList" class="auth-quota-list"></div>
+  </section>
+
+  <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
+    <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
+      <div class="modal-header">
+        <div><h2 class="panel-title" id="deleteKeyModalTitle">删除 Key</h2><p class="hint">删除后该 Key 将立即失效，历史使用统计、预占和审计记录会保留。</p></div>
+        <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="delete-key-target" id="deleteKeyTarget"></p>
+        <div class="modal-actions">
+          <button class="btn ghost" id="btnCancelDeleteKey">取消</button>
+          <button class="btn danger" id="btnConfirmDeleteKey">确认删除</button>
+        </div>
+      </div>
+    </section>
+  </div>
+    </div>
+  </main>
+<script src="./console.js" defer></script>
+</body>
+</html>
