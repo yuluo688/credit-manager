@@ -17,7 +17,7 @@ func kimi(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredentials)
 	if len(w) == 0 {
 		return quotaSnapshot{}, fmt.Errorf("kimi quota response has no limits")
 	}
-	return quotaSnapshot{Plan: findText(d, "plan", "plan_name"), Windows: w}, nil
+	return quotaSnapshot{Plan: quotaPlanText(d, "plan", "plan_name", "membership", "membershipType", "membership_type", "package", "packageName"), Windows: w}, nil
 }
 func kimiWindows(d map[string]any) []AuthQuotaWindow {
 	var out []AuthQuotaWindow

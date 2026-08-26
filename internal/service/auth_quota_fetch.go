@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -89,6 +90,134 @@ func findText(v any, keys ...string) string {
 		return ""
 	}
 	return walk(v)
+}
+
+func quotaPlanText(v any, keys ...string) string {
+	for _, key := range keys {
+		if s := findText(v, key); s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func findBool(v any, keys ...string) (bool, bool) {
+	wanted := map[string]bool{}
+	for _, k := range keys {
+		wanted[strings.ToLower(k)] = true
+	}
+	var walk func(any) (bool, bool)
+	walk = func(x any) (bool, bool) {
+		switch y := x.(type) {
+		case map[string]any:
+			for k, val := range y {
+				if !wanted[strings.ToLower(k)] {
+					continue
+				}
+				switch t := val.(type) {
+				case bool:
+					return t, true
+				case string:
+					switch strings.ToLower(strings.TrimSpace(t)) {
+					case "true", "1", "yes":
+						return true, true
+					case "false", "0", "no":
+						return false, true
+					}
+				}
+			}
+			for _, val := range y {
+				if b, ok := walk(val); ok {
+					return b, true
+				}
+			}
+		case []any:
+			for _, val := range y {
+				if b, ok := walk(val); ok {
+					return b, true
+				}
+			}
+		}
+		return false, false
+	}
+	return walk(v)
+}
+
+func quotaPlanFromAuthJSON(raw []byte) string {
+	var v map[string]any
+	if json.Unmarshal(raw, &v) != nil {
+		return ""
+	}
+	if plan := quotaPlanText(v, "rate_limit_tier", "rateLimitTier", "subscriptionType", "subscription_type", "chatgpt_plan_type", "plan_type", "tier_id", "tierId"); plan != "" {
+		return plan
+	}
+	if token := findText(v, "id_token", "idToken"); token != "" {
+		if claims := decodeJWTPayload(token); claims != nil {
+			return quotaPlanText(claims, "chatgpt_plan_type", "plan_type", "subscriptionType", "subscription_type")
+		}
+	}
+	return ""
+}
+
+func decodeJWTPayload(token string) map[string]any {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil
+	}
+	payload := parts[1]
+	raw, err := base64.RawURLEncoding.DecodeString(payload)
+	if err != nil {
+		if m := len(payload) % 4; m != 0 {
+			payload += strings.Repeat("=", 4-m)
+		}
+		raw, err = base64.URLEncoding.DecodeString(payload)
+		if err != nil {
+			return nil
+		}
+	}
+	var v map[string]any
+	if json.Unmarshal(raw, &v) != nil {
+		return nil
+	}
+	return v
+}
+
+func normalizeQuotaPlan(raw string) string {
+	s := strings.ToLower(strings.TrimSpace(raw))
+	if s == "" {
+		return ""
+	}
+	compact := strings.ReplaceAll(strings.ReplaceAll(s, "_", "-"), " ", "-")
+	switch {
+	case strings.Contains(compact, "max-20") || strings.Contains(compact, "max20"):
+		return "max_20x"
+	case strings.Contains(compact, "max-5") || strings.Contains(compact, "max5"):
+		return "max_5x"
+	case compact == "max" || strings.Contains(compact, "claude-max"):
+		return "max"
+	case compact == "pro" || strings.Contains(compact, "claude-pro"):
+		return "pro"
+	case compact == "plus":
+		return "plus"
+	case strings.Contains(compact, "team"):
+		return "team"
+	case strings.Contains(compact, "enterprise"):
+		return "enterprise"
+	case strings.Contains(compact, "business"):
+		return "business"
+	case compact == "go":
+		return "go"
+	case strings.Contains(compact, "standard"):
+		return "standard"
+	case strings.Contains(compact, "legacy"):
+		return "legacy"
+	case strings.Contains(compact, "free"):
+		return "free"
+	case strings.Contains(compact, "supergrok") || strings.Contains(compact, "super-grok"):
+		return "super_grok"
+	default:
+		return strings.TrimSpace(raw)
+	}
 }
 
 func (s *Service) fetch(ctx context.Context, source AuthQuotaSource, callback, p string, c quotaCredentials) (quotaSnapshot, error) {

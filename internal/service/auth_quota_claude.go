@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 )
 
@@ -42,5 +43,26 @@ func claude(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredential
 	if len(w) == 0 {
 		return quotaSnapshot{}, fmt.Errorf("claude quota response has no recognized windows")
 	}
-	return quotaSnapshot{Plan: findText(d, "plan", "plan_type"), Windows: w}, nil
+	return quotaSnapshot{Plan: claudePlan(ctx, s, cb, h, d), Windows: w}, nil
+}
+
+func claudePlan(ctx context.Context, s AuthQuotaSource, cb string, h http.Header, usage map[string]any) string {
+	plan := quotaPlanText(usage, "plan_type", "plan", "subscriptionType", "subscription_type", "rate_limit_tier")
+	profile, err := request(ctx, s, cb, "GET", "https://api.anthropic.com/api/oauth/profile", h, nil)
+	if err == nil {
+		plan = first(
+			quotaPlanText(profile, "rate_limit_tier", "rateLimitTier"),
+			quotaPlanText(profile, "organization_type", "organizationType"),
+			quotaPlanText(profile, "subscriptionType", "subscription_type"),
+			plan,
+		)
+		if plan == "" {
+			if max, ok := findBool(profile, "has_claude_max"); ok && max {
+				plan = "max"
+			} else if pro, ok := findBool(profile, "has_claude_pro"); ok && pro {
+				plan = "pro"
+			}
+		}
+	}
+	return plan
 }

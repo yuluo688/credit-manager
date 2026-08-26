@@ -18,9 +18,11 @@ import (
 type fakeQuotaSource struct {
 	files     []AuthQuotaFile
 	auth      string
+	auths     map[string]string
 	responses map[string]string
 	requests  []AuthQuotaHTTPRequest
 	gets      int
+	got       []string
 	fail      bool
 	failHTTP  bool
 }
@@ -28,10 +30,16 @@ type fakeQuotaSource struct {
 func (f *fakeQuotaSource) ListAuthQuotaFiles(context.Context) ([]AuthQuotaFile, error) {
 	return f.files, nil
 }
-func (f *fakeQuotaSource) GetAuthQuotaJSON(context.Context, string) ([]byte, error) {
+func (f *fakeQuotaSource) GetAuthQuotaJSON(_ context.Context, authIndex string) ([]byte, error) {
 	f.gets++
+	f.got = append(f.got, authIndex)
 	if f.fail {
 		return nil, errors.New("host failed")
+	}
+	if f.auths != nil {
+		if raw, ok := f.auths[authIndex]; ok {
+			return []byte(raw), nil
+		}
 	}
 	return []byte(f.auth), nil
 }
@@ -86,15 +94,15 @@ func quotaJSON(provider string) string {
 
 func TestAuthQuotaProviderPayloadsAndAuthorization(t *testing.T) {
 	cases := []struct {
-		provider, key, body string
-		windows             int
+		provider, key, body, plan string
+		windows                   int
 	}{
-		{"codex", "chatgpt.com", `{"rate_limit":{"primary_window":{"used_percent":25,"limit_window_seconds":3600,"reset_at":4102444800},"secondary_window":{"used_percent":10}},"code_review_rate_limit":{"primary_window":{"used_percent":5}},"additional_rate_limits":[{"limit_name":"Extra quota","metered_feature":"extra_feature","rate_limit":{"primary_window":{"used_percent":15}}}]}`, 4},
-		{"claude", "anthropic.com", `{"five_hour":{"utilization":0.1,"resets_at":"2030-01-01T00:00:00Z"},"seven_day":{"utilization":0.2},"seven_day_oauth_apps":{"utilization":0.3},"seven_day_opus":{"utilization":0.4},"seven_day_sonnet":{"utilization":0.5},"seven_day_cowork":{"utilization":0.6},"iguana_necktie":{"utilization":0.7},"extra_usage":{"monthly_limit":100,"used_credits":10}}`, 8},
-		{"antigravity", "cloudcode", `{"groups":[{"buckets":[{"bucketId":"gemini-weekly","remainingFraction":0.5,"resetTime":"2030-01-01T00:00:00Z"},{"bucketId":"3p-weekly","remainingFraction":0.25}]}]}`, 2},
-		{"kimi", "api.kimi.com", `{"usage":{"used":"20","limit":"100","remaining":"80","resetTime":"2030-01-01T00:00:00Z"},"limits":[{"name":"hourly","window":{"duration":"1","timeUnit":"TIME_UNIT_HOUR"},"detail":{"used":"5","limit":"10","remaining":"5","resetIn":"3600"}},{"name":"weekly","window":{"duration":1,"timeUnit":"TIME_UNIT_WEEK"},"detail":{"used":1,"limit":4,"ttl":7200}}]}`, 3},
-		{"xai", "cli-chat-proxy.grok.com", `{"config":{"monthlyLimit":{"val":10000},"used":{"val":1200},"onDemandCap":500,"onDemandUsed":10,"billingPeriodEnd":"2030-01-01T00:00:00Z"}}`, 2},
-		{"xai-credits", "format=credits", `{"creditUsagePercent":3,"currentPeriod":{"type":"weekly","start":"2026-08-14T13:16:00Z","end":"2026-08-21T13:16:00Z"},"productUsage":[{"product":"GrokChat","usagePercent":3},{"product":"GrokBuild"}]}`, 3},
+		{"codex", "chatgpt.com", `{"plan_type":"plus","rate_limit":{"primary_window":{"used_percent":25,"limit_window_seconds":3600,"reset_at":4102444800},"secondary_window":{"used_percent":10}},"code_review_rate_limit":{"primary_window":{"used_percent":5}},"additional_rate_limits":[{"limit_name":"Extra quota","metered_feature":"extra_feature","rate_limit":{"primary_window":{"used_percent":15}}}]}`, "plus", 4},
+		{"claude", "oauth/usage", `{"five_hour":{"utilization":0.1,"resets_at":"2030-01-01T00:00:00Z"},"seven_day":{"utilization":0.2},"seven_day_oauth_apps":{"utilization":0.3},"seven_day_opus":{"utilization":0.4},"seven_day_sonnet":{"utilization":0.5},"seven_day_cowork":{"utilization":0.6},"iguana_necktie":{"utilization":0.7},"extra_usage":{"monthly_limit":100,"used_credits":10}}`, "max_5x", 8},
+		{"antigravity", "cloudcode", `{"currentTier":{"id":"standard-tier"},"groups":[{"buckets":[{"bucketId":"gemini-weekly","remainingFraction":0.5,"resetTime":"2030-01-01T00:00:00Z"},{"bucketId":"3p-weekly","remainingFraction":0.25}]}]}`, "standard", 2},
+		{"kimi", "api.kimi.com", `{"membership":"pro","usage":{"used":"20","limit":"100","remaining":"80","resetTime":"2030-01-01T00:00:00Z"},"limits":[{"name":"hourly","window":{"duration":"1","timeUnit":"TIME_UNIT_HOUR"},"detail":{"used":"5","limit":"10","remaining":"5","resetIn":"3600"}},{"name":"weekly","window":{"duration":1,"timeUnit":"TIME_UNIT_WEEK"},"detail":{"used":1,"limit":4,"ttl":7200}}]}`, "pro", 3},
+		{"xai", "cli-chat-proxy.grok.com", `{"config":{"planName":"SuperGrok","monthlyLimit":{"val":10000},"used":{"val":1200},"onDemandCap":500,"onDemandUsed":10,"billingPeriodEnd":"2030-01-01T00:00:00Z"}}`, "super_grok", 2},
+		{"xai-credits", "format=credits", `{"planName":"SuperGrok","creditUsagePercent":3,"currentPeriod":{"type":"weekly","start":"2026-08-14T13:16:00Z","end":"2026-08-21T13:16:00Z"},"productUsage":[{"product":"GrokChat","usagePercent":3},{"product":"GrokBuild"}]}`, "super_grok", 3},
 	}
 	for _, tc := range cases {
 		t.Run(tc.provider, func(t *testing.T) {
@@ -103,11 +111,14 @@ func TestAuthQuotaProviderPayloadsAndAuthorization(t *testing.T) {
 			if provider == "xai-credits" {
 				provider = "xai"
 			}
-			src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: provider}}, auth: quotaJSON(provider), responses: map[string]string{tc.key: tc.body, "usage/credits": `{"available_count":3}`}}
+			src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: provider}}, auth: quotaJSON(provider), responses: map[string]string{tc.key: tc.body, "usage/credits": `{"available_count":3}`, "oauth/profile": `{"organization":{"organization_type":"claude_max","rate_limit_tier":"default_claude_max_5x"},"account":{"has_claude_max":true}}`}}
 			s.SetAuthQuotaSource(src)
 			item, e := s.RefreshAuthQuota(context.Background(), "callback", provider, "auth", "idx")
 			if e != nil || item.Status != "fresh" || len(item.Windows) != tc.windows {
 				t.Fatalf("item=%#v err=%v", item, e)
+			}
+			if item.Plan != tc.plan {
+				t.Fatalf("plan=%q want %q", item.Plan, tc.plan)
 			}
 			for _, r := range src.requests {
 				if r.Header.Get("Authorization") != "Bearer oauth-token" {
@@ -129,19 +140,40 @@ func TestAuthQuotaProviderPayloadsAndAuthorization(t *testing.T) {
 		})
 	}
 }
+func TestNormalizeQuotaPlan(t *testing.T) {
+	cases := map[string]string{
+		"plus": "plus", "PLUS": "plus", "pro": "pro", "claude_pro": "pro",
+		"default_claude_max_5x": "max_5x", "default_claude_max_20x": "max_20x",
+		"claude_max": "max", "standard-tier": "standard", "free-tier": "free",
+		"SuperGrok": "super_grok", "team": "team",
+	}
+	for in, want := range cases {
+		if got := normalizeQuotaPlan(in); got != want {
+			t.Fatalf("normalizeQuotaPlan(%q)=%q want %q", in, got, want)
+		}
+	}
+}
+
+func TestQuotaPlanFromAuthJSON(t *testing.T) {
+	raw := []byte(`{"claudeAiOauth":{"subscriptionType":"max","rateLimitTier":"default_claude_max_20x"}}`)
+	if got := normalizeQuotaPlan(quotaPlanFromAuthJSON(raw)); got != "max_20x" {
+		t.Fatalf("auth json plan=%q", quotaPlanFromAuthJSON(raw))
+	}
+}
+
 func TestAuthQuotaOAuthFailureIsThrottled(t *testing.T) {
 	s := quotaService(t)
 	src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "codex"}}, auth: `{"type":"oauth","refresh_token":"refresh-only"}`}
 	s.SetAuthQuotaSource(src)
-	first, err := s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(first) != 1 || first[0].Status != "unavailable" || first[0].Error == "" {
+	first, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(first.Items) != 1 || first.Items[0].Status != "unavailable" || first.Items[0].Error == "" {
 		t.Fatalf("first=%#v err=%v", first, err)
 	}
 	if src.gets != 1 {
 		t.Fatalf("gets=%d, want 1", src.gets)
 	}
-	second, err := s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(second) != 1 || second[0].Status != "unavailable" || src.gets != 2 {
+	second, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(second.Items) != 1 || second.Items[0].Status != "unavailable" || src.gets != 2 {
 		t.Fatalf("overview must not persist failures: second=%#v gets=%d err=%v", second, src.gets, err)
 	}
 	refreshed, err := s.RefreshAuthQuota(context.Background(), "", "codex", "auth", "idx")
@@ -149,8 +181,8 @@ func TestAuthQuotaOAuthFailureIsThrottled(t *testing.T) {
 		t.Fatalf("refresh=%#v err=%v", refreshed, err)
 	}
 	gets := src.gets
-	listed, err := s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(listed) != 1 || listed[0].Status != "unavailable" || src.gets != gets {
+	listed, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(listed.Items) != 1 || listed.Items[0].Status != "unavailable" || src.gets != gets {
 		t.Fatalf("listed=%#v gets=%d want=%d err=%v", listed, src.gets, gets, err)
 	}
 }
@@ -198,8 +230,8 @@ func TestAuthQuotaOverviewDoesNotFetchUpstream(t *testing.T) {
 		responses: map[string]string{"chatgpt.com": `{"rate_limit":{"primary_window":{"used_percent":10,"reset_at":4102444800}}}`},
 	}
 	s.SetAuthQuotaSource(src)
-	listed, err := s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(listed) != 2 || listed[0].Status != "idle" || listed[1].Status != "idle" || len(src.requests) != 0 {
+	listed, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(listed.Items) != 2 || listed.Items[0].Status != "idle" || listed.Items[1].Status != "idle" || len(src.requests) != 0 {
 		t.Fatalf("listed=%#v requests=%d err=%v", listed, len(src.requests), err)
 	}
 	item, err := s.RefreshAuthQuota(context.Background(), "", "codex", "auth-a", "idx-a")
@@ -207,12 +239,12 @@ func TestAuthQuotaOverviewDoesNotFetchUpstream(t *testing.T) {
 		t.Fatalf("item=%#v requests=%d err=%v", item, len(src.requests), err)
 	}
 	attempts := len(src.requests)
-	listed, err = s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(listed) != 2 || len(src.requests) != attempts {
+	listed, err = s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(listed.Items) != 2 || len(src.requests) != attempts {
 		t.Fatalf("listed=%#v attempts=%d->%d err=%v", listed, attempts, len(src.requests), err)
 	}
 	got := map[string]string{}
-	for _, row := range listed {
+	for _, row := range listed.Items {
 		got[row.AuthID] = row.Status
 	}
 	if got["auth-a"] != "fresh" || got["auth-b"] != "idle" {
@@ -312,11 +344,112 @@ func TestAuthQuotaAPIKeyOnlyIsHidden(t *testing.T) {
 	s := quotaService(t)
 	src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "codex"}}, auth: `{"api_key":"secret"}`}
 	s.SetAuthQuotaSource(src)
-	items, e := s.AuthQuotaOverview(context.Background(), "")
-	if e != nil || len(items) != 0 {
-		t.Fatalf("items=%#v err=%v", items, e)
+	first, e := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if e != nil || len(first.Items) != 0 {
+		t.Fatalf("items=%#v err=%v", first, e)
+	}
+	if src.gets != 1 {
+		t.Fatalf("gets=%d, want 1", src.gets)
+	}
+	second, e := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if e != nil || len(second.Items) != 0 || src.gets != 1 {
+		t.Fatalf("sentinel must skip JSON: second=%#v gets=%d err=%v", second, src.gets, e)
 	}
 }
+
+func TestAuthQuotaOverviewHiddenAPIKeyDoesNotRewritePage(t *testing.T) {
+	s := quotaService(t)
+	files := make([]AuthQuotaFile, 0, 9)
+	auths := map[string]string{}
+	for i := 0; i < 8; i++ {
+		id := "auth-" + strconv.Itoa(i)
+		idx := "idx-" + strconv.Itoa(i)
+		files = append(files, AuthQuotaFile{ID: id, AuthIndex: idx, Provider: "codex"})
+		auths[idx] = quotaJSON("codex")
+	}
+	files = append(files, AuthQuotaFile{ID: "api", AuthIndex: "idx-api", Provider: "codex"})
+	auths["idx-api"] = `{"api_key":"secret"}`
+	src := &fakeQuotaSource{files: files, auths: auths}
+	s.SetAuthQuotaSource(src)
+	page2, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Page: 2, PageSize: 8})
+	if err != nil || page2.Page != 2 || len(page2.Items) != 0 || page2.Total != 8 || page2.TotalPages != 1 {
+		t.Fatalf("page2=%#v err=%v", page2, err)
+	}
+}
+
+func TestAuthQuotaOverviewPagesOnlyCurrentFiles(t *testing.T) {
+	s := quotaService(t)
+	files := make([]AuthQuotaFile, 0, 13)
+	for i := 0; i < 13; i++ {
+		id := "auth-" + strconv.Itoa(i)
+		files = append(files, AuthQuotaFile{ID: id, AuthIndex: "idx-" + strconv.Itoa(i), Name: id, Provider: "codex", Label: "user-" + strconv.Itoa(i)})
+	}
+	src := &fakeQuotaSource{files: files, auth: quotaJSON("codex")}
+	s.SetAuthQuotaSource(src)
+	page1, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Page: 1, PageSize: 8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page1.Items) != 8 || page1.Total != 13 || page1.Page != 1 || page1.PageSize != 8 || page1.TotalPages != 2 || src.gets != 8 || len(src.requests) != 0 {
+		t.Fatalf("page1=%#v gets=%d requests=%d", page1, src.gets, len(src.requests))
+	}
+	if strings.Join(src.got, ",") != "idx-0,idx-1,idx-2,idx-3,idx-4,idx-5,idx-6,idx-7" {
+		t.Fatalf("got=%v", src.got)
+	}
+	page2, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Page: 2, PageSize: 8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page2.Items) != 5 || page2.Total != 13 || page2.Page != 2 || src.gets != 13 || len(src.requests) != 0 {
+		t.Fatalf("page2=%#v gets=%d requests=%d", page2, src.gets, len(src.requests))
+	}
+	if strings.Join(src.got[8:], ",") != "idx-8,idx-9,idx-10,idx-11,idx-12" {
+		t.Fatalf("got=%v", src.got)
+	}
+	over, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Page: 99, PageSize: 8})
+	if err != nil || over.Page != 2 || len(over.Items) != 5 || over.TotalPages != 2 {
+		t.Fatalf("over=%#v err=%v", over, err)
+	}
+}
+
+func TestAuthQuotaOverviewFilterAndPageClamp(t *testing.T) {
+	s := quotaService(t)
+	src := &fakeQuotaSource{
+		files: []AuthQuotaFile{
+			{ID: "codex-a", AuthIndex: "idx-a", Provider: "codex", Label: "alice@example.com", Email: "alice@example.com"},
+			{ID: "codex-b", AuthIndex: "idx-b", Provider: "codex", Label: "bob", Name: "bob-name"},
+			{ID: "claude-1", AuthIndex: "idx-c", Provider: "claude", Label: "claude-user"},
+			{ID: "skip", AuthIndex: "idx-x", Provider: "unknown"},
+		},
+		auth: quotaJSON("codex"),
+		auths: map[string]string{
+			"idx-a": quotaJSON("codex"),
+			"idx-b": quotaJSON("codex"),
+			"idx-c": quotaJSON("claude"),
+		},
+	}
+	s.SetAuthQuotaSource(src)
+	byProvider, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Provider: "claude"})
+	if err != nil || byProvider.Total != 1 || len(byProvider.Items) != 1 || byProvider.Items[0].AuthID != "claude-1" {
+		t.Fatalf("provider=%#v err=%v", byProvider, err)
+	}
+	if strings.Join(byProvider.Providers, ",") != "claude,codex" {
+		t.Fatalf("providers=%v", byProvider.Providers)
+	}
+	byQuery, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Q: "ALICE"})
+	if err != nil || byQuery.Total != 1 || len(byQuery.Items) != 1 || byQuery.Items[0].AuthID != "codex-a" {
+		t.Fatalf("q=%#v err=%v", byQuery, err)
+	}
+	clamped, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{Page: 99, PageSize: 100})
+	if err != nil || clamped.Page != 1 || clamped.PageSize != 24 || clamped.Total != 3 || len(clamped.Items) != 3 {
+		t.Fatalf("clamp=%#v err=%v", clamped, err)
+	}
+	defaults, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || defaults.Page != 1 || defaults.PageSize != 12 || defaults.Total != 3 {
+		t.Fatalf("defaults=%#v err=%v", defaults, err)
+	}
+}
+
 func TestAuthQuotaCacheFailureRetainsSnapshot(t *testing.T) {
 	s := quotaService(t)
 	src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "codex"}}, auth: quotaJSON("codex"), responses: map[string]string{"chatgpt.com": `{"rate_limit":{"primary_window":{"used_percent":10}}}`}}
@@ -346,8 +479,8 @@ func TestAuthQuotaFailureIsThrottledAndRemainsStale(t *testing.T) {
 		t.Fatalf("first=%#v err=%v", first, err)
 	}
 	attempts := len(src.requests)
-	second, err := s.AuthQuotaOverview(context.Background(), "")
-	if err != nil || len(second) != 1 || second[0].Status != "stale" || len(src.requests) != attempts {
+	second, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
+	if err != nil || len(second.Items) != 1 || second.Items[0].Status != "stale" || len(src.requests) != attempts {
 		t.Fatalf("second=%#v attempts=%d want=%d err=%v", second, len(src.requests), attempts, err)
 	}
 }

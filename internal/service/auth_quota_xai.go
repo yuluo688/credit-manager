@@ -26,7 +26,10 @@ func xai(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredentials) 
 	if len(w) == 0 {
 		return quotaSnapshot{}, fmt.Errorf("xAI billing response has no balances")
 	}
-	return quotaSnapshot{Plan: first(findText(credits, "plan", "planName"), findText(billing, "plan", "planName")), Windows: w}, nil
+	return quotaSnapshot{Plan: first(
+		quotaPlanText(credits, "plan", "planName", "subscription", "subscriptionName", "product"),
+		quotaPlanText(billing, "plan", "planName", "subscription", "subscriptionName"),
+	), Windows: w}, nil
 }
 
 func xaiBillingMap(d map[string]any) map[string]any {

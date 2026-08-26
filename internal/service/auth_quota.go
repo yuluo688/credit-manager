@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,7 +16,12 @@ import (
 const (
 	authQuotaRequestTimeout     = 15 * time.Second
 	authQuotaWeeklyHistoryLimit = 8
+	AuthQuotaDefaultPageSize    = 12
+	AuthQuotaMaxPageSize        = 24
+	authQuotaAPIKeySentinel     = "hidden:api_key"
 )
+
+var errAuthQuotaAPIKey = errors.New(authQuotaAPIKeySentinel)
 
 type AuthQuotaFile struct {
 	ID        string    `json:"id"`
@@ -44,6 +50,22 @@ type AuthQuotaSource interface {
 	ListAuthQuotaFiles(context.Context) ([]AuthQuotaFile, error)
 	GetAuthQuotaJSON(context.Context, string) ([]byte, error)
 	DoAuthQuotaHTTP(context.Context, string, AuthQuotaHTTPRequest) (AuthQuotaHTTPResponse, error)
+}
+
+type AuthQuotaFilter struct {
+	Page     int
+	PageSize int
+	Provider string
+	Q        string
+}
+
+type AuthQuotaOverview struct {
+	Items      []AuthQuotaOverviewItem `json:"items"`
+	Page       int                     `json:"page"`
+	PageSize   int                     `json:"page_size"`
+	Total      int                     `json:"total"`
+	TotalPages int                     `json:"total_pages"`
+	Providers  []string                `json:"providers"`
 }
 
 type AuthQuotaOverviewItem struct {
@@ -108,23 +130,63 @@ func (s *Service) authQuotaSourceValue() AuthQuotaSource {
 	defer s.authQuotaMu.RUnlock()
 	return s.authQuotaSource
 }
-func (s *Service) AuthQuotaOverview(ctx context.Context, callback string) ([]AuthQuotaOverviewItem, error) {
+func (s *Service) AuthQuotaOverview(ctx context.Context, callback string, filter AuthQuotaFilter) (AuthQuotaOverview, error) {
 	// Listing is cache-only so opening the console does not query every
-	// upstream account. The host callback bridge is still process-global.
-	s.authQuotaRefreshMu.Lock()
-	defer s.authQuotaRefreshMu.Unlock()
+	// upstream account. Do not wait on authQuotaRefreshMu: a 15s card fetch
+	// must not block the overview.
 	source, files, err := s.authQuotaFiles(ctx)
 	if err != nil {
-		return nil, err
+		return AuthQuotaOverview{}, err
 	}
-	out := make([]AuthQuotaOverviewItem, 0, len(files))
+	filter = normalizeAuthQuotaFilter(filter)
+	providers := authQuotaProviderList(files)
+	matched := make([]AuthQuotaFile, 0, len(files))
 	for _, file := range files {
-		item, ok := s.loadAuthQuotaItem(ctx, source, callback, file, false)
-		if ok {
-			out = append(out, item)
+		provider := quotaProvider(file.Provider)
+		if provider == "" {
+			continue
 		}
+		if !authQuotaFileMatchesProvider(file, filter.Provider) {
+			continue
+		}
+		if !authQuotaFileMatchesQuery(file, provider, filter.Q) {
+			continue
+		}
+		id := first(file.ID, file.Name, file.AuthIndex)
+		if id == "" {
+			continue
+		}
+		if saved, savedErr := s.store.GetAuthQuotaSnapshot(ctx, provider, id); savedErr == nil && isAuthQuotaAPIKeySentinel(saved) {
+			continue
+		}
+		matched = append(matched, file)
 	}
-	return out, nil
+	total := len(matched)
+	page, totalPages, start, end := authQuotaPageBounds(filter.Page, filter.PageSize, total)
+	pageFiles := matched[start:end]
+	items := make([]AuthQuotaOverviewItem, 0, len(pageFiles))
+	hidden := 0
+	for _, file := range pageFiles {
+		item, ok := s.loadAuthQuotaItem(ctx, source, callback, file, false)
+		if !ok {
+			hidden++
+			continue
+		}
+		items = append(items, item)
+	}
+	total -= hidden
+	if total < 0 {
+		total = 0
+	}
+	_, totalPages, _, _ = authQuotaPageBounds(page, filter.PageSize, total)
+	return AuthQuotaOverview{
+		Items:      items,
+		Page:       page,
+		PageSize:   filter.PageSize,
+		Total:      total,
+		TotalPages: totalPages,
+		Providers:  providers,
+	}, nil
 }
 
 func (s *Service) RefreshAuthQuota(ctx context.Context, callback, provider, authID, authIndex string) (AuthQuotaOverviewItem, error) {
@@ -157,6 +219,93 @@ func (s *Service) authQuotaFiles(ctx context.Context) (AuthQuotaSource, []AuthQu
 		return nil, nil, fmt.Errorf("auth quota files unavailable: %w", err)
 	}
 	return source, files, nil
+}
+
+func normalizeAuthQuotaFilter(filter AuthQuotaFilter) AuthQuotaFilter {
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.PageSize < 1 {
+		filter.PageSize = AuthQuotaDefaultPageSize
+	}
+	if filter.PageSize > AuthQuotaMaxPageSize {
+		filter.PageSize = AuthQuotaMaxPageSize
+	}
+	filter.Provider = strings.TrimSpace(filter.Provider)
+	filter.Q = strings.TrimSpace(filter.Q)
+	return filter
+}
+
+func authQuotaPageBounds(page, pageSize, total int) (clampedPage, totalPages, start, end int) {
+	if pageSize < 1 {
+		pageSize = AuthQuotaDefaultPageSize
+	}
+	totalPages = 1
+	if total > 0 {
+		totalPages = (total + pageSize - 1) / pageSize
+	}
+	if page < 1 {
+		page = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+	start = (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end = start + pageSize
+	if end > total {
+		end = total
+	}
+	return page, totalPages, start, end
+}
+
+func authQuotaProviderList(files []AuthQuotaFile) []string {
+	seen := make(map[string]struct{}, len(files))
+	out := make([]string, 0)
+	for _, file := range files {
+		provider := quotaProvider(file.Provider)
+		if provider == "" {
+			continue
+		}
+		if _, ok := seen[provider]; ok {
+			continue
+		}
+		seen[provider] = struct{}{}
+		out = append(out, provider)
+	}
+	sort.Strings(out)
+	return out
+}
+
+func authQuotaFileMatchesProvider(file AuthQuotaFile, provider string) bool {
+	provider = strings.TrimSpace(provider)
+	if provider == "" {
+		return true
+	}
+	want := quotaProvider(provider)
+	if want == "" {
+		want = strings.ToLower(provider)
+	}
+	return quotaProvider(file.Provider) == want
+}
+
+func authQuotaFileMatchesQuery(file AuthQuotaFile, provider, q string) bool {
+	q = strings.ToLower(strings.TrimSpace(q))
+	if q == "" {
+		return true
+	}
+	id := first(file.ID, file.Name, file.AuthIndex)
+	display := first(file.Label, file.Email, file.Account, file.Name, id)
+	haystack := strings.ToLower(strings.Join([]string{
+		file.Label, file.Email, file.Account, file.Name, file.ID, file.AuthIndex, id, display, provider,
+	}, " "))
+	return strings.Contains(haystack, q)
+}
+
+func isAuthQuotaAPIKeySentinel(saved store.AuthQuotaSnapshot) bool {
+	return strings.TrimSpace(saved.LastError) == authQuotaAPIKeySentinel
 }
 
 func matchAuthQuotaFile(file AuthQuotaFile, provider, authID, authIndex string) bool {
@@ -192,6 +341,9 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 	}
 	item := quotaItem(file, provider, id)
 	saved, savedErr := s.store.GetAuthQuotaSnapshot(ctx, provider, id)
+	if savedErr == nil && isAuthQuotaAPIKeySentinel(saved) && !fetch {
+		return AuthQuotaOverviewItem{}, false
+	}
 	if !fetch && savedErr == nil {
 		if quotaFresh(saved, file.ModTime) {
 			return s.fromSnapshot(ctx, item, saved, "fresh"), true
@@ -209,6 +361,7 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 	}
 	creds, oauth, err := readCredentials(raw)
 	if !oauth {
+		_ = s.store.RecordAuthQuotaFailure(ctx, provider, id, modTime(file.ModTime), errAuthQuotaAPIKey)
 		return AuthQuotaOverviewItem{}, false
 	}
 	if err != nil {
@@ -245,6 +398,10 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 				snap = mergeHistoricalQuotaWindows(prev, snap)
 			}
 		}
+		if snap.Plan == "" {
+			snap.Plan = quotaPlanFromAuthJSON(raw)
+		}
+		snap.Plan = normalizeQuotaPlan(snap.Plan)
 		data, e := json.Marshal(snap)
 		if e != nil {
 			fetchErr = e

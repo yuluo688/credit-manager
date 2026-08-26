@@ -31,8 +31,28 @@ func antigravity(ctx context.Context, s AuthQuotaSource, cb string, c quotaCrede
 	if len(w) == 0 {
 		return quotaSnapshot{}, fmt.Errorf("antigravity quota response has no recognized windows")
 	}
-	return quotaSnapshot{Plan: findText(d, "plan", "planName"), Windows: w}, nil
+	return quotaSnapshot{Plan: antigravityPlan(d), Windows: w}, nil
 }
+
+func antigravityPlan(d map[string]any) string {
+	if m, ok := objectAny(d, "currentTier", "current_tier"); ok {
+		if plan := first(findText(m, "id", "name", "displayName", "display_name"), findText(m, "tier")); plan != "" {
+			return plan
+		}
+	}
+	if plan := quotaPlanText(d, "tier_id", "tierId", "plan", "planName"); plan != "" {
+		return plan
+	}
+	groups, _ := d["groups"].([]any)
+	for _, g := range groups {
+		gm, _ := g.(map[string]any)
+		if plan := first(findText(gm, "tier", "tierId", "tier_id"), findText(gm, "plan")); plan != "" {
+			return plan
+		}
+	}
+	return ""
+}
+
 func antiWindows(d map[string]any) []AuthQuotaWindow {
 	var out []AuthQuotaWindow
 	specs := []struct {
