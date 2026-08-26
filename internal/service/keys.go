@@ -30,6 +30,9 @@ type MintKeyRequest struct {
 	MonthlyQuotaMicroUSD  money.MicroUSD
 	MaxConcurrentRequests int64
 	AllowedModels         []string
+	ModelTokenLimits      []store.ModelTokenLimit
+	UnmatchedModelsMode   string
+	Enabled               *bool
 	KeyMaterial           string
 }
 
@@ -66,7 +69,7 @@ func (s *Service) MintKeyWithPolicy(ctx context.Context, req MintKeyRequest) (st
 		Label:                 req.Label,
 		Principal:             material.Principal,
 		CallerScope:           material.CallerScope,
-		Enabled:               true,
+		Enabled:               req.Enabled == nil || *req.Enabled,
 		ExpiresAt:             req.ExpiresAt,
 		QuotaMicroUSD:         req.QuotaMicroUSD,
 		DailyQuotaMicroUSD:    req.DailyQuotaMicroUSD,
@@ -74,6 +77,8 @@ func (s *Service) MintKeyWithPolicy(ctx context.Context, req MintKeyRequest) (st
 		MonthlyQuotaMicroUSD:  req.MonthlyQuotaMicroUSD,
 		MaxConcurrentRequests: req.MaxConcurrentRequests,
 		AllowedModels:         req.AllowedModels,
+		ModelTokenLimits:      req.ModelTokenLimits,
+		UnmatchedModelsMode:   req.UnmatchedModelsMode,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err
@@ -127,6 +132,8 @@ func (s *Service) RotateKey(ctx context.Context, keyID, keyMaterial string) (sto
 		MonthlyQuotaMicroUSD:  oldKey.MonthlyQuotaMicroUSD,
 		MaxConcurrentRequests: oldKey.MaxConcurrentRequests,
 		AllowedModels:         oldKey.AllowedModels,
+		ModelTokenLimits:      oldKey.ModelTokenLimits,
+		UnmatchedModelsMode:   oldKey.UnmatchedModelsMode,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err
