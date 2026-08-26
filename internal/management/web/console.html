@@ -87,6 +87,12 @@
                 <label>标签
                   <input id="keyModalLabel" placeholder="team-a / bot"/>
                 </label>
+                <label id="keyModalEnabledWrap" class="key-switch-field">启用
+                  <span class="key-switch">
+                    <input id="keyModalEnabled" type="checkbox" role="switch" checked/>
+                    <span class="key-switch-ui" aria-hidden="true"></span>
+                  </span>
+                </label>
                 <label>总额度（USD）
                   <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>
@@ -102,21 +108,43 @@
                 <label>最大并发请求数
                   <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>
-                <label class="field-span-2">可用模型（多选；不选=全部）
-                  <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
-                  <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
+                <label id="keyModalTokenLimitsEnabledWrap" class="key-switch-field">模型 Token 限制
+                  <span class="key-switch">
+                    <input id="keyModalTokenLimitsEnabled" type="checkbox" role="switch"/>
+                    <span class="key-switch-ui" aria-hidden="true"></span>
+                  </span>
                 </label>
+                  <label class="field-span-2">可用模型（多选；不选=全部）
+                    <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
+                    <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
+                  </label>
+                </div>
               </div>
+            <div class="modal-section" id="keyModalTokenLimitsSection">
+              <p class="modal-section-title">模型 Token 限制<span>按模型设置日/周/月数量</span></p>
+              <div class="token-limit-fallback" id="keyModalUnmatched" data-unmatched="available">
+                <div class="token-limit-fallback-copy">
+                  <strong>未匹配模型</strong>
+                  <span id="keyModalUnmatchedHint">未列入下方的模型可以调用，且不限制 Token。</span>
+                </div>
+                <div class="token-limit-mode" role="group" aria-label="未匹配模型">
+                  <button type="button" data-unmatched-set="available" class="active">可用</button>
+                  <button type="button" data-unmatched-set="disabled">禁用</button>
+                </div>
+              </div>
+              <div class="token-limit-add">
+                <span class="key-search-control token-limit-picker" id="keyModalTokenLimitSearch">
+                  <input id="keyModalTokenLimitModel" autocomplete="off" spellcheck="false" placeholder="搜索或输入模型 ID / glob" aria-autocomplete="list" aria-controls="keyModalTokenLimitOptions"/>
+                  <span class="custom-control-panel key-search-panel token-limit-panel" id="keyModalTokenLimitOptions" hidden></span>
+                </span>
+                <button type="button" class="btn soft" id="btnAddKeyTokenLimit">添加模型</button>
+              </div>
+              <p class="hint" id="keyModalTokenLimitsHint">日/周/月未填写时选择「可用」或「无限制」。未匹配模型单独选择可用或禁用。</p>
+              <div id="keyModalTokenLimits" class="token-limit-list"></div>
             </div>
-            <div class="modal-section">
-              <p class="modal-section-title">凭据设置<span>启停与生成方式</span></p>
+            <div class="modal-section" id="keyModalCredentialSection">
+              <p class="modal-section-title">凭据设置<span>生成方式</span></p>
               <div class="form-grid-2">
-                <label id="keyModalEnabledWrap">启用
-                  <select id="keyModalEnabled">
-                    <option value="true">启用</option>
-                    <option value="false">禁用</option>
-                  </select>
-                </label>
                 <label id="keyMaterialWrap" class="field-span-2">自定义 Key
                   <span class="key-material-field">
                     <span class="key-material-prefix">tk-</span>
@@ -373,7 +401,7 @@
 
   <section id="tab-keys" class="tabpane hidden">
     <div class="page-intro">
-      <div><h2>Key 管理</h2><p>按 Key 设置额度、启停状态和可用模型策略。</p></div>
+      <div><h2>Key 管理</h2><p>按 Key 设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
       <div class="actions">
         <span class="badge ok">额度隔离</span>
         <button class="btn primary" id="btnOpenCreateKey">添加 Key</button>
@@ -494,6 +522,7 @@
     <div class="page-intro">
       <div><h2>认证额度</h2><p>每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。</p></div>
       <div class="auth-quota-toolbar">
+        <button type="button" class="btn" id="btnRefreshAuthQuotaPage">刷新本页</button>
         <div class="auth-quota-toolbar-filters">
           <label class="auth-quota-filter">
             <span>平台</span>
@@ -507,6 +536,7 @@
       </div>
     </div>
     <div id="authQuotaList" class="auth-quota-list"></div>
+    <div class="usage-pagination" id="authQuotaPagination"></div>
   </section>
 
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">

@@ -52,11 +52,58 @@ func keyView(key store.PluginKey) map[string]any {
 		"held_amount_micro_usd":   key.HeldAmountMicroUSD,
 		"remaining_micro_usd":     key.RemainingMicroUSD(),
 		"allowed_models":          key.AllowedModels,
+		"model_token_limits":      modelTokenLimitViews(key.ModelTokenLimits),
+		"unmatched_models_mode":   unmatchedModelsModeView(key.UnmatchedModelsMode),
 		"revoked_at":              key.RevokedAt,
 		"expires_at":              key.ExpiresAt,
 		"last_used_at":            key.LastUsedAt,
 		"created_at":              key.CreatedAt,
 	}
+}
+
+func unmatchedModelsModeView(mode string) string {
+	if mode == store.UnmatchedModelsDisabled {
+		return store.UnmatchedModelsDisabled
+	}
+	return store.UnmatchedModelsAvailable
+}
+
+func modelTokenLimitViews(limits []store.ModelTokenLimit) []map[string]any {
+	out := make([]map[string]any, 0, len(limits))
+	for _, item := range limits {
+		out = append(out, map[string]any{
+			"model":   item.Model,
+			"daily":   periodTokenLimitView(item.Daily),
+			"weekly":  periodTokenLimitView(item.Weekly),
+			"monthly": periodTokenLimitView(item.Monthly),
+		})
+	}
+	return out
+}
+
+func periodTokenLimitView(period store.ModelPeriodTokenLimit) map[string]any {
+	return map[string]any{
+		"tokens":    period.Tokens,
+		"mode":      period.NormalizedMode(),
+		"unlimited": period.Cap() == 0,
+		"available": period.Cap() == 0 && period.NormalizedMode() == store.ModelTokenLimitModeAvailable,
+	}
+}
+
+func modelTokenUsageViews(items []store.ModelTokenUsage) []map[string]any {
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		out = append(out, map[string]any{
+			"model":        item.Model,
+			"daily":        periodTokenLimitView(item.Daily),
+			"weekly":       periodTokenLimitView(item.Weekly),
+			"monthly":      periodTokenLimitView(item.Monthly),
+			"daily_used":   item.DailyUsed,
+			"weekly_used":  item.WeeklyUsed,
+			"monthly_used": item.MonthlyUsed,
+		})
+	}
+	return out
 }
 
 func validateKeyLimitFields(limits ...*int64) error {

@@ -403,6 +403,8 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	for _, text := range []string{
 		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", "auth-quota-window-card", "auth-quota-reload",
 		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
+		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
+		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
 		"align-items:stretch", "flex-direction:column", "height:100%",
 	} {
 		if !strings.Contains(page, text) {
@@ -415,7 +417,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		}
 	}
 	lookup := string(lookupPage().Body)
-	for _, forbidden := range []string{"auth-quotas", "认证额度"} {
+	for _, forbidden := range []string{"auth-quotas", "认证额度", "刷新本页", "authQuotaPagination", "auth-quota-plan"} {
 		if strings.Contains(lookup, forbidden) {
 			t.Fatalf("public lookup page exposes auth quota UI: %q", forbidden)
 		}
@@ -445,6 +447,58 @@ func TestPricingEnabledRoute(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("pricing enabled route is not registered")
+	}
+}
+
+func TestConsoleKeyEnabledSwitch(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`id="keyModalEnabledWrap"`,
+		`id="keyModalEnabled" type="checkbox" role="switch"`,
+		"data-enable-key",
+		"function toggleKeyEnabled",
+		"key-switch-ui",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing key enable switch: %q", text)
+		}
+	}
+	if strings.Contains(page, `<select id="keyModalEnabled">`) {
+		t.Fatal("key modal still uses a select for enable/disable")
+	}
+}
+
+func TestConsoleModelTokenLimits(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`id="keyModalTokenLimits"`,
+		`id="keyModalTokenLimitsEnabled"`,
+		`id="btnAddKeyTokenLimit"`,
+		`id="keyModalTokenLimitSearch"`,
+		`id="keyModalTokenLimitOptions"`,
+		"function openTokenLimitModelSearch",
+		"function collectModelTokenLimits",
+		"function renderKeyTokenLimits",
+		"set_model_token_limits",
+		"model_token_limits",
+		"未匹配模型",
+		"data-unmatched-set=\"disabled\"",
+		"unmatched_models_mode",
+		"日/周/月未填写时选择「可用」或「无限制」",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing model token limits: %q", text)
+		}
+	}
+	lookup := string(lookupPage().Body)
+	for _, text := range []string{
+		`id="modelTokenLimitsSection"`,
+		"function renderModelTokenLimits",
+		"model_token_usage",
+	} {
+		if !strings.Contains(lookup, text) {
+			t.Fatalf("lookup page is missing model token limits: %q", text)
+		}
 	}
 }
 

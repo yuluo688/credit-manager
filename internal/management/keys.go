@@ -18,17 +18,20 @@ import (
 
 func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
 	var req struct {
-		CallerID              string   `json:"caller_id"`
-		Label                 string   `json:"label"`
-		KeyMaterial           string   `json:"key_material"`
-		ExpiresAt             string   `json:"expires_at"`
-		QuotaMicroUSD         *int64   `json:"quota_micro_usd"`
-		TotalQuotaMicroUSD    *int64   `json:"total_quota_micro_usd"`
-		DailyQuotaMicroUSD    *int64   `json:"daily_quota_micro_usd"`
-		WeeklyQuotaMicroUSD   *int64   `json:"weekly_quota_micro_usd"`
-		MonthlyQuotaMicroUSD  *int64   `json:"monthly_quota_micro_usd"`
-		MaxConcurrentRequests *int64   `json:"max_concurrent_requests"`
-		AllowedModels         []string `json:"allowed_models"`
+		CallerID              string                  `json:"caller_id"`
+		Label                 string                  `json:"label"`
+		KeyMaterial           string                  `json:"key_material"`
+		ExpiresAt             string                  `json:"expires_at"`
+		QuotaMicroUSD         *int64                  `json:"quota_micro_usd"`
+		TotalQuotaMicroUSD    *int64                  `json:"total_quota_micro_usd"`
+		DailyQuotaMicroUSD    *int64                  `json:"daily_quota_micro_usd"`
+		WeeklyQuotaMicroUSD   *int64                  `json:"weekly_quota_micro_usd"`
+		MonthlyQuotaMicroUSD  *int64                  `json:"monthly_quota_micro_usd"`
+		MaxConcurrentRequests *int64                  `json:"max_concurrent_requests"`
+		AllowedModels         []string                `json:"allowed_models"`
+		ModelTokenLimits      []store.ModelTokenLimit `json:"model_token_limits"`
+		UnmatchedModelsMode   string                  `json:"unmatched_models_mode"`
+		Enabled               *bool                   `json:"enabled"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
@@ -69,6 +72,9 @@ func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 		MonthlyQuotaMicroUSD:  optionalMicroUSD(req.MonthlyQuotaMicroUSD),
 		MaxConcurrentRequests: optionalInt64(req.MaxConcurrentRequests),
 		AllowedModels:         req.AllowedModels,
+		ModelTokenLimits:      req.ModelTokenLimits,
+		UnmatchedModelsMode:   req.UnmatchedModelsMode,
+		Enabled:               req.Enabled,
 	})
 	if err != nil {
 		return jsonErr(http.StatusBadRequest, err.Error()), nil
@@ -134,19 +140,22 @@ func listKeys(ctx context.Context, svc *service.Service, query map[string][]stri
 
 func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
 	var req struct {
-		ID                    string   `json:"id"`
-		Label                 *string  `json:"label"`
-		Enabled               *bool    `json:"enabled"`
-		QuotaMicroUSD         *int64   `json:"quota_micro_usd"`
-		TotalQuotaMicroUSD    *int64   `json:"total_quota_micro_usd"`
-		DailyQuotaMicroUSD    *int64   `json:"daily_quota_micro_usd"`
-		WeeklyQuotaMicroUSD   *int64   `json:"weekly_quota_micro_usd"`
-		MonthlyQuotaMicroUSD  *int64   `json:"monthly_quota_micro_usd"`
-		MaxConcurrentRequests *int64   `json:"max_concurrent_requests"`
-		AllowedModels         []string `json:"allowed_models"`
-		SetAllowedModels      bool     `json:"set_allowed_models"`
-		ExpiresAt             string   `json:"expires_at"`
-		ClearExpiresAt        bool     `json:"clear_expires_at"`
+		ID                    string                  `json:"id"`
+		Label                 *string                 `json:"label"`
+		Enabled               *bool                   `json:"enabled"`
+		QuotaMicroUSD         *int64                  `json:"quota_micro_usd"`
+		TotalQuotaMicroUSD    *int64                  `json:"total_quota_micro_usd"`
+		DailyQuotaMicroUSD    *int64                  `json:"daily_quota_micro_usd"`
+		WeeklyQuotaMicroUSD   *int64                  `json:"weekly_quota_micro_usd"`
+		MonthlyQuotaMicroUSD  *int64                  `json:"monthly_quota_micro_usd"`
+		MaxConcurrentRequests *int64                  `json:"max_concurrent_requests"`
+		AllowedModels         []string                `json:"allowed_models"`
+		SetAllowedModels      bool                    `json:"set_allowed_models"`
+		ModelTokenLimits      []store.ModelTokenLimit `json:"model_token_limits"`
+		SetModelTokenLimits   bool                    `json:"set_model_token_limits"`
+		UnmatchedModelsMode   *string                 `json:"unmatched_models_mode"`
+		ExpiresAt             string                  `json:"expires_at"`
+		ClearExpiresAt        bool                    `json:"clear_expires_at"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
@@ -187,6 +196,14 @@ func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 	if req.SetAllowedModels {
 		models := append([]string(nil), req.AllowedModels...)
 		update.AllowedModels = &models
+	}
+	if req.SetModelTokenLimits {
+		limits := append([]store.ModelTokenLimit(nil), req.ModelTokenLimits...)
+		update.ModelTokenLimits = &limits
+	}
+	if req.UnmatchedModelsMode != nil {
+		mode := *req.UnmatchedModelsMode
+		update.UnmatchedModelsMode = &mode
 	}
 	if strings.TrimSpace(req.ExpiresAt) != "" && !req.ClearExpiresAt {
 		parsed, err := time.Parse(time.RFC3339, req.ExpiresAt)

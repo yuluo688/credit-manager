@@ -28,8 +28,31 @@
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
+    '生成方式': { 'zh-TW':'產生方式', en:'Key material', ru:'Способ создания' },
+    'Key 已启用': { 'zh-TW':'Key 已啟用', en:'Key enabled', ru:'Ключ включён' },
+    'Key 已禁用': { 'zh-TW':'Key 已停用', en:'Key disabled', ru:'Ключ отключён' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
-     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' }, '重新加载': { 'zh-TW':'重新載入', en:'Reload', ru:'Обновить' }, '加载中': { 'zh-TW':'載入中', en:'Loading', ru:'Загрузка' }, '未同步': { 'zh-TW':'未同步', en:'Not synced', ru:'Не синхронизировано' }, '认证额度已刷新': { 'zh-TW':'認證額度已刷新', en:'Auth quota refreshed', ru:'Квота авторизации обновлена' }, '认证额度已从缓存刷新': { 'zh-TW':'認證額度已從快取刷新', en:'Auth quotas reloaded from cache', ru:'Квоты авторизации загружены из кэша' },
+    '按 Key 设置额度、启停状态、可用模型和 Token 数量限制。': { 'zh-TW':'依 Key 設定額度、啟停狀態、可用模型和 Token 數量限制。', en:'Set spend limits, status, model access, and token caps for each key.', ru:'Настройте лимиты, статус, модели и потолки токенов для каждого ключа.' },
+    '模型 Token 限制': { 'zh-TW':'模型 Token 限制', en:'Model token limits', ru:'Лимиты токенов модели' }, '按模型设置日/周/月数量': { 'zh-TW':'依模型設定日/週/月數量', en:'Daily, weekly, and monthly caps per model', ru:'Дневные, недельные и месячные лимиты по модели' },
+    '搜索或输入模型 ID / glob': { 'zh-TW':'搜尋或輸入模型 ID / glob', en:'Search or type a model ID / glob', ru:'Поиск или ввод ID модели / glob' },
+    '使用': { 'zh-TW':'使用', en:'Use', ru:'Использовать' },
+    '没有可添加的模型': { 'zh-TW':'沒有可新增的模型', en:'No models to add', ru:'Нет моделей для добавления' },
+    '添加模型': { 'zh-TW':'新增模型', en:'Add model', ru:'Добавить модель' },
+    '日/周/月未填写时选择「可用」或「无限制」。未匹配模型单独选择可用或禁用。': { 'zh-TW':'日/週/月未填寫時選擇「可用」或「無限制」。未匹配模型單獨選擇可用或停用。', en:'Empty day/week/month fields can be Available or Unlimited. Unmatched models are Available or Disabled.', ru:'Пустые поля дня/недели/месяца: доступно или без лимита. Несовпавшие модели: доступны или отключены.' },
+    '未匹配模型': { 'zh-TW':'未匹配模型', en:'Unmatched models', ru:'Несовпавшие модели' },
+    '未列入下方的模型可以调用，且不限制 Token。': { 'zh-TW':'未列入下方的模型可以呼叫，且不限制 Token。', en:'Models not listed below can be called with no token cap.', ru:'Модели вне списка можно вызывать без лимита токенов.' },
+    '仅下方列出的模型可以调用；未匹配的模型会被拒绝。': { 'zh-TW':'僅下方列出的模型可以呼叫；未匹配的模型會被拒絕。', en:'Only listed models can be called; unmatched models are rejected.', ru:'Можно вызывать только модели из списка; остальные отклоняются.' },
+    '暂无模型 Token 限制': { 'zh-TW':'暫無模型 Token 限制', en:'No model token limits', ru:'Нет лимитов токенов' },
+    '添加模型后，可设置日 / 周 / 月 Token 上限': { 'zh-TW':'新增模型後，可設定日 / 週 / 月 Token 上限', en:'Add a model to set daily, weekly, and monthly token caps', ru:'Добавьте модель, чтобы задать лимиты токенов' },
+    '未填则选可用或无限制': { 'zh-TW':'未填則選可用或無限制', en:'Empty: Available or Unlimited', ru:'Пусто: доступно или без лимита' },
+    '未匹配可用': { 'zh-TW':'未匹配可用', en:'Unmatched allowed', ru:'Несовпавшие доступны' },
+    '未匹配禁用': { 'zh-TW':'未匹配停用', en:'Unmatched blocked', ru:'Несовпавшие запрещены' },
+    '日 Token': { 'zh-TW':'日 Token', en:'Daily tokens', ru:'Токены за день' }, '周 Token': { 'zh-TW':'週 Token', en:'Weekly tokens', ru:'Токены за неделю' }, '月 Token': { 'zh-TW':'月 Token', en:'Monthly tokens', ru:'Токены за месяц' },
+    '可用': { 'zh-TW':'可用', en:'Available', ru:'Доступно' }, '无限制': { 'zh-TW':'無限制', en:'Unlimited', ru:'Без лимита' },
+    '移除': { 'zh-TW':'移除', en:'Remove', ru:'Удалить' },
+    '请输入模型 ID 或 glob': { 'zh-TW':'請輸入模型 ID 或 glob', en:'Enter a model ID or glob', ru:'Введите ID модели или glob' },
+    '该模型已在 Token 限制列表中': { 'zh-TW':'該模型已在 Token 限制列表中', en:'This model is already in the token limit list', ru:'Эта модель уже в списке лимитов' },
+     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks inside the card.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; неделю можно сменить в карточке.' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' }, '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' }, '重新加载': { 'zh-TW':'重新載入', en:'Reload', ru:'Обновить' }, '加载中': { 'zh-TW':'載入中', en:'Loading', ru:'Загрузка' }, '未同步': { 'zh-TW':'未同步', en:'Not synced', ru:'Не синхронизировано' }, '认证额度已刷新': { 'zh-TW':'認證額度已刷新', en:'Auth quota refreshed', ru:'Квота авторизации обновлена' }, '认证额度已从缓存刷新': { 'zh-TW':'認證額度已從快取刷新', en:'Auth quotas reloaded from cache', ru:'Квоты авторизации загружены из кэша' }, '订阅类型': { 'zh-TW':'訂閱類型', en:'Subscription', ru:'Подписка' }, '刷新本页': { 'zh-TW':'重新整理本頁', en:'Refresh page', ru:'Обновить страницу' }, '本页认证额度已刷新': { 'zh-TW':'本頁認證額度已刷新', en:'This page of auth quotas refreshed', ru:'Квоты на странице обновлены' }, '当前没有可用的认证额度数据': { 'zh-TW':'目前沒有可用的認證額度資料', en:'No auth quota data available', ru:'Нет данных о квотах авторизации' }, '没有符合筛选条件的认证额度': { 'zh-TW':'沒有符合篩選條件的認證額度', en:'No auth quotas match the filters', ru:'Нет квот, подходящих под фильтры' }, '每页': { 'zh-TW':'每頁', en:'Per page', ru:'На странице' }, '上一页': { 'zh-TW':'上一頁', en:'Previous', ru:'Назад' }, '下一页': { 'zh-TW':'下一頁', en:'Next', ru:'Вперёд' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
     'Token 显示单位': { 'zh-TW':'Token 顯示單位', en:'Token display unit', ru:'Единица отображения токенов' }, '原始数量': { 'zh-TW':'原始數量', en:'Raw count', ru:'Исходное количество' },
     '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, 'k (×1,000)': { 'zh-TW':'k (×1,000)', en:'k (×1,000)', ru:'k (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, 'w (×10,000)': { 'zh-TW':'w (×10,000)', en:'w (×10,000)', ru:'w (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' }, 'm (×1,000,000)': { 'zh-TW':'m (×1,000,000)', en:'m (×1,000,000)', ru:'m (×1,000,000)' },
@@ -57,6 +80,9 @@
     authQuotaRefreshing: {},
     authQuotaProvider: '',
     authQuotaName: '',
+    authQuotaPage: 1,
+    authQuotaPageSize: 12,
+    authQuotaPageRefreshing: false,
     allKeys: [],
     usedAuths: [],
     modelPrices: {},
@@ -843,11 +869,12 @@
     if (!event.target.closest('.custom-control')) closeCustomControls();
   });
   document.addEventListener('click', event => {
-    if (!event.target.closest('.key-search-control')) {
+    if (!event.target.closest('.key-search-control') && !event.target.closest('#keyModalTokenLimitOptions')) {
       closeKeySearch('overview');
       closeKeySearch('usage');
       closeAuthSearch('overview');
       closeAuthSearch('usage');
+      closeTokenLimitModelSearch();
     }
   });
   document.addEventListener('click', event => {
@@ -1754,11 +1781,19 @@
 
     const money = (v) => formatMoney(v);
 
-    const modelChips = (models) => {
-      if (!models || !models.length) return '<span class="model-chip all">全部模型</span>';
-      const shown = models.slice(0, 3).map(m => '<span class="model-chip" title="'+esc(m)+'">'+esc(m)+'</span>').join('');
-      const more = models.length > 3 ? '<span class="model-chip">+'+ (models.length - 3) +'</span>' : '';
-      return '<div class="model-chip-row">' + shown + more + '</div>';
+    const tokenLimitLabel = (period) => {
+      const tokens = Number(period && period.tokens || 0);
+      if (tokens > 0) return formatTokens(tokens);
+      return (period && period.mode) === 'available' ? t('可用') : t('无限制');
+    };
+    const modelChips = (models, tokenLimits, unmatchedMode) => {
+      const chips = (!models || !models.length)
+        ? '<span class="model-chip all">全部模型</span>'
+        : models.slice(0, 3).map(m => '<span class="model-chip" title="'+esc(m)+'">'+esc(m)+'</span>').join('') + (models.length > 3 ? '<span class="model-chip">+'+ (models.length - 3) +'</span>' : '');
+      const limits = tokenLimits || [];
+      const unmatched = unmatchedMode === 'disabled' ? t('未匹配禁用') : t('未匹配可用');
+      const limitChip = '<span class="token-limit-chip'+(unmatchedMode === 'disabled' ? ' warn' : '')+'" title="'+esc((limits.length ? limits.map(item => item.model+' '+t('日')+' '+tokenLimitLabel(item.daily)+' / '+t('周')+' '+tokenLimitLabel(item.weekly)+' / '+t('月')+' '+tokenLimitLabel(item.monthly)).join('\n')+'\n' : '') + unmatched)+'">'+esc((limits.length ? limits.length + ' ' + t('模型 Token 限制') + ' · ' : '') + unmatched)+'</span>';
+      return '<div>' + '<div class="model-chip-row">' + chips + '</div>' + limitChip + '</div>';
     };
 
     const limitText = (value) => Number(value || 0) > 0 ? money(value) : '不限制';
@@ -1787,10 +1822,12 @@
 
     $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th>标签</th><th>可用模型</th><th>Key 限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       state.keys.map(k => {
-        const st = k.revoked_at ? '<span class="badge bad">已删除</span>' : (k.enabled ? '<span class="badge ok">启用</span>' : '<span class="badge warn">禁用</span>');
+        const st = k.revoked_at
+          ? '<span class="badge bad">已删除</span>'
+          : '<label class="key-switch" title="'+esc(k.enabled ? t('启用') : t('禁用'))+'"><input type="checkbox" role="switch" data-enable-key="'+esc(k.id)+'" aria-label="'+esc(t('启用'))+'"'+(k.enabled ? ' checked' : '')+'/><span class="key-switch-ui" aria-hidden="true"></span></label>';
         return '<tr>' +
           '<td><div class="key-label"><strong title="'+esc(k.label||'(无标签)')+'">'+esc(k.label||'(无标签)')+'</strong></div></td>' +
-          '<td>'+modelChips(k.allowed_models)+'</td>' +
+           '<td>'+modelChips(k.allowed_models, k.model_token_limits, k.unmatched_models_mode)+'</td>' +
           '<td>'+quotaBlock(k)+'</td>' +
           '<td><div class="spend-cell"><span class="primary">'+esc(money(k.settled_spend_micro_usd))+'</span><span class="secondary">剩余 '+(Number(k.quota_micro_usd||0) <= 0 ? '不限制' : esc(money(k.remaining_micro_usd)))+'</span></div></td>' +
           '<td>'+st+'</td>' +
@@ -1804,6 +1841,28 @@
     $('keysTable').querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => copyKeyByID(btn.dataset.copy)));
     $('keysTable').querySelectorAll('[data-manage]').forEach(btn => btn.addEventListener('click', () => openKeyModal('manage', btn.dataset.manage)));
     $('keysTable').querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => openDeleteKeyModal(btn.dataset.delete)));
+    $('keysTable').querySelectorAll('[data-enable-key]').forEach(input => input.addEventListener('change', () => toggleKeyEnabled(input.dataset.enableKey, input.checked, input)));
+  }
+
+  async function toggleKeyEnabled(id, enabled, control) {
+    const wrap = control.closest('.key-switch');
+    if (wrap) wrap.classList.add('is-busy');
+    control.disabled = true;
+    try {
+      const result = await api('POST', 'credit-manager/keys/update', { id, enabled });
+      [state.keys, state.allKeys].forEach(list => {
+        const item = (list || []).find(key => key.id === id);
+        if (item) item.enabled = result.enabled;
+      });
+      wrap && wrap.setAttribute('title', result.enabled ? t('启用') : t('禁用'));
+      flash(result.enabled ? t('Key 已启用') : t('Key 已禁用'), true);
+    } catch (e) {
+      control.checked = !enabled;
+      flash(e.message, false);
+    } finally {
+      control.disabled = false;
+      wrap && wrap.classList.remove('is-busy');
+    }
   }
 
   function keyFilterLabel(key) {
@@ -2028,11 +2087,223 @@
     $('keyModalModelsHint').textContent = available.length
       ? '可直接勾选多个模型；不选择任何模型表示全部模型可用。'
       : '未发现可用模型；请确认宿主管理密钥和上游认证文件。';
+    setKeyTokenLimitModels(available);
     refreshCustomControl(picker);
   }
 
   function selectedKeyModels() {
     return Array.from($('keyModalModels').selectedOptions).map(option => option.value);
+  }
+
+  function tokenLimitPeriodValue(period) {
+    period = period || {};
+    const tokens = Number(period.tokens || 0);
+    return {
+      tokens: Number.isFinite(tokens) && tokens > 0 ? Math.floor(tokens) : 0,
+      mode: period.mode === 'available' ? 'available' : 'unlimited',
+    };
+  }
+
+  function unmatchedModelsMode() {
+    return $('keyModalUnmatched').dataset.unmatched === 'disabled' ? 'disabled' : 'available';
+  }
+
+  function setUnmatchedModelsMode(mode, disabled) {
+    mode = mode === 'disabled' ? 'disabled' : 'available';
+    const wrap = $('keyModalUnmatched');
+    wrap.dataset.unmatched = mode;
+    wrap.classList.toggle('is-disabled', mode === 'disabled');
+    wrap.querySelectorAll('[data-unmatched-set]').forEach(button => {
+      button.classList.toggle('active', button.dataset.unmatchedSet === mode);
+      button.disabled = Boolean(disabled);
+    });
+    $('keyModalUnmatchedHint').textContent = mode === 'disabled'
+      ? t('仅下方列出的模型可以调用；未匹配的模型会被拒绝。')
+      : t('未列入下方的模型可以调用，且不限制 Token。');
+  }
+
+  function tokenLimitsEnabled() {
+    return $('keyModalTokenLimitsEnabled').checked;
+  }
+
+  function setTokenLimitsSectionVisible(on, disabled) {
+    $('keyModalTokenLimitsEnabled').checked = Boolean(on);
+    $('keyModalTokenLimitsEnabled').disabled = Boolean(disabled);
+    $('keyModalTokenLimitsSection').classList.toggle('hidden', !on);
+    if (!on) closeTokenLimitModelSearch();
+  }
+
+  function collectKeyTokenLimitPayload() {
+    if (!tokenLimitsEnabled()) {
+      return { model_token_limits: [], unmatched_models_mode: 'available' };
+    }
+    return { model_token_limits: collectModelTokenLimits(), unmatched_models_mode: unmatchedModelsMode() };
+  }
+
+  function collectModelTokenLimits() {
+    return Array.from(document.querySelectorAll('#keyModalTokenLimits .token-limit-row')).map(row => {
+      const read = (name) => {
+        const period = row.querySelector('[data-period="'+name+'"]');
+        return tokenLimitPeriodValue({
+          tokens: period.querySelector('[data-tokens]').value,
+          mode: period.dataset.mode,
+        });
+      };
+      return { model: row.dataset.model, daily: read('daily'), weekly: read('weekly'), monthly: read('monthly') };
+    }).filter(item => item.model);
+  }
+
+  function syncTokenLimitPeriod(periodEl) {
+    const input = periodEl.querySelector('input[data-tokens]');
+    const mode = periodEl.dataset.mode === 'available' ? 'available' : 'unlimited';
+    const capped = String(input.value || '').trim() !== '' && Number(input.value) > 0;
+    periodEl.dataset.mode = mode;
+    periodEl.classList.toggle('is-capped', capped);
+    periodEl.querySelectorAll('[data-mode-set]').forEach(button => {
+      button.classList.toggle('active', button.dataset.modeSet === mode);
+      button.disabled = capped || input.disabled;
+    });
+  }
+
+  function renderKeyTokenLimits(limits, disabled) {
+    const items = Array.isArray(limits) ? limits : [];
+    const target = $('keyModalTokenLimits');
+    if (!items.length) {
+      target.innerHTML = '<p class="token-limit-empty">'+esc(t('添加模型后，可设置日 / 周 / 月 Token 上限'))+'</p>';
+      return;
+    }
+    const periodField = (name, label, period) => {
+      const value = tokenLimitPeriodValue(period);
+      const capped = value.tokens > 0;
+      return '<div class="token-limit-period'+(capped ? ' is-capped' : '')+'" data-period="'+name+'" data-mode="'+value.mode+'"><span>'+esc(t(label))+'</span>' +
+        '<input type="number" min="1" step="1" inputmode="numeric" data-tokens placeholder="'+esc(t('未填则选可用或无限制'))+'" value="'+(capped ? value.tokens : '')+'"'+(disabled ? ' disabled' : '')+'/>' +
+        '<div class="token-limit-mode" role="group">' +
+          '<button type="button" data-mode-set="available"'+(value.mode === 'available' ? ' class="active"' : '')+(disabled || capped ? ' disabled' : '')+'>'+esc(t('可用'))+'</button>' +
+          '<button type="button" data-mode-set="unlimited"'+(value.mode !== 'available' ? ' class="active"' : '')+(disabled || capped ? ' disabled' : '')+'>'+esc(t('无限制'))+'</button>' +
+        '</div></div>';
+    };
+    target.innerHTML = items.map(item => {
+      const model = String(item.model || '').trim();
+      return '<div class="token-limit-row" data-model="'+esc(model)+'">' +
+        '<div class="token-limit-head"><span class="token-limit-model" title="'+esc(model)+'">'+esc(model)+'</span>' +
+        '<button type="button" class="btn ghost sm" data-remove-token-limit="'+esc(model)+'"'+(disabled ? ' disabled' : '')+'>'+esc(t('移除'))+'</button></div>' +
+        '<div class="token-limit-periods">' +
+          periodField('daily', '日 Token', item.daily) +
+          periodField('weekly', '周 Token', item.weekly) +
+          periodField('monthly', '月 Token', item.monthly) +
+        '</div></div>';
+    }).join('');
+    target.querySelectorAll('.token-limit-period').forEach(syncTokenLimitPeriod);
+  }
+
+  function setKeyTokenLimitModels(models) {
+    state.tokenLimitModels = [...new Set((models || []).map(value => String(value).trim()).filter(Boolean))].sort();
+    if (!$('keyModalTokenLimitOptions').hidden) renderTokenLimitModelOptions();
+  }
+
+  function tokenLimitModelChoices() {
+    const selected = new Set(collectModelTokenLimits().map(item => item.model));
+    return (state.tokenLimitModels || []).filter(id => !selected.has(id));
+  }
+
+  function closeTokenLimitModelSearch() {
+    const wrap = $('keyModalTokenLimitSearch');
+    const panel = $('keyModalTokenLimitOptions');
+    wrap.classList.remove('open');
+    panel.hidden = true;
+    panel.style.position = '';
+    panel.style.left = '';
+    panel.style.top = '';
+    panel.style.bottom = '';
+    panel.style.width = '';
+    panel.style.minWidth = '';
+    panel.style.maxWidth = '';
+    panel.style.removeProperty('--token-limit-panel-width');
+    panel.style.maxHeight = '';
+    panel.style.overflow = '';
+    if (panel.parentElement !== wrap) wrap.appendChild(panel);
+  }
+
+  function positionTokenLimitPanel() {
+    const input = $('keyModalTokenLimitModel');
+    const panel = $('keyModalTokenLimitOptions');
+    const rect = input.getBoundingClientRect();
+    const width = Math.round(rect.width);
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceBelow < 132 && spaceAbove > spaceBelow;
+    const available = openUp ? spaceAbove : spaceBelow;
+    const maxHeight = Math.min(168, Math.max(96, available));
+    panel.style.position = 'fixed';
+    panel.style.left = Math.round(rect.left) + 'px';
+    panel.style.setProperty('--token-limit-panel-width', width + 'px');
+    panel.style.setProperty('width', width + 'px', 'important');
+    panel.style.setProperty('min-width', width + 'px', 'important');
+    panel.style.setProperty('max-width', width + 'px', 'important');
+    panel.style.maxHeight = maxHeight + 'px';
+    panel.style.overflow = 'auto';
+    panel.style.zIndex = '80';
+    if (openUp) {
+      panel.style.top = 'auto';
+      panel.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+    } else {
+      panel.style.bottom = 'auto';
+      panel.style.top = (rect.bottom + 6) + 'px';
+    }
+  }
+
+  function renderTokenLimitModelOptions() {
+    const input = $('keyModalTokenLimitModel');
+    const panel = $('keyModalTokenLimitOptions');
+    const query = String(input.value || '').trim();
+    const needle = query.toLocaleLowerCase();
+    const matches = tokenLimitModelChoices().filter(id => !needle || id.toLocaleLowerCase().includes(needle));
+    const rows = matches.map(id =>
+      '<button class="custom-option" type="button" data-token-model="'+esc(id)+'">'+esc(id)+'</button>'
+    );
+    if (query && !matches.some(id => id === query)) {
+      rows.unshift('<button class="custom-option" type="button" data-token-model="'+esc(query)+'"><span class="token-limit-use">'+esc(t('使用'))+'</span>'+esc(query)+'</button>');
+    }
+    panel.innerHTML = rows.length ? rows.join('') : '<div class="key-search-empty">'+esc(t('没有可添加的模型'))+'</div>';
+    panel.querySelectorAll('[data-token-model]').forEach(button => button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      addKeyTokenLimit(button.dataset.tokenModel);
+    }));
+  }
+
+  function openTokenLimitModelSearch() {
+    if ($('keyModalTokenLimitModel').disabled) return;
+    closeCustomControls();
+    const wrap = $('keyModalTokenLimitSearch');
+    const panel = $('keyModalTokenLimitOptions');
+    if (panel.parentElement !== document.body) document.body.appendChild(panel);
+    wrap.classList.add('open');
+    renderTokenLimitModelOptions();
+    panel.hidden = false;
+    positionTokenLimitPanel();
+  }
+
+  function addKeyTokenLimit(model) {
+    model = String(model || '').trim();
+    if (!model) {
+      flash(t('请输入模型 ID 或 glob'), false);
+      return;
+    }
+    const current = collectModelTokenLimits();
+    if (current.some(item => item.model === model)) {
+      flash(t('该模型已在 Token 限制列表中'), false);
+      return;
+    }
+    current.push({
+      model,
+      daily: { tokens: 0, mode: 'unlimited' },
+      weekly: { tokens: 0, mode: 'unlimited' },
+      monthly: { tokens: 0, mode: 'unlimited' },
+    });
+    renderKeyTokenLimits(current, $('keyModalMode').value === 'rotate');
+    $('keyModalTokenLimitModel').value = '';
+    closeTokenLimitModelSearch();
   }
 
   async function loadKeyModels(selectedModels) {
@@ -2068,7 +2339,8 @@
     $('keyModalMaxConcurrent').value = key ? (Number(key.max_concurrent_requests || 0) || '') : '';
     const allowedModels = key ? (key.allowed_models || []) : [];
     setKeyModels(allowedModels);
-    $('keyModalEnabled').value = key && !key.enabled ? 'false' : 'true';
+    $('keyModalEnabled').checked = !(key && !key.enabled);
+    $('keyModalEnabled').disabled = isRotation;
     $('keyModalLabel').disabled = isRotation;
     $('keyModalQuotaUSD').disabled = isRotation;
     $('keyModalDailyQuotaUSD').disabled = isRotation;
@@ -2076,7 +2348,14 @@
     $('keyModalMonthlyQuotaUSD').disabled = isRotation;
     $('keyModalMaxConcurrent').disabled = isRotation;
     $('keyModalModels').disabled = isRotation;
-    $('keyModalEnabledWrap').classList.toggle('hidden', mode !== 'manage');
+    $('keyModalTokenLimitModel').disabled = isRotation;
+    $('btnAddKeyTokenLimit').disabled = isRotation;
+    setUnmatchedModelsMode(key ? key.unmatched_models_mode : 'available', isRotation);
+    renderKeyTokenLimits(key ? (key.model_token_limits || []) : [], isRotation);
+    const hasTokenLimits = Boolean(key && ((key.model_token_limits || []).length || key.unmatched_models_mode === 'disabled'));
+    setTokenLimitsSectionVisible(hasTokenLimits, isRotation);
+    $('keyModalEnabledWrap').classList.toggle('hidden', isRotation);
+    $('keyModalCredentialSection').classList.toggle('hidden', mode === 'manage');
     $('keyMaterialWrap').classList.toggle('hidden', mode === 'manage');
     $('keyModalManageActions').classList.toggle('hidden', !isManagedKey);
     $('btnRotateManagedKey').classList.toggle('hidden', Boolean(key && key.revoked_at));
@@ -2092,6 +2371,7 @@
   }
 
   function closeKeyModal() {
+    closeTokenLimitModelSearch();
     const modal = $('keyModal');
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
@@ -2158,7 +2438,9 @@
         weekly_quota_micro_usd: weeklyQuota,
         monthly_quota_micro_usd: monthlyQuota,
         max_concurrent_requests: maxConcurrent,
+        enabled: $('keyModalEnabled').checked,
         allowed_models: selectedKeyModels(),
+        ...collectKeyTokenLimitPayload(),
         key_material: keyMaterial,
       });
     } else if (mode === 'manage') {
@@ -2170,9 +2452,11 @@
         weekly_quota_micro_usd: weeklyQuota,
         monthly_quota_micro_usd: monthlyQuota,
         max_concurrent_requests: maxConcurrent,
-        enabled: $('keyModalEnabled').value === 'true',
+        enabled: $('keyModalEnabled').checked,
         set_allowed_models: true,
         allowed_models: selectedKeyModels(),
+        set_model_token_limits: true,
+        ...collectKeyTokenLimitPayload(),
       });
     } else {
       result = await api('POST', 'credit-manager/keys/rotate', { id, key_material: keyMaterial });
@@ -3117,6 +3401,20 @@
 
 
 
+  function authQuotaPlanName(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const key = raw.toLowerCase().replace(/[_\s]+/g, '-');
+    const names = {
+      plus:'Plus', pro:'Pro', team:'Team', free:'Free', business:'Business', enterprise:'Enterprise',
+      max:'Max', 'max-5x':'Max 5x', 'max-20x':'Max 20x', go:'Go', standard:'Standard', legacy:'Legacy', 'super-grok':'SuperGrok'
+    };
+    if (names[key]) return names[key];
+    if (key.includes('max-20') || key.includes('max20')) return 'Max 20x';
+    if (key.includes('max-5') || key.includes('max5')) return 'Max 5x';
+    return names[raw.toLowerCase()] || raw;
+  }
+
   function authQuotaProviderName(provider) {
     const value = String(provider || '').trim();
     if (!value) return '未知提供商';
@@ -3129,22 +3427,23 @@
     return value;
   }
 
-  function syncAuthQuotaProviderFilter(items) {
+  function syncAuthQuotaProviderFilter(providers) {
     const select = $('authQuotaProviderFilter');
     if (!select) return;
-    const providers = Array.from(new Set(items.map(item => String(authQuotaValue(item, 'provider') || '').trim()).filter(Boolean))).sort((a, b) => authQuotaProviderName(a).localeCompare(authQuotaProviderName(b), 'zh'));
-    if (!providers.includes(state.authQuotaProvider)) state.authQuotaProvider = '';
-    select.innerHTML = '<option value="">全部平台</option>' + providers.map(provider => '<option value="'+esc(provider)+'">'+esc(authQuotaProviderName(provider))+'</option>').join('');
+    const list = Array.from(new Set((Array.isArray(providers) ? providers : []).map(provider => String(provider || '').trim()).filter(Boolean))).sort((a, b) => authQuotaProviderName(a).localeCompare(authQuotaProviderName(b), 'zh'));
+    if (state.authQuotaProvider && !list.includes(state.authQuotaProvider)) state.authQuotaProvider = '';
+    select.innerHTML = '<option value="">全部平台</option>' + list.map(provider => '<option value="'+esc(provider)+'">'+esc(authQuotaProviderName(provider))+'</option>').join('');
     select.value = state.authQuotaProvider;
   }
 
-  function authQuotaMatchesFilters(item) {
-    const provider = String(authQuotaValue(item, 'provider') || '');
-    if (state.authQuotaProvider && provider !== state.authQuotaProvider) return false;
-    const query = String(state.authQuotaName || '').trim().toLowerCase();
-    if (!query) return true;
-    const haystack = [authQuotaValue(item, 'display_name'), authQuotaValue(item, 'auth_id'), authQuotaValue(item, 'auth_index'), provider, authQuotaProviderName(provider)].map(value => String(value || '').toLowerCase()).join(' ');
-    return haystack.includes(query);
+  function authQuotaQuery() {
+    const params = new URLSearchParams();
+    params.set('page', String(state.authQuotaPage || 1));
+    params.set('page_size', String(state.authQuotaPageSize || 12));
+    if (state.authQuotaProvider) params.set('provider', state.authQuotaProvider);
+    const q = String(state.authQuotaName || '').trim();
+    if (q) params.set('q', q);
+    return params.toString();
   }
 
   function authQuotaBadge(status) {
@@ -3159,21 +3458,18 @@
 
   function renderAuthQuotas(result) {
     if (result) state.authQuotas = result;
-    const items = state.authQuotas && Array.isArray(authQuotaValue(state.authQuotas, 'items')) ? authQuotaValue(state.authQuotas, 'items') : [];
+    const payload = state.authQuotas || {};
+    const items = Array.isArray(authQuotaValue(payload, 'items')) ? authQuotaValue(payload, 'items') : [];
+    const providers = authQuotaValue(payload, 'providers');
+    syncAuthQuotaProviderFilter(providers);
+    renderAuthQuotaPagination(payload);
     if (!items.length) {
-      state.authQuotaWeeks = {};
-      syncAuthQuotaProviderFilter([]);
-      $('authQuotaList').innerHTML = emptyState('当前没有可用的认证额度数据');
-      return;
-    }
-    syncAuthQuotaProviderFilter(items);
-    const visibleItems = items.filter(authQuotaMatchesFilters);
-    if (!visibleItems.length) {
-      $('authQuotaList').innerHTML = emptyState('没有符合筛选条件的认证额度');
+      const total = Number(authQuotaValue(payload, 'total') || 0);
+      $('authQuotaList').innerHTML = emptyState(total || state.authQuotaProvider || String(state.authQuotaName || '').trim() ? '没有符合筛选条件的认证额度' : '当前没有可用的认证额度数据');
       return;
     }
     const now = Date.now();
-    $('authQuotaList').innerHTML = visibleItems.map(item => {
+    $('authQuotaList').innerHTML = items.map(item => {
       const itemKey = authQuotaItemKey(item);
       const windows = authQuotaValue(item, 'windows');
       const weeks = collectAuthQuotaWeeks(windows, now);
@@ -3202,34 +3498,112 @@
         : '<label class="auth-quota-filter"><span>额度周</span><select disabled title="额度周"><option>暂无额度周</option></select></label>';
       const refreshing = !!state.authQuotaRefreshing[itemKey];
       const reloadBtn = '<button type="button" class="btn sm ghost auth-quota-reload" data-provider="'+esc(authQuotaValue(item, 'provider') || '')+'" data-auth-id="'+esc(authQuotaValue(item, 'auth_id') || '')+'" data-auth-index="'+esc(authQuotaValue(item, 'auth_index') || '')+'" data-item-key="'+esc(itemKey)+'"'+(refreshing ? ' disabled' : '')+' title="重新加载">'+(refreshing ? '加载中' : '重新加载')+'</button>';
-      return '<article class="card auth-quota-card'+(refreshing ? ' is-refreshing' : '')+'"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><p class="auth-quota-provider">'+esc(authQuotaValue(item, 'provider') || '未知提供商')+'</p><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'">'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'</h2><p class="auth-quota-sync">同步 '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>当前费用</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>预估剩余</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>预计可用</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div></div><div class="auth-quota-header-tools">'+weekSelect+reloadBtn+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
+      const plan = authQuotaPlanName(authQuotaValue(item, 'plan'));
+      const planLabel = plan ? '<span class="auth-quota-plan" title="订阅类型">'+esc(plan)+'</span>' : '';
+      return '<article class="card auth-quota-card'+(refreshing ? ' is-refreshing' : '')+'"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><div class="auth-quota-identity-main"><p class="auth-quota-provider">'+esc(authQuotaValue(item, 'provider') || '未知提供商')+'</p>'+planLabel+'</div><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'">'+esc(authQuotaValue(item, 'display_name') || '未命名认证')+'</h2><p class="auth-quota-sync">同步 '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>当前费用</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>预估剩余</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>预计可用</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div></div><div class="auth-quota-header-tools">'+weekSelect+reloadBtn+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
     }).join('');
   }
 
   async function loadAuthQuotas() {
-    renderAuthQuotas(await api('GET', 'credit-manager/auth-quotas'));
+    const seq = ++state.tabLoadSeq;
+    const result = await api('GET', 'credit-manager/auth-quotas?' + authQuotaQuery());
+    if (seq !== state.tabLoadSeq) return;
+    renderAuthQuotas(result);
   }
   function replaceAuthQuotaItem(item) {
-    const items = state.authQuotas && Array.isArray(authQuotaValue(state.authQuotas, 'items')) ? authQuotaValue(state.authQuotas, 'items') : [];
+    const current = state.authQuotas && typeof state.authQuotas === 'object' ? state.authQuotas : {};
+    const items = Array.isArray(authQuotaValue(current, 'items')) ? authQuotaValue(current, 'items').slice() : [];
     const key = authQuotaItemKey(item);
     const provider = String(authQuotaValue(item, 'provider') || '');
     const idx = items.findIndex(existing => authQuotaItemKey(existing) === key && String(authQuotaValue(existing, 'provider') || '') === provider);
-    if (idx >= 0) items[idx] = item;
-    else items.push(item);
-    state.authQuotas = { items };
+    if (idx < 0) return;
+    items[idx] = item;
+    state.authQuotas = Object.assign({}, current, { items });
   }
-  async function refreshAuthQuota(itemKey, provider, authID, authIndex) {
+  async function refreshAuthQuota(itemKey, provider, authID, authIndex, options) {
     if (!itemKey || state.authQuotaRefreshing[itemKey]) return;
+    const seq = state.tabLoadSeq;
     state.authQuotaRefreshing[itemKey] = true;
     renderAuthQuotas();
     try {
       const result = await api('POST', 'credit-manager/auth-quotas/refresh', { provider, auth_id: authID, auth_index: authIndex });
+      if (seq !== state.tabLoadSeq) return;
       const item = authQuotaValue(result, 'item') || result;
       if (item) replaceAuthQuotaItem(item);
-      flash('认证额度已刷新', true);
+      if (!options || !options.silent) flash('认证额度已刷新', true);
     } finally {
       delete state.authQuotaRefreshing[itemKey];
-      renderAuthQuotas();
+      if (seq === state.tabLoadSeq) renderAuthQuotas();
+    }
+  }
+  function renderAuthQuotaPagination(result) {
+    const el = $('authQuotaPagination');
+    if (!el) return;
+    const total = Number(authQuotaValue(result, 'total') || 0);
+    const page = Number(authQuotaValue(result, 'page') || state.authQuotaPage || 1);
+    const pageSize = Number(authQuotaValue(result, 'page_size') || state.authQuotaPageSize || 12);
+    const totalPages = Math.max(Number(authQuotaValue(result, 'total_pages') || 0), 1);
+    state.authQuotaPage = page;
+    state.authQuotaPageSize = pageSize;
+    const start = total ? (page - 1) * pageSize + 1 : 0;
+    const end = Math.min(page * pageSize, total);
+    el.innerHTML = '<span class="muted">显示 '+start+'–'+end+'，共 '+total.toLocaleString()+' 条</span>' +
+      '<label>每页<select id="authQuotaPageSize"><option value="8">8 条</option><option value="12">12 条</option><option value="16">16 条</option><option value="24">24 条</option></select></label>' +
+      '<button class="btn ghost" id="btnAuthQuotaPrev" '+(page <= 1 ? 'disabled' : '')+'>上一页</button>' +
+      '<span class="muted">第 '+page+' / '+totalPages+' 页</span>' +
+      '<button class="btn ghost" id="btnAuthQuotaNext" '+(page >= totalPages ? 'disabled' : '')+'>下一页</button>';
+    $('authQuotaPageSize').value = String(pageSize);
+    initCustomControls(el);
+    refreshCustomControl($('authQuotaPageSize'));
+    $('authQuotaPageSize').addEventListener('change', async event => {
+      try {
+        state.tabLoadSeq += 1;
+        state.authQuotaPageSize = Number(event.target.value);
+        state.authQuotaPage = 1;
+        await loadAuthQuotas();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnAuthQuotaPrev').addEventListener('click', async () => {
+      try {
+        state.tabLoadSeq += 1;
+        state.authQuotaPage = Math.max(1, page - 1);
+        await loadAuthQuotas();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnAuthQuotaNext').addEventListener('click', async () => {
+      try {
+        state.tabLoadSeq += 1;
+        state.authQuotaPage = Math.min(totalPages, page + 1);
+        await loadAuthQuotas();
+      } catch (e) { flash(e.message, false); }
+    });
+  }
+  async function refreshVisibleAuthQuotas() {
+    if (state.authQuotaPageRefreshing) return;
+    const items = state.authQuotas && Array.isArray(authQuotaValue(state.authQuotas, 'items')) ? authQuotaValue(state.authQuotas, 'items').slice() : [];
+    if (!items.length) return;
+    const seq = ++state.tabLoadSeq;
+    const btn = $('btnRefreshAuthQuotaPage');
+    state.authQuotaPageRefreshing = true;
+    if (btn) btn.disabled = true;
+    try {
+      for (const item of items) {
+        if (seq !== state.tabLoadSeq || state.currentTab !== 'auth-quotas') return;
+        try {
+          await refreshAuthQuota(
+            authQuotaItemKey(item),
+            authQuotaValue(item, 'provider') || '',
+            authQuotaValue(item, 'auth_id') || '',
+            authQuotaValue(item, 'auth_index') || '',
+            { silent: true }
+          );
+        } catch (_) {}
+      }
+      if (seq !== state.tabLoadSeq || state.currentTab !== 'auth-quotas') return;
+      flash('本页认证额度已刷新', true);
+    } finally {
+      state.authQuotaPageRefreshing = false;
+      if (btn) btn.disabled = false;
     }
   }
   async function reload() {
@@ -3348,13 +3722,24 @@
     $('mgmtToken').value = '';
     flash('已清除本地管理密钥与 API 根地址', true);
   });
+  let authQuotaSearchTimer = 0;
   $('authQuotaProviderFilter').addEventListener('change', () => {
+    state.tabLoadSeq += 1;
     state.authQuotaProvider = $('authQuotaProviderFilter').value || '';
-    renderAuthQuotas();
+    state.authQuotaPage = 1;
+    loadAuthQuotas().catch(e => flash(e.message, false));
   });
   $('authQuotaNameFilter').addEventListener('input', () => {
+    state.tabLoadSeq += 1;
     state.authQuotaName = $('authQuotaNameFilter').value || '';
-    renderAuthQuotas();
+    state.authQuotaPage = 1;
+    window.clearTimeout(authQuotaSearchTimer);
+    authQuotaSearchTimer = window.setTimeout(() => {
+      loadAuthQuotas().catch(e => flash(e.message, false));
+    }, 300);
+  });
+  $('btnRefreshAuthQuotaPage').addEventListener('click', () => {
+    refreshVisibleAuthQuotas().catch(e => flash(e.message, false));
   });
   $('authQuotaList').addEventListener('change', event => {
     const select = event.target.closest('.auth-quota-week-select');
@@ -3460,6 +3845,46 @@
   $('btnConfirmDeleteKey').addEventListener('click', async () => {
     if (!state.deleteKeyID) return;
     await deleteKeyPermanently(state.deleteKeyID);
+  });
+  $('keyModalTokenLimitsEnabled').addEventListener('change', event => {
+    setTokenLimitsSectionVisible(event.target.checked, event.target.disabled);
+  });
+  $('btnAddKeyTokenLimit').addEventListener('click', () => addKeyTokenLimit($('keyModalTokenLimitModel').value));
+  $('keyModalTokenLimitModel').addEventListener('focus', openTokenLimitModelSearch);
+  $('keyModalTokenLimitModel').addEventListener('input', openTokenLimitModelSearch);
+  $('keyModalTokenLimitModel').addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addKeyTokenLimit($('keyModalTokenLimitModel').value);
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeTokenLimitModelSearch();
+    }
+    if (event.key === 'ArrowDown') openTokenLimitModelSearch();
+  });
+  $('keyModal').querySelector('.modal-body').addEventListener('scroll', closeTokenLimitModelSearch, { passive:true });
+  window.addEventListener('resize', closeTokenLimitModelSearch);
+  $('keyModalUnmatched').addEventListener('click', event => {
+    const button = event.target.closest('[data-unmatched-set]');
+    if (!button || button.disabled) return;
+    setUnmatchedModelsMode(button.dataset.unmatchedSet);
+  });
+  $('keyModalTokenLimits').addEventListener('click', event => {
+    const modeButton = event.target.closest('[data-mode-set]');
+    if (modeButton && !modeButton.disabled) {
+      const period = modeButton.closest('.token-limit-period');
+      period.dataset.mode = modeButton.dataset.modeSet;
+      syncTokenLimitPeriod(period);
+      return;
+    }
+    const button = event.target.closest('[data-remove-token-limit]');
+    if (!button || button.disabled) return;
+    renderKeyTokenLimits(collectModelTokenLimits().filter(item => item.model !== button.dataset.removeTokenLimit), $('keyModalMode').value === 'rotate');
+  });
+  $('keyModalTokenLimits').addEventListener('input', event => {
+    const period = event.target.closest('.token-limit-period');
+    if (period) syncTokenLimitPeriod(period);
   });
   $('btnGenerateKeyMaterial').addEventListener('click', () => {
     $('keyMaterial').value = createKeyMaterialSuffix();

@@ -72,6 +72,10 @@ func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, q
 	for _, item := range recent {
 		recentView = append(recentView, publicUsageView(item))
 	}
+	modelTokenUsage, err := svc.Store().ListModelTokenUsage(ctx, key.ID, key.ModelTokenLimits, time.Now().UTC().UnixMilli())
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
 	response := pluginapi.ManagementResponse{
 		StatusCode: http.StatusOK,
 		Headers:    http.Header{"Cache-Control": []string{"no-store"}},
@@ -88,13 +92,16 @@ func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, q
 				"held_amount_micro_usd":   key.HeldAmountMicroUSD,
 				"remaining_micro_usd":     key.RemainingMicroUSD(),
 				"allowed_models":          key.AllowedModels,
+				"model_token_limits":      modelTokenLimitViews(key.ModelTokenLimits),
+				"unmatched_models_mode":   unmatchedModelsModeView(key.UnmatchedModelsMode),
 				"expires_at":              key.ExpiresAt,
 			},
-			"overview":      lookupOverviewView(overview),
-			"by_model":      byModel,
-			"daily_trend":   dailyTrend,
-			"usage_summary": lookupUsageSummaryView(usageSummary),
-			"recent_usage":  recentView,
+			"overview":          lookupOverviewView(overview),
+			"model_token_usage": modelTokenUsageViews(modelTokenUsage),
+			"by_model":          byModel,
+			"daily_trend":       dailyTrend,
+			"usage_summary":     lookupUsageSummaryView(usageSummary),
+			"recent_usage":      recentView,
 			"recent_pagination": map[string]any{
 				"page":        page,
 				"page_size":   pageSize,

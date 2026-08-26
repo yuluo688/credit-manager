@@ -15,16 +15,21 @@ import (
 // The host will populate it when management requests expose callback metadata.
 type HostCallbackIDContextKey struct{}
 
-func getAuthQuotas(ctx context.Context, svc *service.Service) (pluginapi.ManagementResponse, error) {
+func getAuthQuotas(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
 	hostCallbackID, _ := ctx.Value(HostCallbackIDContextKey{}).(string)
-	overview, err := svc.AuthQuotaOverview(ctx, hostCallbackID)
+	overview, err := svc.AuthQuotaOverview(ctx, hostCallbackID, service.AuthQuotaFilter{
+		Page:     queryInt(query, "page", 1),
+		PageSize: queryInt(query, "page_size", service.AuthQuotaDefaultPageSize),
+		Provider: firstQuery(query, "provider"),
+		Q:        firstQuery(query, "q"),
+	})
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "unavailable") {
 			return jsonErrNoStore(http.StatusServiceUnavailable, "auth quota information unavailable"), nil
 		}
 		return jsonErrNoStore(http.StatusInternalServerError, "auth quota information failed"), nil
 	}
-	return jsonOKNoStore(map[string]any{"items": overview}), nil
+	return jsonOKNoStore(overview), nil
 }
 
 func refreshAuthQuota(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
