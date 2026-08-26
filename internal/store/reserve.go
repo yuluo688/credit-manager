@@ -88,12 +88,12 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	}
 	var keyEnabled int
 	var revoked, expires sql.NullInt64
-	var allowedJSON string
+	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent int64
-	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json,
+	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json, model_token_limits_json, unmatched_models_mode,
 		daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests
 		FROM plugin_keys WHERE id = ? AND caller_id = ?`,
-		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON,
+		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON, &tokenLimitsJSON, &unmatchedMode,
 		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Reservation{}, ErrPluginKeyNotFound
@@ -116,8 +116,15 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	if !ModelAllowed(PluginKey{AllowedModels: allowed}, request.Model) {
 		return Reservation{}, fmt.Errorf("%w: %s", ErrModelNotAllowed, request.Model)
 	}
+	tokenLimits, err := unmarshalModelTokenLimits(tokenLimitsJSON)
+	if err != nil {
+		return Reservation{}, err
+	}
 
 	now := nowUnixMilli()
+	if err := enforceModelTokenLimits(ctx, tx, request.PluginKeyID, request.Model, request.RequestTokenEstimate, tokenLimits, unmatchedMode, now); err != nil {
+		return Reservation{}, err
+	}
 	if maxConcurrent > 0 {
 		var active int64
 		if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM reservations

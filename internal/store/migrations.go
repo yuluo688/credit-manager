@@ -267,6 +267,20 @@ var migrations = []migration{
 			END`,
 		},
 	},
+	{
+		version: 14,
+		name:    "plugin key model token limits",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN model_token_limits_json TEXT NOT NULL DEFAULT '[]'`,
+		},
+	},
+	{
+		version: 15,
+		name:    "plugin key unmatched models mode",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN unmatched_models_mode TEXT NOT NULL DEFAULT 'available'`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

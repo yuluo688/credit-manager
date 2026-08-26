@@ -29,6 +29,195 @@ func TestModelAllowed(t *testing.T) {
 	}
 }
 
+func TestMatchModelTokenLimit(t *testing.T) {
+	limits := []ModelTokenLimit{
+		{Model: "gpt-*", Daily: ModelPeriodTokenLimit{Tokens: 10}},
+		{Model: "gpt-4o", Daily: ModelPeriodTokenLimit{Tokens: 5}},
+		{Model: "claude-*", Daily: ModelPeriodTokenLimit{Mode: ModelTokenLimitModeAvailable}},
+	}
+	got, ok := MatchModelTokenLimit(limits, "gpt-4o")
+	if !ok || got.Model != "gpt-4o" || got.Daily.Cap() != 5 {
+		t.Fatalf("exact match = %+v ok=%t", got, ok)
+	}
+	got, ok = MatchModelTokenLimit(limits, "gpt-4.1")
+	if !ok || got.Model != "gpt-*" || got.Daily.Cap() != 10 {
+		t.Fatalf("glob match = %+v ok=%t", got, ok)
+	}
+	if _, ok := MatchModelTokenLimit(limits, "gemini-pro"); ok {
+		t.Fatal("unlisted model should have no token policy")
+	}
+}
+
+func TestReserveEnforcesModelTokenLimits(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{
+		ModelTokenLimits: []ModelTokenLimit{{
+			Model: "test-model",
+			Daily: ModelPeriodTokenLimit{Tokens: 100},
+		}},
+	})
+	first := reserveRequest(key, "first", 1)
+	first.RequestTokenEstimate = 60
+	if _, err := st.Reserve(ctx, first); err != nil {
+		t.Fatalf("first reserve: %v", err)
+	}
+	second := reserveRequest(key, "second", 1)
+	second.RequestTokenEstimate = 50
+	if _, err := st.Reserve(ctx, second); !errors.Is(err, ErrDailyTokenLimitExceeded) {
+		t.Fatalf("second reserve error = %v, want %v", err, ErrDailyTokenLimitExceeded)
+	}
+	other := reserveRequest(key, "other", 1)
+	other.Model = "other-model"
+	other.RequestTokenEstimate = 50
+	if _, err := st.Reserve(ctx, other); err != nil {
+		t.Fatalf("unlisted model should not use token cap: %v", err)
+	}
+}
+
+func TestReserveModelTokenLimitAvailableOrUnlimitedSkipsCap(t *testing.T) {
+	for _, mode := range []string{ModelTokenLimitModeAvailable, ModelTokenLimitModeUnlimited} {
+		t.Run(mode, func(t *testing.T) {
+			ctx := context.Background()
+			st := newTestStore(t)
+			defer st.Close()
+			key := newTestKey(t, ctx, st, PluginKeySpec{
+				Kid:         "key-" + mode,
+				Principal:   "credit-manager:key-" + mode,
+				CallerScope: "credit-manager:key-" + mode,
+				ModelTokenLimits: []ModelTokenLimit{{
+					Model:   "test-model",
+					Daily:   ModelPeriodTokenLimit{Mode: mode},
+					Weekly:  ModelPeriodTokenLimit{Mode: mode},
+					Monthly: ModelPeriodTokenLimit{Mode: mode},
+				}},
+			})
+			req := reserveRequest(key, "first", 1)
+			req.RequestTokenEstimate = 1_000_000
+			if _, err := st.Reserve(ctx, req); err != nil {
+				t.Fatalf("reserve with %s mode: %v", mode, err)
+			}
+		})
+	}
+}
+
+func TestReserveModelTokenLimitGlobSharesPool(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{
+		ModelTokenLimits: []ModelTokenLimit{{
+			Model: "test-*",
+			Daily: ModelPeriodTokenLimit{Tokens: 100},
+		}},
+	})
+	first := reserveRequest(key, "first", 1)
+	first.Model = "test-a"
+	first.RequestTokenEstimate = 60
+	if _, err := st.Reserve(ctx, first); err != nil {
+		t.Fatalf("first reserve: %v", err)
+	}
+	second := reserveRequest(key, "second", 1)
+	second.Model = "test-b"
+	second.RequestTokenEstimate = 50
+	if _, err := st.Reserve(ctx, second); !errors.Is(err, ErrDailyTokenLimitExceeded) {
+		t.Fatalf("second reserve error = %v, want %v", err, ErrDailyTokenLimitExceeded)
+	}
+}
+
+func TestListModelTokenUsageBucketsPeriods(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	now := time.Now().UTC()
+	monthStart := time.UnixMilli(utcMonthStart(now.UnixMilli())).UTC()
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatal(err)
+	}
+	insert := func(id string, at time.Time, tokens int64) {
+		t.Helper()
+		_, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES (?, ?, ?, ?, 'test-model', ?, 0, 0, 0, 0, 0, 1, 'usage', ?)`, id, "r-"+id, key.CallerID, key.ID, tokens, at.UnixMilli())
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert("u-day", now, 10)
+	insert("u-old", monthStart.Add(-time.Hour), 20)
+	got, err := st.ListModelTokenUsage(ctx, key.ID, []ModelTokenLimit{{Model: "test-model"}}, now.UnixMilli())
+	if err != nil || len(got) != 1 {
+		t.Fatalf("usage=%#v err=%v", got, err)
+	}
+	if got[0].DailyUsed != 10 || got[0].MonthlyUsed != 10 {
+		t.Fatalf("daily=%d monthly=%d", got[0].DailyUsed, got[0].MonthlyUsed)
+	}
+}
+
+func TestReserveUnmatchedModelsDisabled(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{
+		UnmatchedModelsMode: UnmatchedModelsDisabled,
+		ModelTokenLimits: []ModelTokenLimit{{
+			Model: "allowed-model",
+			Daily: ModelPeriodTokenLimit{Mode: ModelTokenLimitModeUnlimited},
+		}},
+	})
+	okReq := reserveRequest(key, "ok", 1)
+	okReq.Model = "allowed-model"
+	if _, err := st.Reserve(ctx, okReq); err != nil {
+		t.Fatalf("listed model: %v", err)
+	}
+	blocked := reserveRequest(key, "blocked", 1)
+	blocked.Model = "other-model"
+	if _, err := st.Reserve(ctx, blocked); !errors.Is(err, ErrModelNotAllowed) {
+		t.Fatalf("unmatched error = %v, want %v", err, ErrModelNotAllowed)
+	}
+}
+
+func TestReserveUnmatchedDisabledEmptyListBlocksAll(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{UnmatchedModelsMode: UnmatchedModelsDisabled})
+	if _, err := st.Reserve(ctx, reserveRequest(key, "any", 1)); !errors.Is(err, ErrModelNotAllowed) {
+		t.Fatalf("empty list + disabled error = %v, want %v", err, ErrModelNotAllowed)
+	}
+}
+
+func TestUpdatePluginKeyPolicyModelTokenLimits(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	limits := []ModelTokenLimit{{
+		Model:   "gpt-4o",
+		Daily:   ModelPeriodTokenLimit{Tokens: 1000},
+		Weekly:  ModelPeriodTokenLimit{Mode: ModelTokenLimitModeAvailable},
+		Monthly: ModelPeriodTokenLimit{Mode: ModelTokenLimitModeUnlimited},
+	}}
+	updated, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, ModelTokenLimits: &limits})
+	if err != nil {
+		t.Fatalf("update policy: %v", err)
+	}
+	if len(updated.ModelTokenLimits) != 1 || updated.ModelTokenLimits[0].Model != "gpt-4o" ||
+		updated.ModelTokenLimits[0].Daily.Cap() != 1000 ||
+		updated.ModelTokenLimits[0].Weekly.NormalizedMode() != ModelTokenLimitModeAvailable ||
+		updated.ModelTokenLimits[0].Monthly.NormalizedMode() != ModelTokenLimitModeUnlimited {
+		t.Fatalf("updated limits = %+v", updated.ModelTokenLimits)
+	}
+	empty := []ModelTokenLimit{}
+	cleared, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, ModelTokenLimits: &empty})
+	if err != nil {
+		t.Fatalf("clear policy: %v", err)
+	}
+	if len(cleared.ModelTokenLimits) != 0 {
+		t.Fatalf("cleared limits = %+v", cleared.ModelTokenLimits)
+	}
+}
+
 func TestReserveEnforcesKeyLimits(t *testing.T) {
 	tests := []struct {
 		name   string

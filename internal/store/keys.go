@@ -32,6 +32,8 @@ type PluginKey struct {
 	SettledSpendMicroUSD  money.MicroUSD
 	HeldAmountMicroUSD    money.MicroUSD
 	AllowedModels         []string // empty = all models
+	ModelTokenLimits      []ModelTokenLimit
+	UnmatchedModelsMode   string // available (default) or disabled
 	RevokedAt             *time.Time
 	ExpiresAt             *time.Time
 	LastUsedAt            *time.Time
@@ -70,6 +72,8 @@ type PluginKeySpec struct {
 	MonthlyQuotaMicroUSD  money.MicroUSD
 	MaxConcurrentRequests int64
 	AllowedModels         []string
+	ModelTokenLimits      []ModelTokenLimit
+	UnmatchedModelsMode   string
 }
 
 // PluginKeyPolicyUpdate patches mutable admin fields on a key.
@@ -83,6 +87,8 @@ type PluginKeyPolicyUpdate struct {
 	MonthlyQuotaMicroUSD  *money.MicroUSD
 	MaxConcurrentRequests *int64
 	AllowedModels         *[]string
+	ModelTokenLimits      *[]ModelTokenLimit
+	UnmatchedModelsMode   *string
 	ExpiresAt             *time.Time
 	ClearExpiresAt        bool
 }
@@ -106,6 +112,14 @@ func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (Plugin
 	if err != nil {
 		return PluginKey{}, err
 	}
+	tokenLimitsJSON, err := marshalModelTokenLimits(spec.ModelTokenLimits)
+	if err != nil {
+		return PluginKey{}, err
+	}
+	unmatchedMode, err := parseUnmatchedModelsMode(spec.UnmatchedModelsMode)
+	if err != nil {
+		return PluginKey{}, err
+	}
 	now := nowUnixMilli()
 	var expires any
 	if spec.ExpiresAt != nil {
@@ -116,11 +130,11 @@ func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (Plugin
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, quota, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON)
+		boolInt(spec.Enabled), expires, now, now, quota, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create plugin key: %w", err)
 	}
@@ -146,6 +160,14 @@ func (s *Store) RotatePluginKey(ctx context.Context, oldKeyID string, spec Plugi
 	if err != nil {
 		return PluginKey{}, err
 	}
+	tokenLimitsJSON, err := marshalModelTokenLimits(spec.ModelTokenLimits)
+	if err != nil {
+		return PluginKey{}, err
+	}
+	unmatchedMode, err := parseUnmatchedModelsMode(spec.UnmatchedModelsMode)
+	if err != nil {
+		return PluginKey{}, err
+	}
 	var expires any
 	if spec.ExpiresAt != nil {
 		expires = spec.ExpiresAt.UTC().UnixMilli()
@@ -160,11 +182,11 @@ func (s *Store) RotatePluginKey(ctx context.Context, oldKeyID string, spec Plugi
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?)`,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON)
+		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create replacement plugin key: %w", err)
 	}
@@ -279,6 +301,16 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 	if update.AllowedModels != nil {
 		key.AllowedModels = append([]string(nil), (*update.AllowedModels)...)
 	}
+	if update.ModelTokenLimits != nil {
+		key.ModelTokenLimits = append([]ModelTokenLimit(nil), (*update.ModelTokenLimits)...)
+	}
+	if update.UnmatchedModelsMode != nil {
+		mode, err := parseUnmatchedModelsMode(*update.UnmatchedModelsMode)
+		if err != nil {
+			return PluginKey{}, err
+		}
+		key.UnmatchedModelsMode = mode
+	}
 	if update.ClearExpiresAt {
 		key.ExpiresAt = nil
 	} else if update.ExpiresAt != nil {
@@ -286,6 +318,10 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 		key.ExpiresAt = &exp
 	}
 	modelsJSON, err := marshalAllowedModels(key.AllowedModels)
+	if err != nil {
+		return PluginKey{}, err
+	}
+	tokenLimitsJSON, err := marshalModelTokenLimits(key.ModelTokenLimits)
 	if err != nil {
 		return PluginKey{}, err
 	}
@@ -301,11 +337,12 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 	now := nowUnixMilli()
 	result, err := s.db.ExecContext(ctx, `UPDATE plugin_keys SET
 		label = ?, enabled = ?, quota_micro_usd = ?, daily_quota_micro_usd = ?, weekly_quota_micro_usd = ?,
-		monthly_quota_micro_usd = ?, max_concurrent_requests = ?, allowed_models_json = ?,
-		expires_at_unix_ms = ?, updated_at_unix_ms = ?
+		monthly_quota_micro_usd = ?, max_concurrent_requests = ?, allowed_models_json = ?, model_token_limits_json = ?,
+		unmatched_models_mode = ?, expires_at_unix_ms = ?, updated_at_unix_ms = ?
 		WHERE id = ?`,
 		key.Label, boolInt(key.Enabled), quota, key.DailyQuotaMicroUSD, key.WeeklyQuotaMicroUSD,
-		key.MonthlyQuotaMicroUSD, key.MaxConcurrentRequests, modelsJSON, expires, now, update.ID)
+		key.MonthlyQuotaMicroUSD, key.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON,
+		normalizeUnmatchedModelsMode(key.UnmatchedModelsMode), expires, now, update.ID)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("update plugin key policy: %w", err)
 	}
@@ -390,5 +427,5 @@ func ModelAllowed(key PluginKey, model string) bool {
 const pluginKeySelect = `SELECT id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 	enabled, revoked_at_unix_ms, expires_at_unix_ms, last_used_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 	quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json
+	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
 	FROM plugin_keys`

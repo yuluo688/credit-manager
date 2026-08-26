@@ -41,11 +41,11 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	var enabled int
 	var revoked, expires, lastUsed, quota sql.NullInt64
 	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent, settled, held int64
-	var allowedJSON string
+	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var created, updated int64
 	if err := row.Scan(&key.ID, &key.CallerID, &key.Kid, &key.KeyHash, &key.EncryptedKeyMaterial, &key.PepperID, &key.Fingerprint,
 		&key.Label, &key.Principal, &key.CallerScope, &enabled, &revoked, &expires, &lastUsed, &created, &updated,
-		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON); err != nil {
+		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON, &tokenLimitsJSON, &unmatchedMode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PluginKey{}, ErrPluginKeyNotFound
 		}
@@ -79,6 +79,12 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 		return PluginKey{}, err
 	}
 	key.AllowedModels = models
+	tokenLimits, err := unmarshalModelTokenLimits(tokenLimitsJSON)
+	if err != nil {
+		return PluginKey{}, err
+	}
+	key.ModelTokenLimits = tokenLimits
+	key.UnmatchedModelsMode = normalizeUnmatchedModelsMode(unmatchedMode)
 	key.CreatedAt, key.UpdatedAt = fromUnixMilli(created), fromUnixMilli(updated)
 	return key, nil
 }
