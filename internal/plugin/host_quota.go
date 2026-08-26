@@ -137,7 +137,7 @@ func allowedAuthQuotaRequest(method, rawURL string) bool {
 	case "chatgpt.com":
 		return method == http.MethodGet && (parsed.Path == "/backend-api/wham/usage" || parsed.Path == "/backend-api/wham/rate-limit-reset-credits")
 	case "api.anthropic.com":
-		return method == http.MethodGet && parsed.Path == "/api/oauth/usage"
+		return method == http.MethodGet && (parsed.Path == "/api/oauth/usage" || parsed.Path == "/api/oauth/profile")
 	case "cloudcode-pa.googleapis.com", "daily-cloudcode-pa.googleapis.com", "daily-cloudcode-pa.sandbox.googleapis.com", "autopush-cloudcode-pa.googleapis.com":
 		return method == http.MethodPost && parsed.Path == "/v1internal:retrieveUserQuotaSummary"
 	case "api.kimi.com":

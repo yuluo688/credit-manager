@@ -41,6 +41,9 @@ func TestAllowedAuthQuotaRequest(t *testing.T) {
 		{http.MethodGet, "http://chatgpt.com/backend-api/wham/usage", false},
 		{http.MethodGet, "https://evil.example/backend-api/wham/usage", false},
 		{http.MethodGet, "https://chatgpt.com.evil.example/backend-api/wham/usage", false},
+		{http.MethodGet, "https://api.anthropic.com/api/oauth/usage", true},
+		{http.MethodGet, "https://api.anthropic.com/api/oauth/profile", true},
+		{http.MethodPost, "https://api.anthropic.com/api/oauth/profile", false},
 		{http.MethodGet, "https://api.x.ai/v1/billing", true},
 	} {
 		if got := allowedAuthQuotaRequest(test.method, test.url); got != test.want {
