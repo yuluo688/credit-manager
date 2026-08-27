@@ -37,6 +37,7 @@ type Service struct {
 	authQuotaMu        sync.RWMutex
 	authQuotaSource    AuthQuotaSource
 	authQuotaRefreshMu sync.Mutex
+	authPickCursor     map[string]int
 	directorySyncer    ModelDirectorySyncer
 	directoryIDsMu     sync.Mutex
 	lastDirectoryIDs   []string

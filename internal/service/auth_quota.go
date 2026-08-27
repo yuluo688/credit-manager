@@ -69,18 +69,20 @@ type AuthQuotaOverview struct {
 }
 
 type AuthQuotaOverviewItem struct {
-	AuthID        string            `json:"auth_id"`
-	AuthIndex     string            `json:"auth_index"`
-	Provider      string            `json:"provider"`
-	DisplayName   string            `json:"display_name"`
-	Status        string            `json:"status"`
-	LastAttemptAt *time.Time        `json:"last_attempt_at,omitempty"`
-	LastSuccessAt *time.Time        `json:"last_success_at,omitempty"`
-	LastErrorAt   *time.Time        `json:"last_error_at,omitempty"`
-	Error         string            `json:"error,omitempty"`
-	Plan          string            `json:"plan,omitempty"`
-	ResetCredits  *float64          `json:"reset_credits,omitempty"`
-	Windows       []AuthQuotaWindow `json:"windows"`
+	AuthID                string            `json:"auth_id"`
+	AuthIndex             string            `json:"auth_index"`
+	Provider              string            `json:"provider"`
+	DisplayName           string            `json:"display_name"`
+	Status                string            `json:"status"`
+	LastAttemptAt         *time.Time        `json:"last_attempt_at,omitempty"`
+	LastSuccessAt         *time.Time        `json:"last_success_at,omitempty"`
+	LastErrorAt           *time.Time        `json:"last_error_at,omitempty"`
+	Error                 string            `json:"error,omitempty"`
+	Plan                  string            `json:"plan,omitempty"`
+	ResetCredits          *float64          `json:"reset_credits,omitempty"`
+	MaxConcurrentRequests int64             `json:"max_concurrent_requests"`
+	ActiveRequests        int64             `json:"active_requests"`
+	Windows               []AuthQuotaWindow `json:"windows"`
 }
 type AuthQuotaLocalUsage struct {
 	RequestCount          int64 `json:"request_count"`
@@ -179,6 +181,7 @@ func (s *Service) AuthQuotaOverview(ctx context.Context, callback string, filter
 		total = 0
 	}
 	_, totalPages, _, _ = authQuotaPageBounds(page, filter.PageSize, total)
+	s.attachAuthConcurrency(ctx, items)
 	return AuthQuotaOverview{
 		Items:      items,
 		Page:       page,
@@ -204,7 +207,7 @@ func (s *Service) RefreshAuthQuota(ctx context.Context, callback, provider, auth
 		if !ok {
 			continue
 		}
-		return item, nil
+		return s.withAuthConcurrency(ctx, item), nil
 	}
 	return AuthQuotaOverviewItem{}, fmt.Errorf("auth quota not found")
 }
