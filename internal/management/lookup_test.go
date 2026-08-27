@@ -405,6 +405,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
+		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用到本页", "应用到筛选", "btnAuthQuotaBatchPage", "data-provider",
 		"align-items:stretch", "flex-direction:column", "height:100%",
 	} {
 		if !strings.Contains(page, text) {
@@ -434,6 +435,27 @@ func TestAuthQuotaRefreshRoute(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("auth quota refresh route is not registered")
+	}
+}
+
+func TestAuthQuotaConcurrencyRoute(t *testing.T) {
+	var found, batch bool
+	for _, route := range Routes() {
+		if route.Method != "POST" {
+			continue
+		}
+		if route.Path == "credit-manager/auth-quotas/concurrency" {
+			found = true
+		}
+		if route.Path == "credit-manager/auth-quotas/concurrency/batch" {
+			batch = true
+		}
+	}
+	if !found {
+		t.Fatal("auth quota concurrency route is not registered")
+	}
+	if !batch {
+		t.Fatal("auth quota concurrency batch route is not registered")
 	}
 }
 

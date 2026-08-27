@@ -18,13 +18,13 @@
       <div class="topbar-actions">
         <div class="unit-switch" id="tokenUnitSwitch" role="group" aria-label="Token 显示单位">
           <span class="unit-switch-label">Token</span>
-          <button type="button" data-token-unit="raw" title="原始数量" data-no-i18n>个</button>
-          <button type="button" data-token-unit="qian" title="千 (×1,000)" data-no-i18n>千</button>
-          <button type="button" data-token-unit="k" title="k (×1,000)" data-no-i18n>k</button>
-          <button type="button" data-token-unit="wan" title="万 (×10,000)" data-no-i18n>万</button>
-          <button type="button" data-token-unit="w" title="w (×10,000)" data-no-i18n>w</button>
-          <button type="button" data-token-unit="baiwan" title="百万 (×1,000,000)" data-no-i18n>百万</button>
-          <button type="button" data-token-unit="m" title="m (×1,000,000)" data-no-i18n>m</button>
+          <button type="button" data-token-unit="raw" title="原始数量">个</button>
+          <button type="button" data-token-unit="qian" title="千 (×1,000)">千</button>
+          <button type="button" data-token-unit="k" title="k (×1,000)">k</button>
+          <button type="button" data-token-unit="wan" title="万 (×10,000)">万</button>
+          <button type="button" data-token-unit="w" title="w (×10,000)">w</button>
+          <button type="button" data-token-unit="baiwan" title="百万 (×1,000,000)">百万</button>
+          <button type="button" data-token-unit="m" title="m (×1,000,000)">m</button>
         </div>
         <div class="unit-switch" id="currencySwitch" role="group" aria-label="费用显示货币">
           <span class="unit-switch-label">费用</span>
@@ -520,9 +520,8 @@
 
   <section id="tab-auth-quotas" class="tabpane hidden">
     <div class="page-intro">
-      <div><h2>认证额度</h2><p>每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周。</p></div>
+      <div><h2>认证额度</h2><p>每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周，并设置最大并发。</p></div>
       <div class="auth-quota-toolbar">
-        <button type="button" class="btn" id="btnRefreshAuthQuotaPage">刷新本页</button>
         <div class="auth-quota-toolbar-filters">
           <label class="auth-quota-filter">
             <span>平台</span>
@@ -533,6 +532,15 @@
             <input id="authQuotaNameFilter" autocomplete="off" placeholder="搜索账号或名称"/>
           </label>
         </div>
+        <div class="auth-quota-batch">
+          <label class="auth-quota-filter">
+            <span>批量并发</span>
+            <input id="authQuotaBatchConcurrency" type="number" min="0" step="1" inputmode="numeric" placeholder="不限制" title="最大并发请求数，0 或不填为不限制"/>
+          </label>
+          <button type="button" class="btn" id="btnAuthQuotaBatchPage">应用到本页</button>
+          <button type="button" class="btn ghost" id="btnAuthQuotaBatchFilter">应用到筛选</button>
+        </div>
+        <button type="button" class="btn" id="btnRefreshAuthQuotaPage">刷新本页</button>
       </div>
     </div>
     <div id="authQuotaList" class="auth-quota-list"></div>
