@@ -281,6 +281,19 @@ var migrations = []migration{
 			`ALTER TABLE plugin_keys ADD COLUMN unmatched_models_mode TEXT NOT NULL DEFAULT 'available'`,
 		},
 	},
+	{
+		version: 16,
+		name:    "auth concurrency limits",
+		up: []string{
+			`CREATE TABLE IF NOT EXISTS auth_concurrency_limits (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				max_concurrent_requests INTEGER NOT NULL DEFAULT 0 CHECK (max_concurrent_requests >= 0),
+				updated_at_unix_ms INTEGER NOT NULL,
+				PRIMARY KEY (provider, auth_id)
+			)`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

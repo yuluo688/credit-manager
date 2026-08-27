@@ -846,6 +846,57 @@ func TestWinningPricingRuleUsesPriorityAndDisabled(t *testing.T) {
 	}
 }
 
+func TestAuthConcurrencyLimitRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+
+	got, err := st.GetAuthConcurrencyLimit(ctx, "codex", "auth-1")
+	if err != nil || got != 0 {
+		t.Fatalf("missing limit = %d, %v", got, err)
+	}
+	if err := st.UpsertAuthConcurrencyLimit(ctx, "codex", "auth-1", 3); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	got, err = st.GetAuthConcurrencyLimit(ctx, "codex", "auth-1")
+	if err != nil || got != 3 {
+		t.Fatalf("get = %d, %v", got, err)
+	}
+	if err := st.UpsertAuthConcurrencyLimit(ctx, "codex", "auth-1", 0); err != nil {
+		t.Fatalf("clear: %v", err)
+	}
+	got, err = st.GetAuthConcurrencyLimit(ctx, "codex", "auth-1")
+	if err != nil || got != 0 {
+		t.Fatalf("cleared = %d, %v", got, err)
+	}
+	if err := st.UpsertAuthConcurrencyLimit(ctx, "codex", "auth-2", 1); err != nil {
+		t.Fatalf("second: %v", err)
+	}
+	listed, err := st.ListAuthConcurrencyLimits(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if listed["codex\x00auth-2"] != 1 {
+		t.Fatalf("list = %#v", listed)
+	}
+	if err := st.UpsertAuthConcurrencyLimits(ctx, []AuthConcurrencyLimit{
+		{Provider: "claude", AuthID: "a", MaxConcurrentRequests: 4},
+		{Provider: "claude", AuthID: "b", MaxConcurrentRequests: 5},
+	}); err != nil {
+		t.Fatalf("batch: %v", err)
+	}
+	listed, err = st.ListAuthConcurrencyLimits(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if listed["claude\x00a"] != 4 || listed["claude\x00b"] != 5 {
+		t.Fatalf("batch list = %#v", listed)
+	}
+	if err := st.UpsertAuthConcurrencyLimit(ctx, "codex", "auth-1", -1); !errors.Is(err, ErrInvalidArgument) {
+		t.Fatalf("negative error = %v", err)
+	}
+}
+
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	st, err := Open(context.Background(), filepath.Join(t.TempDir(), "credit-manager.db"), OpenOptions{BusyTimeout: time.Second})
