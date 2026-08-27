@@ -5,7 +5,7 @@
 A native Go plugin for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). It provides dedicated plugin-key authentication, Key-level credit controls, usage-based settlement, and a self-service usage dashboard.
 
 Plugin ID: `credit-manager`  
-Version: `1.5.0`  
+Version: `1.5.1`  
 Repository: https://github.com/yuluo688/credit-manager
 
 ## Features
