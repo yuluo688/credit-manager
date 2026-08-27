@@ -46,6 +46,7 @@ type registrationCapability struct {
 	RequestInterceptor            bool     `json:"request_interceptor"`
 	RequestLifecyclePlugin        bool     `json:"request_lifecycle_plugin"`
 	ResponseInterceptor           bool     `json:"response_interceptor"`
+	Scheduler                     bool     `json:"scheduler"`
 }
 
 type rpcModelRouteRequest struct {
@@ -108,6 +109,8 @@ func HandleMethod(method string, request []byte) ([]byte, error) {
 		return handleManagement(request)
 	case pluginabi.MethodUsageHandle:
 		return handleUsage(request)
+	case pluginabi.MethodSchedulerPick:
+		return pickAuth(request)
 	case pluginabi.MethodRequestInterceptBefore:
 		return okEnvelope(pluginapi.RequestInterceptResponse{})
 	case pluginabi.MethodRequestInterceptAfter:

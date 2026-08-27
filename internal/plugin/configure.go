@@ -58,6 +58,7 @@ func pluginRegistration(schemaVersion uint32) registration {
 			RequestInterceptor:            true,
 			RequestLifecyclePlugin:        true,
 			ResponseInterceptor:           true,
+			Scheduler:                     true,
 		},
 	}
 }

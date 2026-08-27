@@ -65,6 +65,10 @@ func execute(raw []byte) ([]byte, error) {
 		return errorEnvelope("limit_rejected", err.Error()), nil
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
+	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
+		_ = svc.Release(ctx, reservation.ID, "auth_concurrency:"+err.Error())
+		return errorEnvelope("limit_rejected", err.Error()), nil
+	}
 	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
 	defer stopHeartbeat()
 
@@ -74,6 +78,9 @@ func execute(raw []byte) ([]byte, error) {
 	metrics := usageMetricsFromRequest(body, startedAt, completedAt, resultFromStatus(status))
 	if errHost != nil {
 		_ = svc.Release(ctx, reservation.ID, "upstream_error:"+errHost.Error())
+		if isAuthConcurrencyError(errHost) {
+			return errorEnvelope("limit_rejected", errHost.Error()), nil
+		}
 		return errorEnvelope("upstream_error", errHost.Error()), nil
 	}
 	if status >= 400 {
@@ -137,6 +144,10 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		return err
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
+	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
+		_ = svc.Release(ctx, reservation.ID, "auth_concurrency:"+err.Error())
+		return err
+	}
 	stopHeartbeat := startReservationHeartbeat(svc, reservation.ID)
 	defer stopHeartbeat()
 
@@ -229,6 +240,29 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
 	return svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
 		usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "success"))
+}
+
+func admitExecutorAuth(ctx context.Context, svc *service.Service, reservationID string, req pluginapi.ExecutorRequest) error {
+	auth := store.AuthIdentity{
+		AuthID:    strings.TrimSpace(req.AuthID),
+		Provider:  strings.TrimSpace(req.AuthProvider),
+		AuthIndex: firstNonEmpty(metadataString(req.Metadata, "selected_auth_index"), metadataString(req.Metadata, "auth_index")),
+	}
+	if auth.Empty() {
+		return nil
+	}
+	return svc.AdmitAuth(ctx, reservationID, auth)
+}
+
+func isAuthConcurrencyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, store.ErrConcurrentLimit) {
+		return true
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "maximum concurrent") || strings.Contains(msg, "limit_rejected")
 }
 
 func startReservationHeartbeat(svc *service.Service, reservationID string) func() {

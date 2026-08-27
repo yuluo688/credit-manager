@@ -54,7 +54,7 @@ func TestAllowedAuthQuotaRequest(t *testing.T) {
 
 func TestPluginRegistrationIncludesImageFormats(t *testing.T) {
 	reg := pluginRegistration(negotiateRPCSchema(0))
-	if !reg.Capabilities.RequestInterceptor || !reg.Capabilities.RequestLifecyclePlugin || !reg.Capabilities.ResponseInterceptor {
+	if !reg.Capabilities.RequestInterceptor || !reg.Capabilities.RequestLifecyclePlugin || !reg.Capabilities.ResponseInterceptor || !reg.Capabilities.Scheduler {
 		t.Fatalf("intercept capabilities missing: %+v", reg.Capabilities)
 	}
 	want := []string{"openai-image", "openai-video"}

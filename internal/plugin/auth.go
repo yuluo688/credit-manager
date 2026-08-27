@@ -93,6 +93,10 @@ func interceptRequestAfterAuth(raw []byte) ([]byte, error) {
 		return okEnvelope(quotaRejectResponse(http.StatusTooManyRequests, err.Error()))
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model, req.RequestedModel)
+	if err := svc.AdmitAuth(ctx, reservation.ID, authIdentityFromIntercept(req)); err != nil {
+		_ = svc.Release(ctx, reservation.ID, "auth_concurrency:"+err.Error())
+		return okEnvelope(quotaRejectResponse(http.StatusTooManyRequests, err.Error()))
+	}
 	imageHoldsMu.Lock()
 	imageHolds[requestID] = imageHold{reservation: reservation, plan: plan, stopHeart: startReservationHeartbeat(svc, reservation.ID)}
 	imageHoldsMu.Unlock()
@@ -169,6 +173,15 @@ func modelDisabledRejectResponse(message string) pluginapi.RequestInterceptRespo
 		Terminate:    true,
 		StatusCode:   http.StatusForbidden,
 		ResponseBody: body,
+	}
+}
+
+func authIdentityFromIntercept(req pluginapi.RequestInterceptRequest) store.AuthIdentity {
+	meta := req.Metadata
+	return store.AuthIdentity{
+		AuthID:    firstNonEmpty(metadataString(meta, "selected_auth_id"), metadataString(meta, "auth_id")),
+		AuthIndex: firstNonEmpty(metadataString(meta, "selected_auth_index"), metadataString(meta, "auth_index")),
+		Provider:  firstNonEmpty(metadataString(meta, "selected_auth_provider"), metadataString(meta, "auth_provider"), metadataString(meta, "provider")),
 	}
 }
 
