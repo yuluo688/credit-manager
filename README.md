@@ -487,6 +487,8 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | GET | `/v0/management/credit-manager/usage/summary` | 按 Key 和模型汇总 |
 | GET | `/v0/management/credit-manager/audit` | 审计事件 |
 | GET | `/v0/management/credit-manager/auth-quotas` | OAuth 认证额度窗口 |
+| POST | `/v0/management/credit-manager/auth-quotas/concurrency` | 设置认证最大并发 |
+| POST | `/v0/management/credit-manager/auth-quotas/concurrency/batch` | 批量设置认证最大并发 |
 
 浏览器页面不走宿主管理鉴权。控制台打开后仍要输入管理密钥；自助查询打开后仍要输入插件 Key。下面两个辅助地址给页面自己用，一般不必手调：
 
@@ -508,6 +510,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 - 采样走 CLIProxyAPI 宿主 HTTP callback 和全局出站策略。管理 callback 不会套用认证文件里的 `proxy_url`。
 - 单个认证最多每 15 分钟尝试刷新一次。失败会保留最后成功快照并标为 `stale`；从未成功采样则为 `unavailable`。
 - 百分比、请求数、credits、USD 等上游单位分别展示。只有能安全映射到账本周期和模型池的窗口才显示本地调用预测；网页、其它 CLI 或其它代理节点的使用会降低真实剩余次数。
+- 卡片可设置该认证的最大并发；`0` 或不填表示不限制。工具栏可按本页或当前筛选批量写入。有限制时插件会在宿主选凭证前跳过已满的账号，全部满员则拒绝请求。在途数按尚未结算或释放、且已归属到该认证的请求计算。
 - SQLite 快照与管理响应不包含 OAuth Token、上游账户 ID、认证文件路径、proxy URL 或原始上游响应。私有上游接口可能随时调整。
 
 ---

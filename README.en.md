@@ -217,6 +217,8 @@ Management endpoints require the **host management token**, not a plugin Key. Pa
 | GET | `/credit-manager/usage/summary` | Summarize usage by Key and model |
 | GET | `/credit-manager/audit` | Query audit events |
 | GET | `/credit-manager/auth-quotas` | Inspect OAuth quota windows |
+| POST | `/credit-manager/auth-quotas/concurrency` | Set per-auth max concurrent requests |
+| POST | `/credit-manager/auth-quotas/concurrency/batch` | Batch-set per-auth max concurrent requests |
 
 Browser pages do not use host management auth. The console still asks for the management token; lookup still asks for a plugin Key. The last two URLs are for the pages themselves:
 
@@ -317,6 +319,7 @@ The **Auth Quotas** tab and `GET /v0/management/credit-manager/auth-quotas` are 
 - Sampling uses the CLIProxyAPI host HTTP callback and its outbound transport. Credential-file `proxy_url` is not applied to this management callback.
 - Refreshes are limited to one attempt per credential every 15 minutes. A failed refresh keeps the last successful snapshot as `stale`; never-sampled credentials are `unavailable`.
 - Quota windows keep their native upstream units (percent, requests, credits, USD). Local request estimates appear only where the ledger can safely attribute the window. Usage from other clients, websites, or proxy nodes can reduce remaining calls.
+- Each card can set a max concurrent request cap for that credential; `0` or omitted means unlimited. The toolbar can apply the same cap to the current page or to the current filter. When a cap is set, the plugin scheduler skips busy accounts and rejects the request if every candidate is full. In-flight counts are unsettled or unreleased requests already attributed to that auth.
 - Snapshots and responses exclude OAuth tokens, upstream account identifiers, auth-file paths, proxy URLs, and raw upstream bodies.
 
 ## Configuration
