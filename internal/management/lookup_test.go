@@ -406,6 +406,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
 		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用到本页", "应用到筛选", "btnAuthQuotaBatchPage", "data-provider",
+		"auth-codex-fill", "M6.469 8.776L16.512 23", "function authQuotaProviderIcon",
 		"align-items:stretch", "flex-direction:column", "height:100%",
 	} {
 		if !strings.Contains(page, text) {
@@ -490,6 +491,23 @@ func TestConsoleKeyEnabledSwitch(t *testing.T) {
 	}
 }
 
+func TestConsoleUsesRepoLogo(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`viewBox="0 0 512 512"`,
+		`fill="#F7F5F0"`,
+		`M230 180c-63 0-102 32-102 76s39 76 102 76`,
+		`M276 332V180l60 94 60-94v152`,
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing repo logo.svg: %q", text)
+		}
+	}
+	if strings.Contains(page, `M4 17.5a8.5 8.5 0 1 1 16 0`) {
+		t.Fatal("console still uses the placeholder gauge icon")
+	}
+}
+
 func TestConsoleModelTokenLimits(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
@@ -524,11 +542,32 @@ func TestConsoleModelTokenLimits(t *testing.T) {
 	}
 }
 
+func TestConsoleDiscoversAIProviderModels(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"function collectProviderKeyModels",
+		"function addPrefixedModelID",
+		"openai-compatibility",
+		"gemini-api-key",
+		"models?scope=available",
+		"上游认证文件或 AI 提供商",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing AI provider model discovery: %q", text)
+		}
+	}
+	if strings.Contains(page, "Fallback only when management discovery returned nothing.") {
+		t.Fatal("console still skips /v1/models when auth-files return models")
+	}
+}
+
 func TestConsolePricingEnableDisable(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		`id="priceEnabled"`,
-		"data-toggle-price",
+		`id="priceEnabledWrap"`,
+		`id="priceEnabled" type="checkbox" role="switch"`,
+		"data-enable-price",
+		"function toggleModelPricingEnabled",
 		"credit-manager/pricing/enabled",
 		"function ruleEnabled",
 		"function setModelPricingEnabled",
@@ -540,9 +579,19 @@ func TestConsolePricingEnableDisable(t *testing.T) {
 		"function pricingModelPriceAmount",
 		"禁用后无法调用",
 		"也不会出现在客户端模型列表中",
+		"密钥管理",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console page is missing model enable/disable support: %q", text)
 		}
+	}
+	if strings.Contains(page, `<select id="priceEnabled">`) {
+		t.Fatal("price modal still uses a select for enable/disable")
+	}
+	if strings.Contains(page, "data-toggle-price") {
+		t.Fatal("pricing table still uses enable/disable buttons")
+	}
+	if strings.Contains(page, "Key 管理") {
+		t.Fatal("console still uses Key 管理 instead of 密钥管理")
 	}
 }
