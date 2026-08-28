@@ -134,7 +134,7 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 	if !strings.Contains(page, "recent_only=1") {
 		t.Fatal("lookup page does not use the lightweight recent-only pagination request")
 	}
-	for _, text := range []string{"function normalizeKey", "function validateKey", "Key 包含非英文字符"} {
+	for _, text := range []string{"function normalizeKey", "function validateKey", "密钥包含非英文字符"} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing mobile-safe Key validation: %q", text)
 		}
@@ -401,7 +401,7 @@ func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", "auth-quota-window-card", "auth-quota-reload",
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", 		"auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
 		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
@@ -593,5 +593,34 @@ func TestConsolePricingEnableDisable(t *testing.T) {
 	}
 	if strings.Contains(page, "Key 管理") {
 		t.Fatal("console still uses Key 管理 instead of 密钥管理")
+	}
+}
+
+func TestLookupStatsIconsAndEmptyLayouts(t *testing.T) {
+	page := string(lookupPage().Body)
+	for _, text := range []string{
+		"['activity',t('请求数')",
+		"['layers','Token'",
+		"['coin',t('费用')",
+		"['bolt',t('在途请求')",
+		"tr class=\"empty-row\"",
+		"share-body:has(.chart-empty)",
+		"chart(id,empty,null,moneyAxis?'coin':'chart')",
+		"return chart('modelShare',t('当前筛选条件下暂无模型使用数据'),null,'pie')",
+		`id="keyLabel"`,
+		`class="heading-icon" aria-hidden="true"`,
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("lookup page is missing stats/empty layout fix: %q", text)
+		}
+	}
+	if strings.Contains(page, "[t('请求数'),count(summary.request_count)+' '+t('请求'),'activity']") {
+		t.Fatal("lookup stats still put icon names in the value slot")
+	}
+	if strings.Contains(page, "return rows.length?'<table><thead>") {
+		t.Fatal("lookup recent table still drops headers when empty")
+	}
+	if strings.Contains(page, ".key-head h2::before") {
+		t.Fatal("lookup key title still uses the caret-like accent bar")
 	}
 }
