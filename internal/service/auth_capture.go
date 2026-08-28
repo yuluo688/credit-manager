@@ -221,7 +221,7 @@ func (s *Service) WaitForHostUsage(ctx context.Context, reservationID string, ti
 }
 
 func usageFound(usage money.TokenUsage) bool {
-	return usage.Input > 0 || usage.Output > 0 || usage.Reasoning > 0 || usage.Cached > 0 || usage.CacheRead > 0 || usage.CacheCreation > 0
+	return usage.HasTokens()
 }
 
 func uniqueModels(models ...string) []string {

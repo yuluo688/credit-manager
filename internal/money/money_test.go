@@ -152,6 +152,15 @@ func TestCostGrokHostUsageMatchesCapTracker(t *testing.T) {
 	}
 }
 
+func TestTokenUsageHasTokensIncludesReportedTotal(t *testing.T) {
+	if (TokenUsage{}).HasTokens() {
+		t.Fatal("empty usage should not count as tokens")
+	}
+	if !((TokenUsage{ReportedTotal: 12}).HasTokens()) {
+		t.Fatal("official total_tokens must count as recorded usage")
+	}
+}
+
 func TestReportedTotalMatchesCapTracker(t *testing.T) {
 	if got := ReportedTotal(TokenUsage{ReportedTotal: 506, Input: 215, Output: 291, Reasoning: 290, Cached: 128, CacheRead: 128}); got != 506 {
 		t.Fatalf("host total = %d, want 506", got)

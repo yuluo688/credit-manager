@@ -20,3 +20,22 @@ func TestDecodeHostUsageRecordAcceptsPascalCase(t *testing.T) {
 		t.Fatalf("record = %#v ok=%v", record, ok)
 	}
 }
+
+func TestDecodeHostUsageRecordAcceptsTotalTokensOnly(t *testing.T) {
+	raw := []byte(`{"provider":"openai-compatible-bigmodel","model":"glm-5.3-flash","detail":{"total_tokens":88}}`)
+	record, ok := decodeHostUsageRecord(raw)
+	if !ok || record.Detail.TotalTokens != 88 {
+		t.Fatalf("record = %#v ok=%v", record, ok)
+	}
+	if !hostUsageFound(usageFromHostRecord(record)) {
+		t.Fatal("official total_tokens must count as host usage")
+	}
+}
+
+func TestDecodeHostUsageRecordReadsTokenBreakdown(t *testing.T) {
+	raw := []byte(`{"model":"glm-5.3-flash","detail":{"token_breakdown":{"total_tokens":30,"input":{"total_tokens":10},"output":{"total_tokens":20,"reasoning_tokens":4}}}}`)
+	record, ok := decodeHostUsageRecord(raw)
+	if !ok || record.Detail.InputTokens != 10 || record.Detail.OutputTokens != 20 || record.Detail.ReasoningTokens != 4 || record.Detail.TotalTokens != 30 {
+		t.Fatalf("record = %#v ok=%v", record, ok)
+	}
+}

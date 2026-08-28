@@ -132,3 +132,16 @@ func TestWaitForHostUsageReceivesLateCallback(t *testing.T) {
 		t.Fatalf("wait = (%#v, %v)", usage, ok)
 	}
 }
+
+func TestObserveHostUsageMatchesReportedTotalOnly(t *testing.T) {
+	svc := &Service{authPending: map[string]*pendingAuthCapture{}}
+	svc.TrackAuthCapture("res-glm", "glm-5.3-flash")
+	_, ok := svc.ObserveHostUsage(time.Now(), store.AuthIdentity{}, money.TokenUsage{ReportedTotal: 64}, "glm-5.3-flash")
+	if !ok {
+		t.Fatal("expected official total_tokens to correlate usage")
+	}
+	got, captured := svc.CapturedHostUsage("res-glm")
+	if !captured || got.ReportedTotal != 64 {
+		t.Fatalf("captured = (%#v, %v)", got, captured)
+	}
+}

@@ -42,9 +42,9 @@ type TokenUsage struct {
 	Reasoning     int64 `json:"reasoning"`
 	Cached        int64 `json:"cached"`
 	CacheRead     int64 `json:"cache_read"`
-	CacheCreation  int64 `json:"cache_creation"`
-	Images         int64 `json:"images,omitempty"`
-	ReportedTotal  int64 `json:"reported_total,omitempty"`
+	CacheCreation int64 `json:"cache_creation"`
+	Images        int64 `json:"images,omitempty"`
+	ReportedTotal int64 `json:"reported_total,omitempty"`
 }
 
 // PricePerMTok is an integer micro-USD price for one million tokens.
@@ -68,6 +68,11 @@ type BillableTokens struct {
 	CacheRead     int64
 	CacheCreation int64
 	Mode          string
+}
+
+func (u TokenUsage) HasTokens() bool {
+	return u.Input > 0 || u.Output > 0 || u.Reasoning > 0 || u.Cached > 0 ||
+		u.CacheRead > 0 || u.CacheCreation > 0 || u.Images > 0 || u.ReportedTotal > 0
 }
 
 func (u TokenUsage) Validate() error {

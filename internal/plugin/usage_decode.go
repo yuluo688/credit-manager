@@ -38,10 +38,37 @@ func decodeHostUsageRecord(raw []byte) (pluginapi.UsageRecord, bool) {
 			TotalTokens:         firstJSONInt64(detail, "TotalTokens", "total_tokens"),
 		},
 	}
+	applyUsageTokenBreakdown(&record.Detail, firstJSONObject(detail, "TokenBreakdown", "token_breakdown"))
 	if !hostUsageRecordUseful(record) {
 		return pluginapi.UsageRecord{}, false
 	}
 	return record, true
+}
+
+func applyUsageTokenBreakdown(detail *pluginapi.UsageDetail, breakdown map[string]json.RawMessage) {
+	if detail == nil || len(breakdown) == 0 {
+		return
+	}
+	input := firstJSONObject(breakdown, "Input", "input")
+	output := firstJSONObject(breakdown, "Output", "output")
+	if detail.InputTokens == 0 {
+		detail.InputTokens = firstJSONInt64(input, "TotalTokens", "total_tokens")
+	}
+	if detail.OutputTokens == 0 {
+		detail.OutputTokens = firstJSONInt64(output, "TotalTokens", "total_tokens")
+	}
+	if detail.ReasoningTokens == 0 {
+		detail.ReasoningTokens = firstJSONInt64(output, "ReasoningTokens", "reasoning_tokens")
+	}
+	if detail.CacheReadTokens == 0 {
+		detail.CacheReadTokens = firstJSONInt64(input, "CacheReadTokens", "cache_read_tokens")
+	}
+	if detail.CacheCreationTokens == 0 {
+		detail.CacheCreationTokens = firstJSONInt64(input, "CacheWriteTokens", "cache_write_tokens")
+	}
+	if detail.TotalTokens == 0 {
+		detail.TotalTokens = firstJSONInt64(breakdown, "TotalTokens", "total_tokens")
+	}
 }
 
 func hostUsageRecordUseful(record pluginapi.UsageRecord) bool {
@@ -51,8 +78,7 @@ func hostUsageRecordUseful(record pluginapi.UsageRecord) bool {
 	if strings.TrimSpace(record.AuthID) != "" || strings.TrimSpace(record.AuthIndex) != "" {
 		return true
 	}
-	usage := usageFromHostRecord(record)
-	return usage.Input > 0 || usage.Output > 0 || usage.Reasoning > 0 || usage.Cached > 0 || usage.CacheRead > 0 || usage.CacheCreation > 0
+	return hostUsageFound(usageFromHostRecord(record))
 }
 
 func firstJSONObject(root map[string]json.RawMessage, keys ...string) map[string]json.RawMessage {

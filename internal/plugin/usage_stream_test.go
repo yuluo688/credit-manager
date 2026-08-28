@@ -18,15 +18,15 @@ func TestRequestBodyWithStreamUsage(t *testing.T) {
 		}
 	})
 
-	t.Run("preserves client usage option", func(t *testing.T) {
+	t.Run("forces include_usage for ledger settlement", func(t *testing.T) {
 		body := requestBodyWithStreamUsage([]byte(`{"stream_options":{"include_usage":false,"extra":1}}`), "openai", "openai")
 		var payload map[string]any
 		if err := json.Unmarshal(body, &payload); err != nil {
 			t.Fatal(err)
 		}
 		options := payload["stream_options"].(map[string]any)
-		if options["include_usage"] != false || options["extra"] != float64(1) {
-			t.Fatalf("stream_options = %#v, want client options unchanged", options)
+		if options["include_usage"] != true || options["extra"] != float64(1) {
+			t.Fatalf("stream_options = %#v, want include_usage=true with extra preserved", options)
 		}
 	})
 

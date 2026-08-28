@@ -142,7 +142,7 @@ func fromClaude(root map[string]any) Result {
 		r.Usage.CacheCreation = int64Field(usage, "cache_creation_tokens")
 	}
 	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
-	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.CacheRead > 0 || r.Usage.CacheCreation > 0
+	r.Found = usagePresent(r.Usage)
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
 }
@@ -161,7 +161,7 @@ func fromGemini(root map[string]any) Result {
 	r.Usage.Reasoning = int64Field(usage, "thoughtsTokenCount", "thoughts_token_count")
 	r.Usage.Cached = int64Field(usage, "cachedContentTokenCount", "cached_content_token_count")
 	r.Usage.ReportedTotal = int64Field(usage, "totalTokenCount", "total_token_count")
-	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.Reasoning > 0 || r.Usage.Cached > 0
+	r.Found = usagePresent(r.Usage)
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
 }
@@ -181,7 +181,7 @@ func fromResponses(root map[string]any) Result {
 		r.Usage.Reasoning = int64Field(details, "reasoning_tokens")
 	}
 	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
-	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.CacheRead > 0 || r.Usage.Reasoning > 0
+	r.Found = usagePresent(r.Usage)
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
 }
@@ -205,9 +205,13 @@ func mapUsage(usage map[string]any, source string) Result {
 		}
 	}
 	r.Usage.ReportedTotal = int64Field(usage, "total_tokens")
-	r.Found = r.Usage.Input > 0 || r.Usage.Output > 0 || r.Usage.Cached > 0 || r.Usage.Reasoning > 0
+	r.Found = usagePresent(r.Usage)
 	r.Partial = r.Found && (r.Usage.Input == 0 || r.Usage.Output == 0)
 	return r
+}
+
+func usagePresent(usage money.TokenUsage) bool {
+	return usage.HasTokens()
 }
 
 func int64Field(object map[string]any, keys ...string) int64 {

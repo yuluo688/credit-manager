@@ -63,7 +63,7 @@ func usageFromHostRecord(record pluginapi.UsageRecord) money.TokenUsage {
 }
 
 func hostUsageFound(usage money.TokenUsage) bool {
-	return usage.Input > 0 || usage.Output > 0 || usage.Reasoning > 0 || usage.Cached > 0 || usage.CacheRead > 0 || usage.CacheCreation > 0
+	return usage.HasTokens()
 }
 
 func authIdentityFromUsage(record pluginapi.UsageRecord) store.AuthIdentity {
@@ -159,8 +159,8 @@ func requestBody(req pluginapi.ExecutorRequest) []byte {
 }
 
 // OpenAI-compatible SSE streams omit the terminal usage chunk unless it is
-// explicitly requested. Preserve client options while enabling it for ledger
-// settlement, which also carries reasoning and cache token details.
+// explicitly requested. Force include_usage so AI-provider streams still
+// settle official tokens, while preserving other client stream_options.
 func requestBodyWithStreamUsage(body []byte, sourceFormat, outputFormat string) []byte {
 	format := strings.ToLower(firstNonEmpty(outputFormat, sourceFormat))
 	if strings.Contains(format, "claude") || strings.Contains(format, "gemini") {
@@ -174,9 +174,6 @@ func requestBodyWithStreamUsage(body []byte, sourceFormat, outputFormat string) 
 	if !ok {
 		options = make(map[string]any)
 		payload["stream_options"] = options
-	}
-	if _, exists := options["include_usage"]; exists {
-		return body
 	}
 	options["include_usage"] = true
 	updated, err := json.Marshal(payload)

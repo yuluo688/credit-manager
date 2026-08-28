@@ -192,7 +192,7 @@ func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Res
 }
 
 func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
-	if !usageFound(usage) && usage.Images <= 0 {
+	if !usageFound(usage) {
 		return nil
 	}
 	entry, err := s.store.GetUsage(ctx, ledgerID)
