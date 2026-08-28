@@ -15,24 +15,24 @@
     '跟随系统': { 'zh-TW':'跟隨系統', en:'System', ru:'Системная' }, '纯白': { 'zh-TW':'純白', en:'White', ru:'Белая' }, '羊毛纸': { 'zh-TW':'羊毛紙', en:'Parchment', ru:'Пергамент' }, '暗色': { 'zh-TW':'暗色', en:'Dark', ru:'Тёмная' },
     '额度仪表盘': { 'zh-TW':'額度儀表板', en:'Credit Dashboard', ru:'Панель лимитов' }, '连接设置': { 'zh-TW':'連線設定', en:'Connection settings', ru:'Настройки подключения' }, '刷新数据': { 'zh-TW':'重新整理資料', en:'Refresh data', ru:'Обновить данные' },
      '概览': { 'zh-TW':'概覽', en:'Overview', ru:'Обзор' }, '密钥管理': { 'zh-TW':'密鑰管理', en:'Keys', ru:'Ключи' }, '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '使用统计': { 'zh-TW':'使用統計', en:'Usage analytics', ru:'Статистика использования' },
-    '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、Key、账号、模型和来源聚合账本数据。': { 'zh-TW':'依時間、Key、帳號、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, account, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, аккаунту, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
+    '额度概览': { 'zh-TW':'額度概覽', en:'Credit overview', ru:'Обзор лимитов' }, '按时间、密钥、账号、模型和来源聚合账本数据。': { 'zh-TW':'依時間、密鑰、帳號、模型與來源彙總帳本資料。', en:'Aggregate ledger data by time, key, account, model, and source.', ru:'Агрегируйте данные журнала по времени, ключу, аккаунту, модели и источнику.' }, '账本运行中': { 'zh-TW':'帳本運行中', en:'Ledger online', ru:'Журнал работает' },
     '概览筛选': { 'zh-TW':'概覽篩選', en:'Overview filters', ru:'Фильтры обзора' }, '筛选仅影响概览指标和图表；「今日」按本地自然日。': { 'zh-TW':'篩選僅影響概覽指標和圖表；「今天」按本地自然日。', en:'Filters affect overview metrics and charts only; Today uses the local calendar day.', ru:'Фильтры влияют только на метрики и диаграммы; «Сегодня» — локальный день.' }, '今日 · 全部数据': { 'zh-TW':'今天 · 全部資料', en:'Today · all data', ru:'Сегодня · все данные' }, '最近 30 天 · 全部数据': { 'zh-TW':'最近 30 天 · 全部資料', en:'Last 30 days · all data', ru:'Последние 30 дней · все данные' },
     '时间范围': { 'zh-TW':'時間範圍', en:'Time range', ru:'Период' }, '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '时间范围（UTC）': { 'zh-TW':'時間範圍（UTC）', en:'Time range (UTC)', ru:'Период (UTC)' }, '至': { 'zh-TW':'至', en:'to', ru:'до' },
-    'Key': { 'zh-TW':'Key', en:'Key', ru:'Ключ' }, '全部 Key': { 'zh-TW':'全部 Key', en:'All keys', ru:'Все ключи' }, '账号': { 'zh-TW':'帳號', en:'Account', ru:'Аккаунт' }, '搜索账号名称或 ID': { 'zh-TW':'搜尋帳號名稱或 ID', en:'Search account name or ID', ru:'Поиск аккаунта или ID' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
+    '密钥': { 'zh-TW':'密鑰', en:'Key', ru:'Ключ' }, '全部密钥': { 'zh-TW':'全部密鑰', en:'All keys', ru:'Все ключи' }, '账号': { 'zh-TW':'帳號', en:'Account', ru:'Аккаунт' }, '搜索账号名称或 ID': { 'zh-TW':'搜尋帳號名稱或 ID', en:'Search account name or ID', ru:'Поиск аккаунта или ID' }, '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部已使用模型': { 'zh-TW':'全部已使用模型', en:'All used models', ru:'Все использованные модели' }, '来源': { 'zh-TW':'來源', en:'Source', ru:'Источник' }, '全部来源': { 'zh-TW':'全部來源', en:'All sources', ru:'Все источники' },
     '重置': { 'zh-TW':'重設', en:'Reset', ru:'Сбросить' }, '刷新概览': { 'zh-TW':'重新整理概覽', en:'Refresh overview', ru:'Обновить обзор' }, 'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' }, '费用趋势': { 'zh-TW':'費用趨勢', en:'Cost trend', ru:'Динамика расходов' },     '模型调用占比': { 'zh-TW':'模型呼叫占比', en:'Model usage share', ru:'Доля вызовов моделей' }, '模型效率排行': { 'zh-TW':'模型效率排行', en:'Model efficiency rank', ru:'Рейтинг эффективности' }, '模型效率指标': { 'zh-TW':'模型效率指標', en:'Efficiency metric', ru:'Метрика эффективности' }, '性价比': { 'zh-TW':'性價比', en:'Value', ru:'Выгода' }, '单次': { 'zh-TW':'單次', en:'Per call', ru:'За запрос' }, '吞吐': { 'zh-TW':'吞吐', en:'Throughput', ru:'Скорость' },     '按每美元产出 Token 排序，越高越省': { 'zh-TW':'依每美元產出 Token 排序，越高越省', en:'Ranked by tokens per dollar; higher is cheaper', ru:'По токенам на доллар; больше — выгоднее' }, '按每人民币产出 Token 排序，越高越省': { 'zh-TW':'依每人民幣產出 Token 排序，越高越省', en:'Ranked by tokens per yuan; higher is cheaper', ru:'По токенам на юань; больше — выгоднее' }, '平均每次请求费用，越低越省': { 'zh-TW':'平均每次請求費用，越低越省', en:'Average cost per request; lower is cheaper', ru:'Средняя цена запроса; меньше — выгоднее' }, '缓存读取占输入比例，越高越省': { 'zh-TW':'快取讀取佔輸入比例，越高越省', en:'Cache-read share of input; higher is cheaper', ru:'Доля чтения кэша во входе; больше — выгоднее' }, '平均生成速度，越高越快': { 'zh-TW':'平均生成速度，越高越快', en:'Average generation speed; higher is faster', ru:'Средняя скорость генерации; больше — быстрее' }, '当前筛选条件下暂无模型效率数据': { 'zh-TW':'目前篩選條件下暫無模型效率資料', en:'No model efficiency data for the current filters', ru:'Нет данных об эффективности моделей' }, '免费': { 'zh-TW':'免費', en:'Free', ru:'Бесплатно' }, '次': { 'zh-TW':'次', en:'calls', ru:'вызов.' }, '调用次数': { 'zh-TW':'呼叫次數', en:'Requests', ru:'Запросы' }, '占比': { 'zh-TW':'佔比', en:'Share', ru:'Доля' }, '费用': { 'zh-TW':'費用', en:'Cost', ru:'Стоимость' }, '入': { 'zh-TW':'入', en:'In', ru:'Вх.' }, '出': { 'zh-TW':'出', en:'Out', ru:'Исх.' }, '缓存': { 'zh-TW':'快取', en:'Cache', ru:'Кэш' }, '命中': { 'zh-TW':'命中', en:'Hit', ru:'Попад.' }, '未连接': { 'zh-TW':'未連線', en:'Disconnected', ru:'Нет связи' },
     '趋势时间维度': { 'zh-TW':'趨勢時間維度', en:'Trend interval', ru:'Интервал тренда' }, 'Token 趋势时间维度': { 'zh-TW':'Token 趨勢時間維度', en:'Token trend interval', ru:'Интервал токенов' }, '费用趋势时间维度': { 'zh-TW':'費用趨勢時間維度', en:'Cost trend interval', ru:'Интервал расходов' },     '时': { 'zh-TW':'時', en:'Hour', ru:'Час' }, '日': { 'zh-TW':'日', en:'Day', ru:'День' }, '周': { 'zh-TW':'週', en:'Week', ru:'Неделя' }, '月': { 'zh-TW':'月', en:'Month', ru:'Месяц' },
-    '按 Key 设置额度、启停状态和可用模型策略。': { 'zh-TW':'依 Key 設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加 Key': { 'zh-TW':'新增 Key', en:'Add key', ru:'Добавить ключ' }, '已有密钥': { 'zh-TW':'已有密钥', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
+    '按密钥设置额度、启停状态和可用模型策略。': { 'zh-TW':'依密鑰設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加密钥': { 'zh-TW':'新增密鑰', en:'Add key', ru:'Добавить ключ' }, '已有密钥': { 'zh-TW':'已有密鑰', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
     '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' }, '加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。': { 'zh-TW':'載入目前代理公開的模型後，可設定價格，或啟用/停用單一模型。停用後無法呼叫，也不會出現在客戶端模型列表中。', en:'After loading proxy models, set prices or enable/disable a model. Disabled models cannot be called and are omitted from the client model list.', ru:'После загрузки моделей задайте цены или включите/отключите модель. Отключённые модели нельзя вызвать, и они не попадают в клиентский список.' },     '启用': { 'zh-TW':'啟用', en:'Enable', ru:'Включить' }, '禁用': { 'zh-TW':'停用', en:'Disable', ru:'Отключить' }, '状态': { 'zh-TW':'狀態', en:'Status', ru:'Статус' }, '模型已启用': { 'zh-TW':'模型已啟用', en:'Model enabled', ru:'Модель включена' }, '模型已禁用': { 'zh-TW':'模型已停用', en:'Model disabled', ru:'Модель отключена' },
     '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' },     '按张计费': { 'zh-TW':'按張計費', en:'Billed per image', ru:'За картинку' },
-    '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按 Key 汇总': { 'zh-TW':'依 Key 彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
-    '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制 Key': { 'zh-TW':'複製 Key', en:'Copy key', ru:'Копировать ключ' }, '管理 Key': { 'zh-TW':'管理 Key', en:'Manage key', ru:'Управлять ключом' },
+    '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按密钥汇总': { 'zh-TW':'依密鑰彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
+    '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制密钥': { 'zh-TW':'複製密鑰', en:'Copy key', ru:'Копировать ключ' }, '管理密钥': { 'zh-TW':'管理密鑰', en:'Manage key', ru:'Управлять ключом' },
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
-    '创建 Key': { 'zh-TW':'建立 Key', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
+    '创建密钥': { 'zh-TW':'建立密鑰', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
     '生成方式': { 'zh-TW':'產生方式', en:'Key material', ru:'Способ создания' },
-    'Key 已启用': { 'zh-TW':'Key 已啟用', en:'Key enabled', ru:'Ключ включён' },
-    'Key 已禁用': { 'zh-TW':'Key 已停用', en:'Key disabled', ru:'Ключ отключён' },
+    '密钥已启用': { 'zh-TW':'密鑰已啟用', en:'Key enabled', ru:'Ключ включён' },
+    '密钥已禁用': { 'zh-TW':'密鑰已停用', en:'Key disabled', ru:'Ключ отключён' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
-    '按 Key 设置额度、启停状态、可用模型和 Token 数量限制。': { 'zh-TW':'依 Key 設定額度、啟停狀態、可用模型和 Token 數量限制。', en:'Set spend limits, status, model access, and token caps for each key.', ru:'Настройте лимиты, статус, модели и потолки токенов для каждого ключа.' },
+    '按密钥设置额度、启停状态、可用模型和 Token 数量限制。': { 'zh-TW':'依密鑰設定額度、啟停狀態、可用模型和 Token 數量限制。', en:'Set spend limits, status, model access, and token caps for each key.', ru:'Настройте лимиты, статус, модели и потолки токенов для каждого ключа.' },
     '模型 Token 限制': { 'zh-TW':'模型 Token 限制', en:'Model token limits', ru:'Лимиты токенов модели' }, '按模型设置日/周/月数量': { 'zh-TW':'依模型設定日/週/月數量', en:'Daily, weekly, and monthly caps per model', ru:'Дневные, недельные и месячные лимиты по модели' },
     '搜索或输入模型 ID / glob': { 'zh-TW':'搜尋或輸入模型 ID / glob', en:'Search or type a model ID / glob', ru:'Поиск или ввод ID модели / glob' },
     '使用': { 'zh-TW':'使用', en:'Use', ru:'Использовать' },
@@ -66,18 +66,18 @@
     '该额度周暂无窗口': { 'zh-TW':'該額度週暫無窗口', en:'No windows in this quota week', ru:'Нет окон на этой неделе' }, '暂无额度周': { 'zh-TW':'暫無額度週', en:'No quota weeks', ru:'Нет недель квоты' },
     '当前': { 'zh-TW':'目前', en:'Current', ru:'Текущая' }, '显示': { 'zh-TW':'顯示', en:'Showing', ru:'Показано' }, '共': { 'zh-TW':'共', en:'of', ru:'из' }, '第': { 'zh-TW':'第', en:'Page', ru:'Стр.' }, '页': { 'zh-TW':'頁', en:'', ru:'' },
     '重置时间': { 'zh-TW':'重設時間', en:'Resets', ru:'Сброс' }, '请选择': { 'zh-TW':'請選擇', en:'Select', ru:'Выберите' }, '全部可用': { 'zh-TW':'全部可用', en:'All available', ru:'Все доступны' },
-    '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, 'Key 限额': { 'zh-TW':'Key 限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
-    '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无 Key': { 'zh-TW':'暫無 Key', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
-    '还没有 Key。点击右上角“添加 Key”创建第一个额度凭证。': { 'zh-TW':'還沒有 Key。點擊右上角「新增 Key」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
+    '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
+    '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无密钥': { 'zh-TW':'暫無密鑰', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
+    '还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。': { 'zh-TW':'還沒有密鑰。點擊右上角「新增密鑰」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
     '连接信息仅保存于当前浏览器会话。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。', en:'Connection details stay in this browser session only.', ru:'Данные подключения хранятся только в этом сеансе браузера.' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
     '可用模型（多选；不选=全部）': { 'zh-TW':'可用模型（多選；不選=全部）', en:'Allowed models (multi-select; none = all)', ru:'Доступные модели (несколько; пусто = все)' },
     '正在加载当前代理可用模型…': { 'zh-TW':'正在載入目前代理可用模型…', en:'Loading current proxy models…', ru:'Загрузка моделей прокси…' },
-    '凭据设置': { 'zh-TW':'憑證設定', en:'Credential settings', ru:'Настройки ключа' }, '自定义 Key': { 'zh-TW':'自訂 Key', en:'Custom key', ru:'Свой ключ' },
+    '凭据设置': { 'zh-TW':'憑證設定', en:'Credential settings', ru:'Настройки ключа' }, '自定义密钥': { 'zh-TW':'自訂密鑰', en:'Custom key', ru:'Свой ключ' },
     '固定前缀无需输入；后缀格式为 <kid>-<secret>。': { 'zh-TW':'固定前綴無需輸入；後綴格式為 <kid>-<secret>。', en:'The prefix is fixed; suffix format is <kid>-<secret>.', ru:'Префикс фиксирован; суффикс: <kid>-<secret>.' },
-    '生成': { 'zh-TW':'產生', en:'Generate', ru:'Создать' }, '查看 Key': { 'zh-TW':'查看 Key', en:'View key', ru:'Показать ключ' }, '轮换 Key': { 'zh-TW':'輪換 Key', en:'Rotate key', ru:'Сменить ключ' },
+    '生成': { 'zh-TW':'產生', en:'Generate', ru:'Создать' }, '查看密钥': { 'zh-TW':'查看密鑰', en:'View key', ru:'Показать ключ' }, '轮换密钥': { 'zh-TW':'輪換密鑰', en:'Rotate key', ru:'Сменить ключ' },
     '设置额度和模型策略后创建凭据。': { 'zh-TW':'設定額度和模型策略後建立憑證。', en:'Set quotas and model policy, then create the credential.', ru:'Задайте лимиты и политику моделей, затем создайте ключ.' },
-    'Key 明文已加密保存，可在已有密钥 中再次查看。': { 'zh-TW':'Key 明文已加密儲存，可在已有密钥 中再次查看。', en:'The key plaintext is stored encrypted and can be viewed again under existing keys.', ru:'Открытый ключ хранится в шифре и его можно снова посмотреть в списке ключей.' },
+    '密钥明文已加密保存，可在已有密钥中再次查看。': { 'zh-TW':'密鑰明文已加密儲存，可在已有密鑰中再次查看。', en:'The key plaintext is stored encrypted and can be viewed again under existing keys.', ru:'Открытый ключ хранится в шифре и его можно снова посмотреть в списке ключей.' },
     '规则标识': { 'zh-TW':'規則標識', en:'Rule identity', ru:'Идентификатор правила' }, 'ID 与参考价格': { 'zh-TW':'ID 與參考價格', en:'ID and reference price', ru:'ID и справочная цена' },
     '规则 ID': { 'zh-TW':'規則 ID', en:'Rule ID', ru:'ID правила' }, '可用模型价格': { 'zh-TW':'可用模型價格', en:'Available model prices', ru:'Цены доступных моделей' },
     '加载后选择模型': { 'zh-TW':'載入後選擇模型', en:'Choose a model after loading', ru:'Выберите модель после загрузки' },
@@ -99,19 +99,19 @@
     '点击区块或模型名称下钻': { 'zh-TW':'點擊區塊或模型名稱下鑽', en:'Click a slice or model name to drill down', ru:'Нажмите сектор или имя модели' },
     '输入 / 输出 / 缓存读取 / 缓存命中率': { 'zh-TW':'輸入 / 輸出 / 快取讀取 / 快取命中率', en:'Input / output / cache read / cache hit rate', ru:'Вход / выход / чтение кэша / попадания' },
     '按日汇总实际费用': { 'zh-TW':'按日彙總實際費用', en:'Actual cost by day', ru:'Фактические расходы по дням' },
-    '删除 Key': { 'zh-TW':'刪除 Key', en:'Delete key', ru:'Удалить ключ' }, '确认删除': { 'zh-TW':'確認刪除', en:'Confirm delete', ru:'Подтвердить удаление' },
-    '删除后该 Key 将立即失效，历史使用统计、预占和审计记录会保留。': { 'zh-TW':'刪除後該 Key 將立即失效，歷史使用統計、預占和稽核記錄會保留。', en:'The key is revoked immediately. Usage stats, holds, and audit records are kept.', ru:'Ключ сразу отключается. Статистика, резервы и аудит сохраняются.' },
+    '删除密钥': { 'zh-TW':'刪除密鑰', en:'Delete key', ru:'Удалить ключ' }, '确认删除': { 'zh-TW':'確認刪除', en:'Confirm delete', ru:'Подтвердить удаление' },
+    '删除后该密钥将立即失效，历史使用统计、预占和审计记录会保留。': { 'zh-TW':'刪除後該密鑰將立即失效，歷史使用統計、預占和稽核記錄會保留。', en:'The key is revoked immediately. Usage stats, holds, and audit records are kept.', ru:'Ключ сразу отключается. Статистика, резервы и аудит сохраняются.' },
     '0 或留空 = 不限制': { 'zh-TW':'0 或留空 = 不限制', en:'0 or empty = unlimited', ru:'0 или пусто = без лимита' },
     'gpt-4o 或 * 或 .*': { 'zh-TW':'gpt-4o 或 * 或 .*', en:'gpt-4o or * or .*', ru:'gpt-4o или * или .*' },
     '人民币（按汇率换算）': { 'zh-TW':'人民幣（按匯率換算）', en:'Chinese yuan (converted)', ru:'Юань (по курсу)' },
     '例如 0.01': { 'zh-TW':'例如 0.01', en:'e.g. 0.01', ru:'напр. 0.01' }, '例如 http://127.0.0.1:8317': { 'zh-TW':'例如 http://127.0.0.1:8317', en:'e.g. http://127.0.0.1:8317', ru:'напр. http://127.0.0.1:8317' },
-    '关闭 Key 弹窗': { 'zh-TW':'關閉 Key 彈窗', en:'Close key dialog', ru:'Закрыть диалог ключа' }, '关闭价格规则弹窗': { 'zh-TW':'關閉價格規則彈窗', en:'Close pricing dialog', ru:'Закрыть диалог цен' },
+    '关闭密钥弹窗': { 'zh-TW':'關閉密鑰彈窗', en:'Close key dialog', ru:'Закрыть диалог ключа' }, '关闭价格规则弹窗': { 'zh-TW':'關閉價格規則彈窗', en:'Close pricing dialog', ru:'Закрыть диалог цен' },
     '关闭删除确认': { 'zh-TW':'關閉刪除確認', en:'Close delete confirmation', ru:'Закрыть подтверждение удаления' }, '关闭连接设置': { 'zh-TW':'關閉連線設定', en:'Close connection settings', ru:'Закрыть настройки подключения' },
     '开始时间': { 'zh-TW':'開始時間', en:'Start time', ru:'Начало' }, '结束时间': { 'zh-TW':'結束時間', en:'End time', ru:'Конец' },
-    '搜索 Key 标签或 ID': { 'zh-TW':'搜尋 Key 標籤或 ID', en:'Search key label or ID', ru:'Поиск метки или ID ключа' },
+    '搜索密钥标签或 ID': { 'zh-TW':'搜尋密鑰標籤或 ID', en:'Search key label or ID', ru:'Поиск метки или ID ключа' },
     '模型占比指标': { 'zh-TW':'模型佔比指標', en:'Model share metric', ru:'Метрика доли моделей' },
     '美元': { 'zh-TW':'美元', en:'US dollar', ru:'Доллар США' }, '费用显示货币': { 'zh-TW':'費用顯示貨幣', en:'Cost currency', ru:'Валюта стоимости' },
-    '输入 Key 后缀': { 'zh-TW':'輸入 Key 後綴', en:'Enter key suffix', ru:'Введите суффикс ключа' },
+    '输入密钥后缀': { 'zh-TW':'輸入密鑰後綴', en:'Enter key suffix', ru:'Введите суффикс ключа' },
     '尚未连接到 CPA': { 'zh-TW':'尚未連線到 CPA', en:'Not connected to CPA', ru:'Нет подключения к CPA' },
     '暂无可展示的数据': { 'zh-TW':'暫無可展示的資料', en:'Nothing to show yet', ru:'Пока нет данных' },
     '连接 CPA 管理接口后，即可查看 Token、费用和模型调用趋势。': { 'zh-TW':'連線 CPA 管理介面後，即可查看 Token、費用和模型呼叫趨勢。', en:'Connect the CPA management API to see token, cost, and model trends.', ru:'Подключите API управления CPA, чтобы видеть токены, расходы и модели.' },
@@ -119,7 +119,7 @@
     '当前筛选条件下暂无 Token 趋势': { 'zh-TW':'目前篩選條件下暫無 Token 趨勢', en:'No token trend for the current filters', ru:'Нет динамики токенов для текущих фильтров' },
     '当前筛选条件下暂无费用趋势': { 'zh-TW':'目前篩選條件下暫無費用趨勢', en:'No cost trend for the current filters', ru:'Нет динамики расходов для текущих фильтров' },
     '当前筛选条件下暂无模型使用数据': { 'zh-TW':'目前篩選條件下暫無模型使用資料', en:'No model usage for the current filters', ru:'Нет данных по моделям для текущих фильтров' },
-    '当前筛选条件下暂无按 Key 汇总': { 'zh-TW':'目前篩選條件下暫無依 Key 彙總', en:'No key totals for the current filters', ru:'Нет сводки по ключам' },
+    '当前筛选条件下暂无按密钥汇总': { 'zh-TW':'目前篩選條件下暫無依密鑰彙總', en:'No key totals for the current filters', ru:'Нет сводки по ключам' },
     '当前筛选条件下暂无按模型汇总': { 'zh-TW':'目前篩選條件下暫無依模型彙總', en:'No model totals for the current filters', ru:'Нет сводки по моделям' },
     '当前筛选条件下暂无使用明细': { 'zh-TW':'目前篩選條件下暫無使用明細', en:'No usage details for the current filters', ru:'Нет детализации использования' },
     '左右滑动查看完整汇总': { 'zh-TW':'左右滑動查看完整彙總', en:'Swipe sideways for the full summary', ru:'Проведите в сторону, чтобы увидеть сводку' },
@@ -130,7 +130,7 @@
     '思考': { 'zh-TW':'思考', en:'Reasoning', ru:'Рассуждение' }, '缓存创建': { 'zh-TW':'快取建立', en:'Cache create', ru:'Создание кэша' }, '总 Token 数': { 'zh-TW':'總 Token 數', en:'Total tokens', ru:'Всего токенов' }, '缓存命中': { 'zh-TW':'快取命中', en:'Cache hit', ru:'Попадание в кэш' },
     '是': { 'zh-TW':'是', en:'Yes', ru:'Да' }, '否': { 'zh-TW':'否', en:'No', ru:'Нет' }, '未设置': { 'zh-TW':'未設定', en:'Not set', ru:'Не задано' }, '待保存': { 'zh-TW':'待儲存', en:'Unsaved', ru:'Не сохранено' }, '无价格': { 'zh-TW':'無價格', en:'No price', ru:'Нет цены' },
     '设置价格': { 'zh-TW':'設定價格', en:'Set price', ru:'Задать цену' }, 'models.dev 价格': { 'zh-TW':'models.dev 價格', en:'models.dev price', ru:'Цена models.dev' }, '当前规则': { 'zh-TW':'目前規則', en:'Current rule', ru:'Текущее правило' },
-    '指定 Key': { 'zh-TW':'指定 Key', en:'Selected key', ru:'Выбранный ключ' }, 'Key 数 / 可用': { 'zh-TW':'Key 數 / 可用', en:'Keys / active', ru:'Ключи / активные' },
+    '指定密钥': { 'zh-TW':'指定密鑰', en:'Selected key', ru:'Выбранный ключ' }, '密钥数 / 可用': { 'zh-TW':'密鑰數 / 可用', en:'Keys / active', ru:'Ключи / активные' },
     '筛选请求': { 'zh-TW':'篩選請求', en:'Filtered requests', ru:'Запросы фильтра' }, '筛选 Token': { 'zh-TW':'篩選 Token', en:'Filtered tokens', ru:'Токены фильтра' }, '筛选费用': { 'zh-TW':'篩選費用', en:'Filtered cost', ru:'Расход фильтра' }, '模型数量': { 'zh-TW':'模型數量', en:'Models', ru:'Модели' },
     '认证并发已更新': { 'zh-TW':'認證併發已更新', en:'Auth concurrency updated', ru:'Параллельность авторизации обновлена' },
     '最大并发必须是大于等于 0 的整数': { 'zh-TW':'最大併發必須是大於等於 0 的整數', en:'Max concurrency must be an integer ≥ 0', ru:'Параллельность должна быть целым ≥ 0' },
@@ -139,10 +139,10 @@
     '输入 Token': { 'zh-TW':'輸入 Token', en:'Input tokens', ru:'Входные токены' },
     '输出 Token': { 'zh-TW':'輸出 Token', en:'Output tokens', ru:'Выходные токены' },
     '个模型': { 'zh-TW':'個模型', en:'models', ru:'модели' },
-    '个 Key': { 'zh-TW':'個 Key', en:'keys', ru:'ключа' },
+    '个密钥': { 'zh-TW':'個密鑰', en:'keys', ru:'ключа' },
     '可直接勾选多个模型；不选择任何模型表示全部模型可用。': { 'zh-TW':'可直接勾選多個模型；不選擇任何模型表示全部模型可用。', en:'Select multiple models. Selecting none means all models are allowed.', ru:'Можно выбрать несколько моделей; пустой выбор означает все.' },
     '未发现可用模型；请确认宿主管理密钥和上游认证文件。': { 'zh-TW':'未發現可用模型；請確認宿主管理金鑰和上游認證檔。', en:'No models found. Check the host management token and upstream auth files.', ru:'Модели не найдены. Проверьте токен управления и файлы авторизации.' }, '未发现可用模型；请确认宿主管理密钥、上游认证文件或 AI 提供商。': { 'zh-TW':'未發現可用模型；請確認宿主管理金鑰、上游認證檔或 AI 提供商。', en:'No models found. Check the host management token, auth files, or AI providers.', ru:'Модели не найдены. Проверьте токен, файлы авторизации или AI-провайдеров.' },
-    '未找到匹配的 Key': { 'zh-TW':'未找到匹配的 Key', en:'No matching keys', ru:'Ключи не найдены' },
+    '未找到匹配的密钥': { 'zh-TW':'未找到匹配的密鑰', en:'No matching keys', ru:'Ключи не найдены' },
     '未找到匹配的账号': { 'zh-TW':'未找到匹配的帳號', en:'No matching accounts', ru:'Аккаунты не найдены' },
     '未知账号': { 'zh-TW':'未知帳號', en:'Unknown account', ru:'Неизвестный аккаунт' },
     '按张计费，不能套用 Token 价': { 'zh-TW':'按張計費，不能套用 Token 價', en:'Billed per image; token prices do not apply', ru:'За картинку; цены токенов не применяются' },
@@ -150,11 +150,11 @@
     '选择已匹配价格的当前模型': { 'zh-TW':'選擇已匹配價格的目前模型', en:'Choose a current model with a matched price', ru:'Выберите текущую модель с ценой' },
     '尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。': { 'zh-TW':'尚未載入模型目錄。點擊「載入全部模型」後將同步目前代理模型和 models.dev 價格。', en:'Model catalog is not loaded. Click Load all models to sync proxy models and models.dev prices.', ru:'Каталог моделей не загружен. Нажмите «Загрузить все модели».' },
     '出图模型': { 'zh-TW':'出圖模型', en:'Image model', ru:'Модель изображений' },
-    '历史 Key': { 'zh-TW':'歷史 Key', en:'Historical key', ru:'Старый ключ' },
+    '历史密钥': { 'zh-TW':'歷史密鑰', en:'Historical key', ru:'Старый ключ' },
     '筛选请求数': { 'zh-TW':'篩選請求數', en:'Filtered request count', ru:'Число запросов фильтра' },
     '小时': { 'zh-TW':'小時', en:'hours', ru:'часов' }, '自然日': { 'zh-TW':'自然日', en:'days', ru:'дней' }, '自然月': { 'zh-TW':'自然月', en:'months', ru:'месяцев' },
     '请求次数': { 'zh-TW':'請求次數', en:'Requests', ru:'Запросы' },
-    '指定 Key': { 'zh-TW':'指定 Key', en:'Selected key', ru:'Выбранный ключ' },
+    '指定密钥': { 'zh-TW':'指定密鑰', en:'Selected key', ru:'Выбранный ключ' },
 
   };
   const textSources = new WeakMap();
@@ -1999,13 +1999,13 @@
     const filter = getOverviewFilterValues();
     const rangeText = $('overviewRangeFilter').selectedOptions[0].textContent;
     const labels = [rangeText];
-    if (filter.plugin_key_id) labels.push('指定 Key');
+    if (filter.plugin_key_id) labels.push('指定密钥');
     if (filter.auth_id || filter.auth_index) labels.push('账号');
     if (filter.model) labels.push('模型: ' + filter.model);
     if (filter.source) labels.push('来源: ' + filter.source);
     $('overviewFilterState').textContent = labels.join(' · ');
     $('overviewStats').innerHTML = [
-      ['key', 'Key 数 / 可用', keys.length + ' / ' + activeKeys],
+      ['key', '密钥数 / 可用', keys.length + ' / ' + activeKeys],
       ['activity', '筛选请求', totalReq.toLocaleString()],
       ['layers', '筛选 Token', formatTokens(totalTokens)],
       ['coin', '筛选费用', formatMoney(totalSpend)],
@@ -2031,11 +2031,11 @@
     renderKeySearchOptions('overview');
 
     if ($('keysCount')) {
-      $('keysCount').textContent = state.keys.length ? (state.keys.length + ' ' + t('个 Key')) : '暂无 Key';
+      $('keysCount').textContent = state.keys.length ? (state.keys.length + ' ' + t('个密钥')) : '暂无密钥';
     }
 
     if (!state.keys.length) {
-      $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>还没有 Key。点击右上角“添加 Key”创建第一个额度凭证。</span></div>';
+      $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。</span></div>';
       return;
     }
 
@@ -2080,7 +2080,7 @@
         '</div>';
     };
 
-    $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th>标签</th><th>可用模型</th><th>Key 限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+    $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th>标签</th><th>可用模型</th><th>密钥限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       state.keys.map(k => {
         const st = k.revoked_at
           ? '<span class="badge bad">已删除</span>'
@@ -2092,8 +2092,8 @@
           '<td><div class="spend-cell"><span class="primary">'+esc(money(k.settled_spend_micro_usd))+'</span><span class="secondary"><span>剩余</span> '+(Number(k.quota_micro_usd||0) <= 0 ? t('不限制') : esc(money(k.remaining_micro_usd)))+'</span></div></td>' +
           '<td>'+st+'</td>' +
           '<td><div class="row-actions">' +
-            '<button class="btn soft sm" data-copy="'+esc(k.id)+'">'+uiIcon('copy')+esc(t('复制 Key'))+'</button>' +
-            '<button class="btn primary sm" data-manage="'+esc(k.id)+'">'+uiIcon('gear')+esc(t('管理 Key'))+'</button>' +
+            '<button class="btn soft sm" data-copy="'+esc(k.id)+'">'+uiIcon('copy')+esc(t('复制密钥'))+'</button>' +
+            '<button class="btn primary sm" data-manage="'+esc(k.id)+'">'+uiIcon('gear')+esc(t('管理密钥'))+'</button>' +
             '<button class="btn danger sm" data-delete="'+esc(k.id)+'">'+uiIcon('trash')+esc(t('删除'))+'</button>' +
           '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
@@ -2115,7 +2115,7 @@
         if (item) item.enabled = result.enabled;
       });
       wrap && wrap.setAttribute('title', result.enabled ? t('启用') : t('禁用'));
-      flash(result.enabled ? t('Key 已启用') : t('Key 已禁用'), true);
+      flash(result.enabled ? t('密钥已启用') : t('密钥已禁用'), true);
     } catch (e) {
       control.checked = !enabled;
       flash(e.message, false);
@@ -2143,7 +2143,7 @@
       '<button class="key-search-option'+(key.revoked_at ? ' revoked' : '')+'" type="button" data-key-id="'+esc(key.id)+'" title="'+esc(key.id)+'">' +
         '<span class="key-search-label">'+esc(key.label || '(无标签)')+'</span>' +
       '</button>'
-    ).join('') : '<div class="key-search-empty">未找到匹配的 Key</div>';
+    ).join('') : '<div class="key-search-empty">未找到匹配的密钥</div>';
     panel.querySelectorAll('[data-key-id]').forEach(button => button.addEventListener('click', () => {
       const key = state.allKeys.find(item => item.id === button.dataset.keyId);
       if (!key) return;
@@ -2181,8 +2181,8 @@
       key.id.toLocaleLowerCase().includes(needle) || keyFilterLabel(key).toLocaleLowerCase().includes(needle)
     );
     if (matches.length === 1) return matches[0].id;
-    if (matches.length > 1) throw new Error('匹配多个 Key，请从搜索建议中选择完整项');
-    throw new Error('未找到匹配的 Key');
+    if (matches.length > 1) throw new Error('匹配多个密钥，请从搜索建议中选择完整项');
+    throw new Error('未找到匹配的密钥');
   }
 
   function authFilterValue(auth, key) {
@@ -2308,7 +2308,7 @@
     try {
       const result = await api('POST', 'credit-manager/keys/reveal', { id });
       await copyText(result.plaintext || '');
-      flash('已复制 Key', true);
+      flash('已复制密钥', true);
     } catch (e) { flash(e.message || '复制失败', false); }
   }
 
@@ -2318,8 +2318,8 @@
       const key = state.keys.find(item => item.id === id);
       $('keyPlaintext').textContent = result.plaintext || '';
       $('keyPlainResult').classList.remove('hidden');
-      $('keyModalHint').textContent = '正在查看「' + (key && key.label || 'Key') + '」的明文凭据；可复制后继续管理。';
-      flash('已读取加密保存的 Key 明文', true);
+      $('keyModalHint').textContent = '正在查看「' + (key && key.label || '密钥') + '」的明文凭据；可复制后继续管理。';
+      flash('已读取加密保存的密钥明文', true);
     } catch (e) { flash(e.message, false); }
   }
 
@@ -2581,11 +2581,11 @@
     const key = id ? state.keys.find(x => x.id === id) : null;
     const isManagedKey = mode === 'manage';
     const isRotation = mode === 'rotate';
-    const titles = { create: '添加 Key', manage: '管理 Key', rotate: '轮换 Key' };
+    const titles = { create: '添加密钥', manage: '管理密钥', rotate: '轮换密钥' };
     const hints = {
       create: '设置额度和模型策略后创建凭据。',
-      manage: '可编辑 Key 策略，按需查看明文或轮换凭据。',
-      rotate: '创建替代凭据并立即禁用旧 Key；历史使用记录会保留在旧 Key 上。',
+      manage: '可编辑密钥策略，按需查看明文或轮换凭据。',
+      rotate: '创建替代凭据并立即禁用旧密钥；历史使用记录会保留在旧密钥上。',
     };
     $('keyModalMode').value = mode;
     $('keyModalId').value = key ? key.id : '';
@@ -2621,7 +2621,7 @@
     $('btnRotateManagedKey').classList.toggle('hidden', Boolean(key && key.revoked_at));
     $('keyMaterial').value = '';
     $('keyPlainResult').classList.add('hidden');
-    $('btnSubmitKeyModal').textContent = mode === 'create' ? '创建 Key' : (mode === 'manage' ? '保存策略' : '确认轮换');
+    $('btnSubmitKeyModal').textContent = mode === 'create' ? '创建密钥' : (mode === 'manage' ? '保存策略' : '确认轮换');
     refreshCustomControls();
     const modal = $('keyModal');
     modal.classList.add('open');
@@ -2724,18 +2724,18 @@
     await reload();
     if (mode === 'manage') {
       closeKeyModal();
-      flash('Key 策略已保存', true);
+      flash('密钥策略已保存', true);
       return;
     }
     if (mode === 'create' && result.plaintext) {
       try {
         await copyText(result.plaintext);
         closeKeyModal();
-        flash('Key 已创建并复制到剪贴板', true);
+        flash('密钥已创建并复制到剪贴板', true);
       } catch (_) {
         $('keyPlaintext').textContent = result.plaintext;
         $('keyPlainResult').classList.remove('hidden');
-        flash('Key 已创建；自动复制失败，请手动复制', false);
+        flash('密钥已创建；自动复制失败，请手动复制', false);
       }
       return;
     }
@@ -2743,7 +2743,7 @@
       $('keyPlaintext').textContent = result.plaintext;
       $('keyPlainResult').classList.remove('hidden');
     }
-    flash(mode === 'rotate' ? 'Key 已轮换，旧 Key 已禁用；请复制新 Key' : 'Key 已创建；请复制明文', true);
+    flash(mode === 'rotate' ? '密钥已轮换，旧密钥已禁用；请复制新密钥' : '密钥已创建；请复制明文', true);
   }
 
   function priceNumber(value) {
@@ -3252,7 +3252,7 @@
 
   function normKeySum(x) {
     return {
-      label: x.Label || x.label || '历史 Key',
+      label: x.Label || x.label || '历史密钥',
       req: x.RequestCount || x.request_count || 0,
       cost: x.CostMicroUSD || x.cost_micro_usd || 0,
       inn: x.InputTokens || x.input_tokens || 0,
@@ -3299,14 +3299,14 @@
       ['trend', '输入 Token', formatTokens(totalInput)],
       ['layers', '输出 Token', formatTokens(totalOutput)],
     ].map(([icon, k, v]) => '<div class="stat"><div class="k"><span class="stat-icon" aria-hidden="true">'+uiIcon(icon)+'</span>'+esc(k)+'</div><div class="v">'+esc(v)+'</div></div>').join('');
-    $('usageByKeyCount').textContent = byKey.length + ' ' + t('个 Key');
+    $('usageByKeyCount').textContent = byKey.length + ' ' + t('个密钥');
     $('usageByModelCount').textContent = byModel.length + ' ' + t('个模型');
     $('usageRecentCount').textContent = (Number(pageData.total || 0)).toLocaleString() + ' ' + t('条明细');
     const filterLabels = [];
     const filter = getUsageFilterValues();
     const rangeText = $('usageRangeFilter').selectedOptions[0].textContent;
     if (rangeText) filterLabels.push(rangeText);
-    if (filter.plugin_key_id) filterLabels.push('Key');
+    if (filter.plugin_key_id) filterLabels.push('密钥');
     if (filter.auth_id || filter.auth_index) filterLabels.push('账号');
     if (filter.model) filterLabels.push('模型: ' + filter.model);
     if (filter.source) filterLabels.push('来源: ' + filter.source);
@@ -3315,9 +3315,9 @@
     $('usageFilterState').textContent = filterLabels.length ? filterLabels.join(' · ') : '未设置筛选';
 
     const emptyState = message => '<div class="empty-state"><span>'+esc(message)+'</span></div>';
-    $('usageByKey').innerHTML = byKey.length ? '<div class="table-scroll"><table><thead><tr><th>Key</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
+    $('usageByKey').innerHTML = byKey.length ? '<div class="table-scroll"><table><thead><tr><th>密钥</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
       byKey.map(x => '<tr><td><div><strong>'+esc(x.label||'(无标签)')+'</strong></div></td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
-      '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整汇总</p>' : emptyState('当前筛选条件下暂无按 Key 汇总');
+      '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整汇总</p>' : emptyState('当前筛选条件下暂无按密钥汇总');
     $('usageByModel').innerHTML = byModel.length ? '<div class="table-scroll"><table><thead><tr><th>模型</th><th>请求数</th><th>费用 '+esc(currencyCode())+'</th><th>in/out tokens</th></tr></thead><tbody>' +
       byModel.map(x => '<tr><td class="mono">'+esc(x.model)+'</td><td>'+esc(x.req)+'</td><td title="'+esc(moneyTitle(x.cost))+'">'+esc(formatMoney(x.cost))+'</td><td title="'+esc(tokenTitle(x.inn)+' / '+tokenTitle(x.out))+'">'+esc(formatTokens(x.inn))+' / '+esc(formatTokens(x.out))+'</td></tr>').join('') +
       '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整汇总</p>' : emptyState('当前筛选条件下暂无按模型汇总');
@@ -3522,6 +3522,15 @@
     if (authQuotaIsFiveHour(window)) return '5 小时';
     if (authQuotaIsWeekly(window)) return '周额度';
     return '';
+  }
+
+  function authQuotaPeriodBadge(window, label) {
+    const period = authQuotaPeriodLabel(window);
+    if (!period) return '';
+    const text = String(label || '');
+    if (period === '周额度' && /周|週|week/i.test(text)) return '';
+    if (period === '5 小时' && /小时|hour|5h|五小时|five/i.test(text)) return '';
+    return period;
   }
 
   function authQuotaDisplayWindows(windows, selected) {
@@ -3766,14 +3775,12 @@
       const cards = visible.length ? visible.map(window => {
         const ratio = authQuotaRatio(window);
         const label = authQuotaText(authQuotaValue(window, 'label'));
-        const period = authQuotaPeriodLabel(window);
-        const used = authQuotaAmount(window, 'used');
-        const remaining = authQuotaAmount(window, 'remaining');
+        const period = authQuotaPeriodBadge(window, label);
         const progress = ratio.known ? ratio.percent+'%' : '—';
         const progressClass = ratio.known ? ratio.tone : 'unknown';
         return '<section class="auth-quota-window-card">'+
-          '<div class="auth-quota-progress '+progressClass+'" style="--quota-progress:'+ratio.percent+'%" role="img" aria-label="'+esc(label)+' 已用 '+progress+'"><span>'+esc(progress)+'</span></div>'+
-          '<div class="auth-quota-window-content"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+(period ? '<span class="auth-quota-period">'+esc(period)+'</span>' : '')+'</div><div class="auth-quota-window-stats"><span>已用<strong>'+esc(used)+'</strong></span><span>剩余<strong>'+esc(remaining)+'</strong></span></div><div class="auth-quota-window-reset" title="'+esc(t('重置时间')+' '+authQuotaTime(authQuotaValue(window, 'resets_at')))+'">'+authQuotaIcon('clock')+'<span>重置</span> '+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</div></div>'+
+          '<div class="auth-quota-window-head"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+(period ? '<span class="auth-quota-period">'+esc(period)+'</span>' : '')+'</div><span class="auth-quota-window-reset" title="'+esc(t('重置时间')+' '+authQuotaTime(authQuotaValue(window, 'resets_at')))+'">'+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</span><span class="auth-quota-window-pct">'+esc(progress)+'</span></div>'+
+          '<div class="auth-quota-bar '+progressClass+'" style="--quota-progress:'+ratio.percent+'%" role="progressbar" aria-valuemin="0" aria-valuemax="100"'+(ratio.known ? ' aria-valuenow="'+ratio.percent+'"' : '')+' aria-label="'+esc(label)+' '+progress+'"></div>'+
           '</section>';
       }).join('') : '<div class="empty-state">该额度周暂无窗口</div>';
       const weeklyForCost = (Array.isArray(windows) ? windows : []).filter(window => authQuotaIsWeekly(window) && authQuotaWeekKey(window) === selected);
@@ -4010,7 +4017,7 @@
     try {
       await api('POST', 'credit-manager/keys/delete', { id });
       closeDeleteKeyModal();
-      flash('Key 已删除，历史使用统计已保留', true);
+      flash('密钥已删除，历史使用统计已保留', true);
       await reload();
     } catch (e) { flash(e.message, false); }
   }
@@ -4280,7 +4287,7 @@
   $('btnCopyKeyPlaintext').addEventListener('click', async () => {
     try {
       await copyText($('keyPlaintext').textContent || '');
-      flash('已复制 Key', true);
+      flash('已复制密钥', true);
     } catch (_) { flash('复制失败，请手动复制', false); }
   });
   $('btnSubmitKeyModal').addEventListener('click', async () => {

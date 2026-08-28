@@ -79,8 +79,8 @@
     <div class="modal-backdrop" id="keyModal" aria-hidden="true">
       <section class="connection-modal key-modal" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>添加 Key</h2><p class="hint" id="keyModalHint">设置额度和模型策略后创建凭据。</p></div>
-          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭 Key 弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>添加密钥</h2><p class="hint" id="keyModalHint">设置额度和模型策略后创建凭据。</p></div>
+          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭密钥弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="keyModalMode" value="create"/>
@@ -150,10 +150,10 @@
             <div class="modal-section" id="keyModalCredentialSection">
               <p class="modal-section-title">凭据设置<span>生成方式</span></p>
               <div class="form-grid-2">
-                <label id="keyMaterialWrap" class="field-span-2">自定义 Key
+                <label id="keyMaterialWrap" class="field-span-2">自定义密钥
                   <span class="key-material-field">
                     <span class="key-material-prefix">tk-</span>
-                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入 Key 后缀" spellcheck="false"/>
+                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入密钥后缀" spellcheck="false"/>
                     <button class="btn soft" id="btnGenerateKeyMaterial" type="button">生成</button>
                   </span>
                   <span class="hint">固定前缀无需输入；后缀格式为 &lt;kid&gt;-&lt;secret&gt;。</span>
@@ -161,17 +161,17 @@
               </div>
             </div>
             <div id="keyModalManageActions" class="actions key-modal-manage-actions hidden">
-              <button class="btn soft" id="btnRevealManagedKey">查看 Key</button>
-              <button class="btn ghost" id="btnRotateManagedKey">轮换 Key</button>
+              <button class="btn soft" id="btnRevealManagedKey">查看密钥</button>
+              <button class="btn ghost" id="btnRotateManagedKey">轮换密钥</button>
             </div>
             <div id="keyPlainResult" class="hidden">
-              <p class="hint">Key 明文已加密保存，可在已有密钥 中再次查看。</p>
+              <p class="hint">密钥明文已加密保存，可在已有密钥中再次查看。</p>
               <pre class="plain" id="keyPlaintext"></pre>
-              <div class="actions" style="margin-top:10px"><button class="btn ghost" id="btnCopyKeyPlaintext">复制 Key</button></div>
+              <div class="actions" style="margin-top:10px"><button class="btn ghost" id="btnCopyKeyPlaintext">复制密钥</button></div>
             </div>
             <div class="modal-actions">
               <button class="btn ghost" id="btnCancelKeyModal">取消</button>
-              <button class="btn primary" id="btnSubmitKeyModal">创建 Key</button>
+              <button class="btn primary" id="btnSubmitKeyModal">创建密钥</button>
             </div>
           </div>
         </div>
@@ -281,7 +281,7 @@
 
   <section id="tab-overview" class="tabpane">
     <div class="page-intro">
-      <div><h2>额度概览</h2><p>按时间、Key、账号、模型和来源聚合账本数据。</p></div>
+      <div><h2>额度概览</h2><p>按时间、密钥、账号、模型和来源聚合账本数据。</p></div>
       <span class="badge ok">账本运行中</span>
     </div>
     <div class="card filter-card overview-filter-card">
@@ -310,9 +310,9 @@
             <input id="overviewToFilter" type="datetime-local" aria-label="结束时间" disabled/>
           </span>
         </label>
-        <label>Key
+        <label>密钥
           <span class="key-search-control" id="overviewKeySearch">
-            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索密钥标签或 ID"/>
             <span class="custom-control-panel key-search-panel" id="overviewKeyOptions" hidden></span>
           </span>
         </label>
@@ -406,10 +406,10 @@
 
   <section id="tab-keys" class="tabpane hidden">
     <div class="page-intro">
-      <div><h2>密钥管理</h2><p>按 Key 设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
+      <div><h2>密钥管理</h2><p>按密钥设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
       <div class="actions">
         <span class="badge ok">额度隔离</span>
-        <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加 Key</button>
+        <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
       </div>
     </div>
     <div class="card keys-card">
@@ -462,9 +462,9 @@
             <input id="usageToFilter" type="datetime-local" aria-label="结束时间" disabled/>
           </span>
         </label>
-        <label>Key
+        <label>密钥
           <span class="key-search-control" id="usageKeySearch">
-            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索 Key 标签或 ID"/>
+            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索密钥标签或 ID"/>
             <span class="custom-control-panel key-search-panel" id="usageKeyOptions" hidden></span>
           </span>
         </label>
@@ -508,7 +508,7 @@
     <div class="grid stats" id="usageStats"></div>
     <div class="usage-grid">
     <div class="card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>按 Key 汇总</h2><span class="muted" id="usageByKeyCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>按密钥汇总</h2><span class="muted" id="usageByKeyCount"></span></div>
       <div id="usageByKey"></div>
     </div>
     <div class="card">
@@ -555,7 +555,7 @@
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
     <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg></span>删除 Key</h2><p class="hint">删除后该 Key 将立即失效，历史使用统计、预占和审计记录会保留。</p></div>
+        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg></span>删除密钥</h2><p class="hint">删除后该密钥将立即失效，历史使用统计、预占和审计记录会保留。</p></div>
         <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body">
