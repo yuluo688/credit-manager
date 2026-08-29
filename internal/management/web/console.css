@@ -201,7 +201,7 @@ input:focus, select:focus, textarea:focus { border-color:#76d7b8; background:#ff
 .custom-option.multi.selected::before { border-color:var(--accent); background:var(--accent) center / 11px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='m2.3 6.2 2.25 2.2L9.7 3.4' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .custom-option.multi.selected::after { display:none; }
 .key-search-control { position:relative; display:block; width:100%; }
-.key-search-control input { padding-right:34px; }
+.key-search-control input { padding-right:34px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .key-search-control::after { content:""; position:absolute; top:50%; right:11px; width:16px; height:16px; margin-top:-8px; pointer-events:none; background:center / 16px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='7' cy='7' r='4.25' stroke='%236d786f' stroke-width='1.55'/%3E%3Cpath d='m10.2 10.2 3 3' stroke='%236d786f' stroke-width='1.55' stroke-linecap='round'/%3E%3C/svg%3E"); }
 .key-search-control.open input { border-color:#76d7b8; background:#fff; box-shadow:0 0 0 3px rgba(30,183,135,.12); }
 .key-search-panel { width:100%; min-width:100%; max-width:none; max-height:270px; overflow:auto; padding:6px; }
@@ -374,7 +374,7 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
 .usage-table th, .usage-table td { white-space:nowrap; padding:11px 10px; }
 .usage-table th { font-size:.78rem; }
 .usage-table td.model { max-width:260px; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
-.usage-table td.usage-key { max-width:180px; white-space:normal; }
+.usage-table td.usage-key { max-width:220px; white-space:normal; }
 .usage-table .usage-key-label { display:grid; gap:2px; min-width:0; }
 .usage-table .usage-key-label strong { font-size:.84rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .usage-table .usage-key-label .mono { color:var(--muted); font-size:.72rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1288,7 +1288,8 @@ html[data-palette="dark"] .pricing-actions .btn.danger:hover { background:#42252
 .auth-quota-identity { min-width:0; display:grid; gap:2px; }
 .auth-quota-identity-row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
 .auth-quota-identity-main { display:flex; align-items:baseline; gap:8px; min-width:0; }
-.auth-quota-provider { margin:0; color:var(--auth-rail, var(--accent)); font-size:.68rem; font-weight:760; letter-spacing:.1em; line-height:1.2; text-transform:uppercase; }
+.auth-quota-provider { margin:0; min-width:0; flex:1 1 auto; color:var(--auth-rail, var(--accent)); font-size:.68rem; font-weight:760; letter-spacing:.1em; line-height:1.2; text-transform:uppercase; }
+.auth-quota-provider.is-custom { letter-spacing:.02em; text-transform:none; }
 .auth-quota-plan { flex:0 0 auto; color:var(--table-muted); font-size:.66rem; font-weight:650; letter-spacing:.02em; }
 .auth-quota-title { margin:0; overflow:hidden; color:var(--table-text); font-size:.9rem; font-weight:720; letter-spacing:-.02em; text-overflow:ellipsis; white-space:nowrap; }
 .auth-quota-sync { margin:0; color:var(--table-muted); font-size:.7rem; }

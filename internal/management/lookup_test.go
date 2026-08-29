@@ -376,7 +376,7 @@ func TestConsoleMobileFlashIsReadable(t *testing.T) {
 }
 
 func TestConsoleClosesConnectionAfterSuccessfulLoad(t *testing.T) {
-	page := string(consolePage().Body)
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
 	successPath := "await reloadWithModelCatalog();\n      closeConnectionModal();"
 	if !strings.Contains(page, successPath) {
 		t.Fatal("connection dialog is not closed after a successful load")
@@ -428,7 +428,7 @@ func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", 		"auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", "auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
 		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
@@ -463,6 +463,54 @@ func TestAuthQuotaRefreshRoute(t *testing.T) {
 	}
 	if !found {
 		t.Fatal("auth quota refresh route is not registered")
+	}
+}
+
+func TestConsoleUsageRecentIncludesExecutor(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{"<th>执行器</th>", "u.executor_type || '—'", "'执行器': {"} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("recent usage is missing executor column content: %q", text)
+		}
+	}
+}
+
+func TestConsoleAuthDisplayShortensCompatibleProviders(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"function formatProviderDisplay",
+		"openai-compatible-",
+		"function formatAuthDisplay",
+		"formatAuthDisplay(provider, account)",
+		"authQuotaProviderName(provider)",
+		"authQuotaProviderIsBrand",
+		" is-custom",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console auth display is missing %q", text)
+		}
+	}
+	if strings.Contains(page, "const display = [provider, account].filter(Boolean).join(' · ') || '未知账号';") {
+		t.Fatal("usage auth cell still concatenates raw provider and account")
+	}
+	if strings.Contains(page, "<p class=\"auth-quota-provider\">'+esc(provider || t('未知提供商'))+'</p>") {
+		t.Fatal("auth quota cards still show the raw provider id")
+	}
+}
+
+func TestConsoleAuthQuotaRefreshReconcilesCurrentPage(t *testing.T) {
+	page := string(consolePage().Body)
+	start := strings.Index(page, "async function refreshAuthQuota")
+	if start < 0 {
+		t.Fatal("auth quota card refresh function is missing")
+	}
+	refresh := page[start:]
+	end := strings.Index(refresh, "function renderAuthQuotaPagination")
+	if end < 0 || !strings.Contains(refresh[:end], "await loadAuthQuotas();") {
+		t.Fatal("auth quota card refresh does not reconcile the current page")
+	}
+	if !strings.Contains(page, "{ silent: true, reconcile: false }") {
+		t.Fatal("bulk auth quota refresh does not defer page reconciliation")
 	}
 }
 

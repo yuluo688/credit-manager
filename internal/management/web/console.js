@@ -24,7 +24,7 @@
     '按密钥设置额度、启停状态和可用模型策略。': { 'zh-TW':'依密鑰設定額度、啟停狀態和可用模型策略。', en:'Set limits, status, and model access for each key.', ru:'Настройте лимиты, статус и доступ к моделям для каждого ключа.' }, '额度隔离': { 'zh-TW':'額度隔離', en:'Isolated limits', ru:'Изолированные лимиты' }, '添加密钥': { 'zh-TW':'新增密鑰', en:'Add key', ru:'Добавить ключ' }, '已有密钥': { 'zh-TW':'已有密鑰', en:'Existing keys', ru:'Существующие ключи' }, '额度与状态一览': { 'zh-TW':'額度與狀態一覽', en:'Limits and status', ru:'Лимиты и статус' },
     '模型与价格': { 'zh-TW':'模型與價格', en:'Models & pricing', ru:'Модели и цены' }, '文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。': { 'zh-TW':'文字模型按百萬 Token 計價；純出圖模型按張計費，不能套用 Token 價。', en:'Text models bill per million tokens; image models bill per image.', ru:'Текстовые модели тарифицируются за миллион токенов, генерация изображений — за картинку.' }, '定价规则': { 'zh-TW':'定價規則', en:'Pricing rules', ru:'Правила цен' }, '当前代理模型': { 'zh-TW':'目前代理模型', en:'Current proxy models', ru:'Текущие модели прокси' }, '加载全部模型': { 'zh-TW':'載入全部模型', en:'Load all models', ru:'Загрузить все модели' }, '加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。': { 'zh-TW':'載入目前代理公開的模型後，可設定價格，或啟用/停用單一模型。停用後無法呼叫，也不會出現在客戶端模型列表中。', en:'After loading proxy models, set prices or enable/disable a model. Disabled models cannot be called and are omitted from the client model list.', ru:'После загрузки моделей задайте цены или включите/отключите модель. Отключённые модели нельзя вызвать, и они не попадают в клиентский список.' },     '启用': { 'zh-TW':'啟用', en:'Enable', ru:'Включить' }, '禁用': { 'zh-TW':'停用', en:'Disable', ru:'Отключить' }, '状态': { 'zh-TW':'狀態', en:'Status', ru:'Статус' }, '模型已启用': { 'zh-TW':'模型已啟用', en:'Model enabled', ru:'Модель включена' }, '模型已禁用': { 'zh-TW':'模型已停用', en:'Model disabled', ru:'Модель отключена' },
     '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' },     '按张计费': { 'zh-TW':'按張計費', en:'Billed per image', ru:'За картинку' },
-    '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按密钥汇总': { 'zh-TW':'依密鑰彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
+    '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按密钥汇总': { 'zh-TW':'依密鑰彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' }, '执行器': { 'zh-TW':'執行器', en:'Executor', ru:'Исполнитель' },
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制密钥': { 'zh-TW':'複製密鑰', en:'Copy key', ru:'Копировать ключ' }, '管理密钥': { 'zh-TW':'管理密鑰', en:'Manage key', ru:'Управлять ключом' },
     'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建密钥': { 'zh-TW':'建立密鑰', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
@@ -2192,13 +2192,57 @@
     return '';
   }
 
+  function formatProviderDisplay(provider) {
+    const value = String(provider || '').trim();
+    if (!value) return '';
+    const key = value.toLowerCase();
+    if (key === 'xai' || key === 'grok') return 'xAI';
+    if (key === 'codex' || key === 'openai') return 'Codex';
+    if (key === 'claude' || key === 'anthropic') return 'Claude';
+    if (key === 'antigravity' || key === 'google' || key === 'gemini') return 'Antigravity';
+    if (key === 'kimi' || key === 'moonshot') return 'Kimi';
+    const prefixes = [
+      'openai-compatible-', 'openai-compatibility-', 'openai-compatible/',
+      'gemini-api-key-', 'claude-api-key-', 'codex-api-key-',
+      'xai-api-key-', 'vertex-api-key-', 'interactions-api-key-',
+    ];
+    for (const prefix of prefixes) {
+      if (key.startsWith(prefix)) {
+        const rest = value.slice(prefix.length).replace(/\.(json|ya?ml)$/i, '').trim();
+        return rest || value;
+      }
+    }
+    return value.replace(/\.(json|ya?ml)$/i, '');
+  }
+
+  function sameAuthText(a, b) {
+    const left = String(a || '').trim().toLowerCase();
+    const right = String(b || '').trim().toLowerCase();
+    return !!left && left === right;
+  }
+
+  function formatAuthAccount(account, provider, providerDisplay) {
+    let value = String(account || '').trim().replace(/\.(json|ya?ml)$/i, '');
+    if (!value || value === '未知账号') return '';
+    const pretty = providerDisplay || formatProviderDisplay(provider);
+    const accountPretty = formatProviderDisplay(value);
+    if (sameAuthText(value, provider) || sameAuthText(value, pretty) || sameAuthText(accountPretty, pretty)) return '';
+    return accountPretty && accountPretty !== value ? accountPretty : value;
+  }
+
+  function formatAuthDisplay(provider, account) {
+    const providerDisplay = formatProviderDisplay(provider);
+    const accountDisplay = formatAuthAccount(account, provider, providerDisplay);
+    return [providerDisplay, accountDisplay].filter(Boolean).join(' · ');
+  }
+
   function authFilterLabel(auth) {
     const provider = authFilterValue(auth, 'auth_provider') || authFilterValue(auth, 'provider');
     const account = authFilterValue(auth, 'auth_label') || authFilterValue(auth, 'label')
       || authFilterValue(auth, 'auth_email') || authFilterValue(auth, 'email')
       || authFilterValue(auth, 'auth_name') || authFilterValue(auth, 'name')
-      || authFilterValue(auth, 'auth_id') || authFilterValue(auth, 'auth_index') || '未知账号';
-    return [provider, account].filter(Boolean).join(' · ');
+      || authFilterValue(auth, 'auth_id') || authFilterValue(auth, 'auth_index');
+    return formatAuthDisplay(provider, account) || t('未知账号');
   }
 
   function authFilterKey(auth) {
@@ -3335,16 +3379,21 @@
     const usageAuthCell = u => {
       const provider = String(u.auth_provider || u.auth_type || '').trim();
       const account = String(u.auth_label || u.auth_email || u.auth_name || u.auth_id || u.auth_index || '').trim();
-      const display = [provider, account].filter(Boolean).join(' · ') || '未知账号';
-      return '<td class="usage-key" title="'+esc(display)+'"><div class="usage-key-label"><strong>'+esc(display)+'</strong></div></td>';
+      const providerDisplay = formatProviderDisplay(provider);
+      const accountDisplay = formatAuthAccount(account, provider, providerDisplay);
+      const display = formatAuthDisplay(provider, account) || t('未知账号');
+      const raw = [provider, account].filter(Boolean).join(' · ') || display;
+      const secondary = accountDisplay && providerDisplay && !sameAuthText(accountDisplay, providerDisplay) ? providerDisplay : '';
+      const primary = accountDisplay || providerDisplay || display;
+      return '<td class="usage-key" title="'+esc(raw)+'"><div class="usage-key-label"><strong>'+esc(primary)+'</strong>'+(secondary ? '<div class="mono">'+esc(secondary)+'</div>' : '')+'</div></td>';
     };
 
-    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
+    $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>执行器</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
       items.map(u => {
         const settledCost = u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
         return '<tr><td class="mono" title="'+esc(u.created_at)+'">'+esc(formatDateTime(u.created_at))+'</td>'+usageAuthCell(u)+
-          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
+          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td class="mono">'+esc(u.executor_type || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
           '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(settledCost))+'">'+esc(formatMoney(settledCost))+'</td></tr>';
       }).join('') + '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整明细</p>' : emptyState('当前筛选条件下暂无使用明细');
@@ -3691,16 +3740,15 @@
     return names[raw.toLowerCase()] || raw;
   }
 
+  function authQuotaProviderIsBrand(provider) {
+    const key = String(provider || '').trim().toLowerCase();
+    return key === 'xai' || key === 'grok' || key === 'codex' || key === 'openai'
+      || key === 'claude' || key === 'anthropic' || key === 'antigravity' || key === 'google'
+      || key === 'gemini' || key === 'kimi' || key === 'moonshot';
+  }
+
   function authQuotaProviderName(provider) {
-    const value = String(provider || '').trim();
-    if (!value) return '未知提供商';
-    const key = value.toLowerCase();
-    if (key === 'xai' || key === 'grok') return 'xAI';
-    if (key === 'codex' || key === 'openai') return 'Codex';
-    if (key === 'claude' || key === 'anthropic') return 'Claude';
-    if (key === 'antigravity' || key === 'google') return 'Antigravity';
-    if (key === 'kimi' || key === 'moonshot') return 'Kimi';
-    return value;
+    return formatProviderDisplay(provider) || t('未知提供商');
   }
 
   function syncAuthQuotaProviderFilter(providers) {
@@ -3797,7 +3845,7 @@
       const plan = authQuotaPlanName(authQuotaValue(item, 'plan'));
       const planLabel = plan ? '<span class="auth-quota-plan" title="订阅类型">'+esc(plan)+'</span>' : '';
       const provider = String(authQuotaValue(item, 'provider') || '');
-      return '<article class="card auth-quota-card'+(refreshing ? ' is-refreshing' : '')+'" data-provider="'+esc(provider || 'unknown')+'"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><div class="auth-quota-identity-main"><span class="auth-quota-provider-icon" aria-hidden="true">'+authQuotaProviderIcon(provider)+'</span><p class="auth-quota-provider">'+esc(provider || t('未知提供商'))+'</p>'+planLabel+'</div><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || t('未命名认证'))+'">'+esc(authQuotaValue(item, 'display_name') || t('未命名认证'))+'</h2><p class="auth-quota-sync" title="上次同步 '+esc(authQuotaTime(authQuotaValue(item, 'last_success_at')))+'"><span class="auth-quota-sync-icon" aria-hidden="true">'+authQuotaIcon('clock')+'</span><span>同步</span> '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>'+authQuotaIcon('coin')+esc(t('当前费用'))+'</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>'+authQuotaIcon('wallet')+esc(t('预估剩余'))+'</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>'+authQuotaIcon('trend')+esc(t('预计可用'))+'</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div>'+concurrentInput+'</div><div class="auth-quota-header-tools">'+weekSelect+reloadBtn+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
+      return '<article class="card auth-quota-card'+(refreshing ? ' is-refreshing' : '')+'" data-provider="'+esc(provider || 'unknown')+'"><header class="auth-quota-header"><div class="auth-quota-identity"><div class="auth-quota-identity-row"><div class="auth-quota-identity-main"><span class="auth-quota-provider-icon" aria-hidden="true">'+authQuotaProviderIcon(provider)+'</span><p class="auth-quota-provider'+(authQuotaProviderIsBrand(provider) ? '' : ' is-custom')+'" title="'+esc(provider || t('未知提供商'))+'">'+esc(authQuotaProviderName(provider))+'</p>'+planLabel+'</div><span class="badge '+badge.tone+'">'+esc(badge.text)+'</span></div><h2 class="auth-quota-title" title="'+esc(authQuotaValue(item, 'display_name') || t('未命名认证'))+'">'+esc(authQuotaValue(item, 'display_name') || t('未命名认证'))+'</h2><p class="auth-quota-sync" title="上次同步 '+esc(authQuotaTime(authQuotaValue(item, 'last_success_at')))+'"><span class="auth-quota-sync-icon" aria-hidden="true">'+authQuotaIcon('clock')+'</span><span>同步</span> '+esc(authQuotaShortTime(authQuotaValue(item, 'last_success_at')))+'</p></div><div class="auth-quota-cost-grid"><div class="auth-quota-cost"><span>'+authQuotaIcon('coin')+esc(t('当前费用'))+'</span><strong title="'+esc(costs.used)+'">'+esc(costs.used)+'</strong></div><div class="auth-quota-cost"><span>'+authQuotaIcon('wallet')+esc(t('预估剩余'))+'</span><strong title="'+esc(costs.remaining)+'">'+esc(costs.remaining)+'</strong></div><div class="auth-quota-cost"><span>'+authQuotaIcon('trend')+esc(t('预计可用'))+'</span><strong title="'+esc(costs.available)+'">'+esc(costs.available)+'</strong></div>'+concurrentInput+'</div><div class="auth-quota-header-tools">'+weekSelect+reloadBtn+'</div></header>'+(error ? '<div class="auth-quota-error">'+esc(error)+'</div>' : '')+'<div class="auth-quota-window-grid">'+cards+'</div></article>';
     }).join('');
   }
 
@@ -3898,6 +3946,7 @@
   async function refreshAuthQuota(itemKey, provider, authID, authIndex, options) {
     if (!itemKey || state.authQuotaRefreshing[itemKey]) return;
     const seq = state.tabLoadSeq;
+    let refreshed = false;
     state.authQuotaRefreshing[itemKey] = true;
     renderAuthQuotas();
     try {
@@ -3905,11 +3954,15 @@
       if (seq !== state.tabLoadSeq) return;
       const item = authQuotaValue(result, 'item') || result;
       if (item) replaceAuthQuotaItem(item);
-      if (!options || !options.silent) flash('认证额度已刷新', true);
+      refreshed = true;
     } finally {
       delete state.authQuotaRefreshing[itemKey];
       if (seq === state.tabLoadSeq) renderAuthQuotas();
     }
+    // Reconcile with the saved page so a refresh is visible even when the
+    // returned item cannot be matched against the currently rendered card.
+    if (refreshed && (!options || options.reconcile !== false) && seq === state.tabLoadSeq) await loadAuthQuotas();
+    if (refreshed && (!options || !options.silent)) flash('认证额度已刷新', true);
   }
   function renderAuthQuotaPagination(result) {
     const el = $('authQuotaPagination');
@@ -3970,11 +4023,12 @@
             authQuotaValue(item, 'provider') || '',
             authQuotaValue(item, 'auth_id') || '',
             authQuotaValue(item, 'auth_index') || '',
-            { silent: true }
+            { silent: true, reconcile: false }
           );
         } catch (_) {}
       }
       if (seq !== state.tabLoadSeq || state.currentTab !== 'auth-quotas') return;
+      await loadAuthQuotas();
       flash('本页认证额度已刷新', true);
     } finally {
       state.authQuotaPageRefreshing = false;
