@@ -294,6 +294,13 @@ var migrations = []migration{
 			)`,
 		},
 	},
+	{
+		version: 17,
+		name:    "usage ledger executor type",
+		up: []string{
+			`ALTER TABLE usage_ledger ADD COLUMN executor_type TEXT`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

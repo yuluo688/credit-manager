@@ -535,6 +535,56 @@ func TestUpdateUsageDetailRepricesSettledSpend(t *testing.T) {
 	}
 }
 
+func TestUsageExecutorIsPersistedAndBackfilled(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	reservation, err := st.Reserve(ctx, reserveRequest(key, "executor", 1))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		ReservationID: reservation.ID,
+		ExecutorType:  "CodexWebsocketsExecutor",
+		Model:         "test-model",
+		Usage:         money.TokenUsage{Input: 1},
+		CostMicroUSD:  1,
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	entries, err := st.ListUsage(ctx, UsageFilter{PluginKeyID: key.ID, Limit: 1})
+	if err != nil || len(entries) != 1 || entries[0].ExecutorType != "CodexWebsocketsExecutor" {
+		t.Fatalf("settled entries = %#v, err = %v", entries, err)
+	}
+
+	reservation, err = st.Reserve(ctx, reserveRequest(key, "executor-backfill", 1))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	ledgerID := NewID()
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID:      ledgerID,
+		ReservationID: reservation.ID,
+		Model:         "test-model",
+		Usage:         money.TokenUsage{Input: 1},
+		CostMicroUSD:  1,
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	entries, err = st.ListUsage(ctx, UsageFilter{PluginKeyID: key.ID, Limit: 2})
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if err := st.UpdateUsageExecutor(ctx, ledgerID, "OpenAICompatExecutor"); err != nil {
+		t.Fatalf("update usage executor: %v", err)
+	}
+	entry, err := st.GetUsage(ctx, ledgerID)
+	if err != nil || entry.ExecutorType != "OpenAICompatExecutor" {
+		t.Fatalf("backfilled entry = %#v, err = %v", entry, err)
+	}
+}
+
 func TestFindRecentFallbackIncludesAuth(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)

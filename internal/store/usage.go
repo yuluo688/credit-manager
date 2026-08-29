@@ -27,6 +27,7 @@ type UsageEntry struct {
 	ReservationID         string
 	CallerID              string
 	PluginKeyID           string
+	ExecutorType          string
 	Model                 string
 	PricingRuleID         *string
 	Usage                 money.TokenUsage
@@ -36,6 +37,25 @@ type UsageEntry struct {
 	Auth                  AuthIdentity
 	Metrics               UsageMetrics
 	CreatedAt             time.Time
+}
+
+// UpdateUsageExecutor attaches the concrete host executor to an existing ledger row.
+func (s *Store) UpdateUsageExecutor(ctx context.Context, ledgerID, executorType string) error {
+	ledgerID = strings.TrimSpace(ledgerID)
+	executorType = strings.TrimSpace(executorType)
+	if ledgerID == "" || executorType == "" {
+		return fmt.Errorf("%w: ledger id and executor type are required", ErrInvalidArgument)
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET
+		executor_type = COALESCE(NULLIF(TRIM(executor_type), ''), ?)
+		WHERE id = ?`, executorType, ledgerID)
+	if err != nil {
+		return fmt.Errorf("update usage executor: %w", err)
+	}
+	if err := requireOneRow(result, ErrInvalidArgument); err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateUsageAuth attaches selected auth-file identity to an existing ledger row.
@@ -269,7 +289,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		limit = 100
 	}
 	query := `SELECT u.id, u.reservation_id, u.caller_id, u.plugin_key_id,
-		u.model, u.pricing_rule_id,
+		COALESCE(u.executor_type, ''), u.model, u.pricing_rule_id,
 		u.input_tokens, u.output_tokens, u.reasoning_tokens, u.cached_tokens, u.cache_read_tokens,
 		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd, 0), u.source, u.tier, u.result, u.first_token_latency_ms,
 		u.generation_duration_ms, u.tokens_per_second, u.thinking_intensity,
@@ -297,7 +317,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		var tokensPerSecond sql.NullFloat64
 		var tier, resultLabel, thinkingIntensity sql.NullString
 		if err := rows.Scan(&entry.ID, &entry.ReservationID, &entry.CallerID, &entry.PluginKeyID,
-			&entry.Model, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
+			&entry.ExecutorType, &entry.Model, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
 			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.Usage.ReportedTotal, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source, &tier,
 			&resultLabel, &firstTokenLatency, &generationDuration, &tokensPerSecond, &thinkingIntensity,
 			&entry.Auth.AuthID, &entry.Auth.AuthIndex, &entry.Auth.Name, &entry.Auth.Label,

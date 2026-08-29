@@ -13,6 +13,7 @@ import (
 type Settlement struct {
 	LedgerID              string
 	ReservationID         string
+	ExecutorType          string
 	Model                 string
 	PricingRuleID         *string
 	Usage                 money.TokenUsage
@@ -83,12 +84,12 @@ func (s *Store) Settle(ctx context.Context, settlement Settlement) (Reservation,
 	resultLabel := nullableText(settlement.Metrics.Result)
 	auth := settlement.Auth
 	_, err = tx.ExecContext(ctx, `INSERT INTO usage_ledger(
-		id, reservation_id, caller_id, plugin_key_id, model, pricing_rule_id, input_tokens, output_tokens,
+		id, reservation_id, caller_id, plugin_key_id, executor_type, model, pricing_rule_id, input_tokens, output_tokens,
 		reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, total_tokens, cost_micro_usd, estimated_cost_micro_usd, source,
 		tier, result, first_token_latency_ms, generation_duration_ms, tokens_per_second, thinking_intensity,
 		auth_id, auth_index, auth_name, auth_label, auth_provider, auth_type, auth_email, auth_path, created_at_unix_ms
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		settlement.LedgerID, settlement.ReservationID, reservation.CallerID, reservation.PluginKeyID, settlement.Model,
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		settlement.LedgerID, settlement.ReservationID, reservation.CallerID, reservation.PluginKeyID, nullableString(settlement.ExecutorType), settlement.Model,
 		settlement.PricingRuleID, settlement.Usage.Input, settlement.Usage.Output,
 		settlement.Usage.Reasoning, settlement.Usage.Cached, settlement.Usage.CacheRead,
 		settlement.Usage.CacheCreation, money.ReportedTotal(settlement.Usage), settlement.CostMicroUSD, settlement.EstimatedCostMicroUSD, settlement.Source,
