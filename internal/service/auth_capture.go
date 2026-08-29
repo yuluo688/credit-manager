@@ -24,6 +24,7 @@ type pendingAuthCapture struct {
 	hasAuth       bool
 	usage         money.TokenUsage
 	hasUsage      bool
+	executorType  string
 }
 
 // TrackAuthCapture registers a reservation that will later receive selected auth identity.
@@ -52,6 +53,15 @@ func (s *Service) TrackAuthCapture(reservationID string, models ...string) {
 // returns the ledger id when the ledger row already exists and needs an update.
 // Usage callbacks can lack credential data, so auth is optional here.
 func (s *Service) ObserveHostUsage(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, models ...string) (ledgerID string, ok bool) {
+	return s.observeHostUsage(requestedAt, auth, usage, "", models...)
+}
+
+// ObserveHostUsageWithExecutor correlates host usage and its executor type to a pending reservation.
+func (s *Service) ObserveHostUsageWithExecutor(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, executorType string, models ...string) (ledgerID string, ok bool) {
+	return s.observeHostUsage(requestedAt, auth, usage, executorType, models...)
+}
+
+func (s *Service) observeHostUsage(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, executorType string, models ...string) (ledgerID string, ok bool) {
 	if s == nil {
 		return "", false
 	}
@@ -80,6 +90,9 @@ func (s *Service) ObserveHostUsage(requestedAt time.Time, auth store.AuthIdentit
 		best.usage = usage
 		best.hasUsage = true
 	}
+	if best.executorType == "" {
+		best.executorType = strings.TrimSpace(executorType)
+	}
 	s.signalAuthPendingLocked()
 	if strings.TrimSpace(best.ledgerID) == "" {
 		return "", true
@@ -89,6 +102,20 @@ func (s *Service) ObserveHostUsage(requestedAt time.Time, auth store.AuthIdentit
 		delete(s.authPending, best.reservationID)
 	}
 	return ledgerID, true
+}
+
+func (s *Service) executorForSettlement(reservationID string) string {
+	if s == nil {
+		return ""
+	}
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	s.pruneAuthPendingLocked(time.Now())
+	pending := s.authPending[strings.TrimSpace(reservationID)]
+	if pending == nil {
+		return ""
+	}
+	return pending.executorType
 }
 
 func (s *Service) pickPendingAuthLocked(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, modelSet map[string]struct{}, requireModelMatch bool) *pendingAuthCapture {

@@ -186,7 +186,7 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 	svc.TrackAuthCapture(reservation.ID, plan.Model)
 	go func() {
 		time.Sleep(40 * time.Millisecond)
-		svc.ObserveHostUsage(time.Now(), store.AuthIdentity{AuthID: "auth-x", Provider: "xai", Label: "ops"}, money.TokenUsage{Input: 9, Output: 3}, "grok-4.6")
+		svc.ObserveHostUsageWithExecutor(time.Now(), store.AuthIdentity{AuthID: "auth-x", Provider: "xai", Label: "ops"}, money.TokenUsage{Input: 9, Output: 3}, "XAIExecutor", "grok-4.6")
 	}()
 	if err := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, "openai", store.UsageMetrics{}); err != nil {
 		t.Fatalf("settle: %v", err)
@@ -195,7 +195,7 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("list usage: %v %#v", err, entries)
 	}
-	if entries[0].Source != "host_usage" || entries[0].Usage.Input != 9 || entries[0].Auth.Label != "ops" {
+	if entries[0].Source != "host_usage" || entries[0].Usage.Input != 9 || entries[0].Auth.Label != "ops" || entries[0].ExecutorType != "XAIExecutor" {
 		t.Fatalf("settled entry = %#v", entries[0])
 	}
 }

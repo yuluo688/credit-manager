@@ -245,6 +245,9 @@ func (s *Service) settleWithAuth(ctx context.Context, settlement store.Settlemen
 	if strings.TrimSpace(settlement.LedgerID) == "" {
 		settlement.LedgerID = store.NewID()
 	}
+	if strings.TrimSpace(settlement.ExecutorType) == "" {
+		settlement.ExecutorType = s.executorForSettlement(settlement.ReservationID)
+	}
 	settlement.Auth = s.AuthForSettlement(settlement.ReservationID, settlement.LedgerID)
 	_, err := s.store.Settle(ctx, settlement)
 	return err

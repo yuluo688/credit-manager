@@ -30,7 +30,7 @@ func handleUsage(raw []byte) ([]byte, error) {
 		auth = enrichAuthIdentity(auth)
 	}
 	usage := usageFromHostRecord(record)
-	ledgerID, matched := svc.ObserveHostUsage(record.RequestedAt, auth, usage, record.Model, record.Alias)
+	ledgerID, matched := svc.ObserveHostUsageWithExecutor(record.RequestedAt, auth, usage, record.ExecutorType, record.Model, record.Alias)
 	if matched && strings.TrimSpace(ledgerID) == "" {
 		return okEnvelope(map[string]any{})
 	}
@@ -42,6 +42,9 @@ func handleUsage(raw []byte) ([]byte, error) {
 	if strings.TrimSpace(ledgerID) != "" {
 		if !auth.Empty() {
 			_ = svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth)
+		}
+		if strings.TrimSpace(record.ExecutorType) != "" {
+			_ = svc.Store().UpdateUsageExecutor(context.Background(), ledgerID, record.ExecutorType)
 		}
 		if hostUsageFound(usage) {
 			_ = svc.ApplyHostUsage(context.Background(), ledgerID, usage)
