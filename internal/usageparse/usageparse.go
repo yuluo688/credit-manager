@@ -88,6 +88,9 @@ func FromStreamBuffer(buf []byte, format string) Result {
 				return r
 			}
 		}
+		if r := mapUsage(root, "stream"); r.Found {
+			return r
+		}
 		if r.Partial && !best.Found {
 			best = r
 		}
@@ -96,10 +99,11 @@ func FromStreamBuffer(buf []byte, format string) Result {
 }
 
 func extractJSONCandidates(text string) [][]byte {
+	spaced := insertSSEBreaks(text)
 	var out [][]byte
-	for _, line := range strings.Split(text, "\n") {
+	for _, line := range strings.Split(spaced, "\n") {
 		line = strings.TrimSpace(line)
-		if line == "" || line == "data: [DONE]" {
+		if line == "" || line == "[DONE]" || line == "data: [DONE]" {
 			continue
 		}
 		if strings.HasPrefix(line, "data:") {
@@ -109,10 +113,60 @@ func extractJSONCandidates(text string) [][]byte {
 			out = append(out, []byte(line))
 		}
 	}
-	// Also try whole buffer as JSON.
-	trimmed := strings.TrimSpace(text)
+	trimmed := strings.TrimSpace(spaced)
 	if strings.HasPrefix(trimmed, "{") {
 		out = append(out, []byte(trimmed))
+	}
+	out = append(out, extractJSONObjects(text)...)
+	return out
+}
+
+func insertSSEBreaks(text string) string {
+	replacer := strings.NewReplacer("event:", "\nevent:", "data:", "\ndata:")
+	return replacer.Replace(text)
+}
+
+func extractJSONObjects(text string) [][]byte {
+	var out [][]byte
+	for i := 0; i < len(text); i++ {
+		if text[i] != '{' {
+			continue
+		}
+		depth := 0
+		inString := false
+		escape := false
+		for j := i; j < len(text); j++ {
+			c := text[j]
+			if inString {
+				if escape {
+					escape = false
+					continue
+				}
+				if c == '\\' {
+					escape = true
+					continue
+				}
+				if c == '"' {
+					inString = false
+				}
+				continue
+			}
+			switch c {
+			case '"':
+				inString = true
+			case '{':
+				depth++
+			case '}':
+				depth--
+				if depth == 0 {
+					out = append(out, []byte(text[i:j+1]))
+					i = j
+				}
+			}
+			if depth == 0 && c == '}' {
+				break
+			}
+		}
 	}
 	return out
 }
