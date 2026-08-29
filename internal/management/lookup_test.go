@@ -128,7 +128,7 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 			t.Fatalf("lookup page must not contain %q", text)
 		}
 	}
-	for _, text := range []string{"id=\"loginGate\"", "id=\"rememberKey\"", "credit-manager.lookup.token", "更换密钥", "data-lookup-authed", "function buildCustomSelect"} {
+	for _, text := range []string{"id=\"loginGate\"", "id=\"rememberKey\"", "credit-manager.lookup.token", "更换密钥", "data-lookup-authed", "function buildCustomSelect", "function buildCustomDateInput"} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing login gate: %q", text)
 		}
@@ -148,6 +148,28 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing recent usage pagination or one-line headers: %q", text)
 		}
+	}
+}
+
+func TestLookupCustomDatePickerMatchesConsole(t *testing.T) {
+	lookup := string(lookupPage().Body)
+	for _, text := range []string{
+		`type="datetime-local"`,
+		"function buildCustomDateInput",
+		"custom-date-panel",
+		"custom-date-trigger",
+		"选择日期和时间",
+		"input[type=\"datetime-local\"]:not(.native-control)",
+	} {
+		if !strings.Contains(lookup, text) {
+			t.Fatalf("lookup page is missing management date picker: %q", text)
+		}
+	}
+	if strings.Contains(lookup, `type="date"`) {
+		t.Fatal("lookup still uses native date inputs")
+	}
+	if strings.Contains(lookup, "date-field") {
+		t.Fatal("lookup still uses the old date-field wrapper")
 	}
 }
 

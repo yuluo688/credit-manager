@@ -38,6 +38,12 @@
     '今日': { 'zh-TW':'今天', en:'Today', ru:'Сегодня' }, '最近 7 天': { 'zh-TW':'最近 7 天', en:'Last 7 days', ru:'Последние 7 дней' }, '最近 30 天': { 'zh-TW':'最近 30 天', en:'Last 30 days', ru:'Последние 30 дней' }, '最近 90 天': { 'zh-TW':'最近 90 天', en:'Last 90 days', ru:'Последние 90 дней' }, '自定义范围': { 'zh-TW':'自訂範圍', en:'Custom range', ru:'Свой период' }, '全部时间': { 'zh-TW':'全部時間', en:'All time', ru:'За всё время' },
     '开始时间（UTC）': { 'zh-TW':'開始時間（UTC）', en:'Start time (UTC)', ru:'Начало (UTC)' }, '结束时间（UTC）': { 'zh-TW':'結束時間（UTC）', en:'End time (UTC)', ru:'Конец (UTC)' },
     '开始时间': { 'zh-TW':'開始時間', en:'Start time', ru:'Начало' }, '结束时间': { 'zh-TW':'結束時間', en:'End time', ru:'Конец' },
+    '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' },
+    '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' },
+    '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' },
+    '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' },
+    '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
+    '开始时间不能晚于结束时间': { 'zh-TW':'開始時間不能晚於結束時間', en:'Start time cannot be after end time', ru:'Время начала не может быть позже времени окончания' },
     '模型': { 'zh-TW':'模型', en:'Model', ru:'Модель' }, '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' },
     '刷新统计': { 'zh-TW':'重新整理統計', en:'Refresh stats', ru:'Обновить статистику' },
     'Token 趋势': { 'zh-TW':'Token 趨勢', en:'Token trend', ru:'Динамика токенов' },
@@ -162,7 +168,13 @@
   function refreshDisplayUnits() { if(data) { render(data); renderRecentPagination(data.recent_pagination); } }
   const totalTokens = item => Number(item.input_tokens||0)+Number(item.output_tokens||0);
   function syncCustomRange() { $('customRange').classList.toggle('hidden',$('range').value!=='custom'); }
-  function rangeQuery() { const value = $('range').value; if (value === 'all') return ''; if (value === 'custom') { const from=$('from').value, to=$('to').value; if (!from || !to) throw new Error('请选择自定义范围的开始和结束日期'); if (from>to) throw new Error('开始日期不能晚于结束日期'); return 'from='+encodeURIComponent(from+'T00:00:00.000Z')+'&to='+encodeURIComponent(to+'T23:59:59.999Z'); } const now = new Date(), from = new Date(now); if (value === 'today') from.setUTCHours(0,0,0,0); else from.setUTCDate(now.getUTCDate()-Number(value)+1); from.setUTCHours(0,0,0,0); return 'from='+encodeURIComponent(from.toISOString())+'&to='+encodeURIComponent(now.toISOString()); }
+  let customRangeLoadTimer;
+  function queueCustomRangeLoad() {
+    if ($('range').value!=='custom' || !$('from').value || !$('to').value) return;
+    clearTimeout(customRangeLoadTimer);
+    customRangeLoadTimer = setTimeout(()=>load(false,true), 280);
+  }
+  function rangeQuery() { const value = $('range').value; if (value === 'all') return ''; if (value === 'custom') { const from=$('from').value, to=$('to').value; if (!from || !to) throw new Error('请选择自定义范围的开始和结束日期'); const fromDate=new Date(from), toDate=new Date(to); if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) throw new Error('请选择自定义范围的开始和结束日期'); if (fromDate>toDate) throw new Error('开始时间不能晚于结束时间'); return 'from='+encodeURIComponent(fromDate.toISOString())+'&to='+encodeURIComponent(toDate.toISOString()); } const now = new Date(), from = new Date(now); if (value === 'today') from.setUTCHours(0,0,0,0); else from.setUTCDate(now.getUTCDate()-Number(value)+1); from.setUTCHours(0,0,0,0); return 'from='+encodeURIComponent(from.toISOString())+'&to='+encodeURIComponent(now.toISOString()); }
   function uiIcon(name) {
     const s = 'viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
     const icons = {
@@ -246,6 +258,15 @@
   function hideLoginGate() { $('loginGate').classList.add('hidden'); $('loginGate').classList.remove('is-locked'); }
   function render(result) { data=result; hideLoginGate(); const landing=$('landingHero'); if(landing) landing.classList.add('hidden'); const key=result.key, overview=result.overview, summary=result.usage_summary||{}, models=result.by_model||[]; $('keyLabel').textContent=key.label||t('我的密钥'); $('fingerprint').textContent=t('指纹')+' '+(key.fingerprint||'—'); $('quotas').innerHTML=[quota('总额度',Number(key.settled_spend_micro_usd||0)+Number(key.held_amount_micro_usd||0),key.quota_micro_usd,'累计已结算与在途预占',true),quota('日额度',overview.daily_micro_usd,key.daily_quota_micro_usd,'UTC 自然日'),quota('周额度',overview.weekly_micro_usd,key.weekly_quota_micro_usd,'UTC 周一开始'),quota('月额度',overview.monthly_micro_usd,key.monthly_quota_micro_usd,'UTC 自然月'),concurrent(overview.active_reservations,key.max_concurrent_requests)].join(''); renderModelTokenLimits(result); $('stats').innerHTML=[['activity',t('请求数'),count(summary.request_count)+' '+t('请求')],['layers','Token',tokenValue(Number(summary.total_tokens||0)||(Number(summary.input_tokens||0)+Number(summary.output_tokens||0)+Number(summary.reasoning_tokens||0)))],['coin',t('费用'),usd(summary.cost_micro_usd)],['bolt',t('在途请求'),count(overview.active_reservations)+' '+t('请求')]].map(([icon,label,value]) => '<div class="stat"><div class="label"><span class="stat-icon" aria-hidden="true">'+uiIcon(icon)+'</span>'+esc(label)+'</div><div class="value">'+esc(value)+'</div></div>').join(''); const modelSelect=$('model'), current=modelSelect.value; modelSelect.innerHTML='<option value="">'+esc(t('全部模型'))+'</option>'+models.map(x=>'<option value="'+esc(x.model)+'">'+esc(x.model)+'</option>').join(''); if ([...modelSelect.options].some(x=>x.value===current)) modelSelect.value=current; $('recent').innerHTML=table(['时间','模型名称','来源','结果','首字延迟','生成时间','TPS','思考强度','输入 Token','输出 Token','思考 Token','缓存读取 Token','缓存创建 Token','总 Token 数','缓存命中','费用'],(result.recent_usage||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td class="model" title="'+esc(x.model)+'">'+esc(x.model)+'</td><td>'+esc(x.source||'—')+'</td><td>'+esc(x.result||'—')+'</td><td>'+esc(duration(x.first_token_latency_ms))+'</td><td>'+esc(duration(x.generation_duration_ms))+'</td><td>'+esc(tps(x.tokens_per_second))+'</td><td>'+esc(x.thinking_intensity||'—')+'</td><td>'+tokenValue(x.input_tokens)+'</td><td>'+tokenValue(x.output_tokens)+'</td><td>'+tokenValue(x.reasoning_tokens)+'</td><td>'+tokenValue(x.cache_read_tokens)+'</td><td>'+tokenValue(x.cache_creation_tokens)+'</td><td>'+tokenValue(allTokens(x))+'</td><td>'+esc(Number(x.cache_read_tokens||0)>0?t('是'):t('否'))+'</td><td>'+usd(x.cost_micro_usd)+'</td></tr>')); $('dashboard').classList.remove('hidden'); renderCharts(result); }
   function customControlText(select) { return select.selectedOptions[0] ? select.selectedOptions[0].textContent.trim() : t('请选择'); }
+  function padDatePart(value) { return String(value).padStart(2, '0'); }
+  function formatDateTimeLocal(date) {
+    return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) + 'T' + padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes());
+  }
+  function parseDateTimeLocal(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
   function dispatchControlChange(control) { control.dispatchEvent(new Event('input', { bubbles:true })); control.dispatchEvent(new Event('change', { bubbles:true })); }
   function refreshCustomControl(control) {
     const wrapper = control.closest('.custom-control');
@@ -253,8 +274,15 @@
     const trigger = wrapper.querySelector('.custom-control-trigger');
     if (!trigger) return;
     trigger.disabled = control.disabled;
-    trigger.querySelector('.custom-control-value').textContent = customControlText(control);
-    wrapper.querySelectorAll('.custom-option').forEach(option => option.classList.toggle('selected', option.dataset.value === control.value));
+    if (control.tagName === 'SELECT') {
+      trigger.querySelector('.custom-control-value').textContent = customControlText(control);
+      wrapper.querySelectorAll('.custom-option').forEach(option => option.classList.toggle('selected', option.dataset.value === control.value));
+      return;
+    }
+    const date = parseDateTimeLocal(control.value);
+    trigger.querySelector('.custom-control-value').textContent = date
+      ? new Intl.DateTimeFormat(locale || 'zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).format(date)
+      : t('选择日期和时间');
   }
   function closeCustomControls(except) {
     document.querySelectorAll('.custom-control.open').forEach(wrapper => {
@@ -315,7 +343,147 @@
     new MutationObserver(renderOptions).observe(select, { childList:true, subtree:true, characterData:true });
     renderOptions();
   }
-  function initCustomControls(root) { (root || document).querySelectorAll('select:not(.native-control)').forEach(buildCustomSelect); }
+  function buildCustomDateInput(input) {
+    if (input.closest('.custom-control')) return;
+    const wrapper = document.createElement('span');
+    wrapper.className = 'custom-control custom-date-control';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'custom-control-trigger custom-date-trigger';
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    const value = document.createElement('span');
+    value.className = 'custom-control-value';
+    trigger.append(value);
+    const panel = document.createElement('div');
+    panel.className = 'custom-control-panel custom-date-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.hidden = true;
+    input.before(wrapper);
+    wrapper.append(input, trigger, panel);
+    input.classList.add('native-control');
+    let viewDate = parseDateTimeLocal(input.value) || new Date();
+    const setDateValue = date => {
+      const previous = parseDateTimeLocal(input.value);
+      date.setHours(previous ? previous.getHours() : 0, previous ? previous.getMinutes() : 0, 0, 0);
+      input.value = formatDateTimeLocal(date);
+      dispatchControlChange(input);
+      refreshCustomControl(input);
+    };
+    const renderCalendar = () => {
+      const selected = parseDateTimeLocal(input.value);
+      const year = viewDate.getFullYear();
+      const month = viewDate.getMonth();
+      const first = new Date(year, month, 1);
+      const start = new Date(year, month, 1 - first.getDay());
+      const today = new Date();
+      const sameDay = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      const days = Array.from({ length:42 }, (_, index) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + index));
+      panel.innerHTML = '';
+      const header = document.createElement('div');
+      header.className = 'custom-date-header';
+      const title = document.createElement('button');
+      title.type = 'button';
+      title.className = 'custom-date-title';
+      title.textContent = new Intl.DateTimeFormat(locale || 'zh-CN', { year:'numeric', month:'long' }).format(new Date(year, month, 1));
+      const nav = document.createElement('div');
+      nav.className = 'custom-date-nav';
+      [['‹', -1, t('上个月')], ['›', 1, t('下个月')]].forEach(([text, offset, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = text;
+        button.setAttribute('aria-label', label);
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          viewDate = new Date(year, month + offset, 1);
+          renderCalendar();
+        });
+        nav.append(button);
+      });
+      header.append(title, nav);
+      const weekdays = document.createElement('div');
+      weekdays.className = 'custom-date-weekdays';
+      const weekdayNames = new Intl.DateTimeFormat(locale || 'zh-CN', { weekday:'short' });
+      Array.from({ length:7 }, (_, day) => weekdayNames.format(new Date(2024, 0, 7 + day))).forEach(day => { const item = document.createElement('span'); item.textContent = day; weekdays.append(item); });
+      const dayGrid = document.createElement('div');
+      dayGrid.className = 'custom-date-days';
+      days.forEach(date => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'custom-date-day';
+        if (date.getMonth() !== month) button.classList.add('outside');
+        if (sameDay(date, today)) button.classList.add('today');
+        if (sameDay(date, selected)) button.classList.add('selected');
+        button.textContent = date.getDate();
+        button.addEventListener('click', () => { setDateValue(date); viewDate = new Date(date); renderCalendar(); });
+        dayGrid.append(button);
+      });
+      const setTimePart = (part, amount) => {
+        const date = parseDateTimeLocal(input.value) || new Date(year, month, 1);
+        if (part === 'hours') date.setHours((date.getHours() + amount + 24) % 24);
+        else date.setMinutes((date.getMinutes() + amount + 60) % 60);
+        input.value = formatDateTimeLocal(date);
+        dispatchControlChange(input);
+        refreshCustomControl(input);
+        renderCalendar();
+      };
+      const timeField = (part, value, amount) => {
+        const field = document.createElement('div');
+        field.className = 'custom-time-field';
+        const decrement = document.createElement('button');
+        decrement.type = 'button';
+        decrement.textContent = '−';
+        decrement.setAttribute('aria-label', part === 'hours' ? t('减少小时') : t('减少分钟'));
+        decrement.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, -amount); });
+        const text = document.createElement('span');
+        text.textContent = padDatePart(value);
+        const increment = document.createElement('button');
+        increment.type = 'button';
+        increment.textContent = '+';
+        increment.setAttribute('aria-label', part === 'hours' ? t('增加小时') : t('增加分钟'));
+        increment.addEventListener('click', event => { event.stopPropagation(); setTimePart(part, amount); });
+        field.append(decrement, text, increment);
+        return field;
+      };
+      const time = document.createElement('div');
+      time.className = 'custom-date-time';
+      const timeLabel = document.createElement('span');
+      timeLabel.textContent = t('时间');
+      const fields = document.createElement('div');
+      fields.className = 'custom-time-fields';
+      const timeValue = selected || new Date(year, month, 1);
+      const separator = document.createElement('span');
+      separator.className = 'custom-time-separator';
+      separator.textContent = ':';
+      fields.append(timeField('hours', timeValue.getHours(), 1), separator, timeField('minutes', timeValue.getMinutes(), 5));
+      time.append(timeLabel, fields);
+      const footer = document.createElement('div');
+      footer.className = 'custom-date-footer';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.textContent = t('清除');
+      clear.addEventListener('click', () => { input.value = ''; dispatchControlChange(input); refreshCustomControl(input); renderCalendar(); });
+      const now = document.createElement('button');
+      now.type = 'button';
+      now.textContent = t('此刻');
+      now.addEventListener('click', () => { const date = new Date(); viewDate = new Date(date); setDateValue(date); renderCalendar(); });
+      footer.append(clear, now);
+      panel.append(header, weekdays, dayGrid, time, footer);
+    };
+    trigger.addEventListener('click', () => {
+      if (input.disabled) return;
+      const opening = !wrapper.classList.contains('open');
+      closeCustomControls(wrapper);
+      wrapper.classList.toggle('open', opening);
+      panel.hidden = !opening;
+      if (opening) { viewDate = parseDateTimeLocal(input.value) || new Date(); renderCalendar(); }
+    });
+    input.addEventListener('change', () => refreshCustomControl(input));
+    refreshCustomControl(input);
+  }
+  function initCustomControls(root) {
+    (root || document).querySelectorAll('select:not(.native-control)').forEach(buildCustomSelect);
+    (root || document).querySelectorAll('input[type="datetime-local"]:not(.native-control)').forEach(buildCustomDateInput);
+  }
   function refreshCustomControls() { document.querySelectorAll('.native-control').forEach(refreshCustomControl); }
   function normalizeKey(value) { return String(value||'').replace(/[\s\u200B-\u200D\uFEFF]/g,''); }
   function validateKey(value) { if(!value) return '请输入密钥。'; if(!/^[\x20-\x7E]+$/.test(value)) return '密钥包含非英文字符或不可见字符，请重新复制完整的 tk- 开头密钥。'; if(!/^tk-[A-Za-z0-9-]+$/.test(value)) return '密钥格式不正确，请输入 tk- 开头的完整密钥。'; return ''; }
@@ -360,7 +528,7 @@
   }
   $('switchKey').addEventListener('click',()=>{ showLoginGate(false); $('key').select(); });
   $('loginGate').addEventListener('click',event=>{ if(event.target!==$('loginGate')||$('loginGate').classList.contains('is-locked')||!data) return; hideLoginGate(); $('dashboard').classList.remove('hidden'); });
-  $('lookupForm').addEventListener('submit',e=>{e.preventDefault();load(true)}); $('refresh').addEventListener('click',()=>load(false,true)); $('range').addEventListener('change',()=>{syncCustomRange(); tokenTrendGrain=costTrendGrain=defaultTrendGrain($('range').value); syncTrendGrainSwitch(); if($('range').value!=='custom')load(false,true)}); document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(button=>button.addEventListener('click',()=>setTrendGrain(button.closest('.trend-grain-switch').dataset.trendChart, button.dataset.trendGrain))); $('model').addEventListener('change',()=>load(false,true)); $('from').addEventListener('change',()=>{if($('range').value==='custom'&&$('to').value)load(false,true)}); $('to').addEventListener('change',()=>{if($('range').value==='custom'&&$('from').value)load(false,true)}); document.querySelectorAll('#tokenUnitSwitch [data-token-unit]').forEach(button=>button.addEventListener('click',()=>{tokenUnit=button.dataset.tokenUnit;localStorage.setItem(TOKEN_UNIT_KEY,tokenUnit);syncDisplayControls();refreshDisplayUnits()})); document.querySelectorAll('#currencySwitch [data-currency]').forEach(button=>button.addEventListener('click',()=>{currency=button.dataset.currency;localStorage.setItem(CURRENCY_KEY,currency);syncDisplayControls();refreshDisplayUnits()}));  document.querySelectorAll('#modelMetric [data-metric]').forEach(button=>button.addEventListener('click',()=>{modelMetric=button.dataset.metric; if(data)renderCharts(data)})); document.querySelectorAll('#modelRankMetric [data-rank-metric]').forEach(button=>button.addEventListener('click',()=>{modelRankMetric=button.dataset.rankMetric==='unit'||button.dataset.rankMetric==='cache'||button.dataset.rankMetric==='tps'?button.dataset.rankMetric:'value'; if(data)renderModelRank(data.by_model||[])}));
+  $('lookupForm').addEventListener('submit',e=>{e.preventDefault();load(true)}); $('refresh').addEventListener('click',()=>load(false,true)); $('range').addEventListener('change',()=>{syncCustomRange(); closeCustomControls(); tokenTrendGrain=costTrendGrain=defaultTrendGrain($('range').value); syncTrendGrainSwitch(); if($('range').value!=='custom')load(false,true)}); document.querySelectorAll('.trend-grain-switch [data-trend-grain]').forEach(button=>button.addEventListener('click',()=>setTrendGrain(button.closest('.trend-grain-switch').dataset.trendChart, button.dataset.trendGrain))); $('model').addEventListener('change',()=>load(false,true)); $('from').addEventListener('change',queueCustomRangeLoad); $('to').addEventListener('change',queueCustomRangeLoad); document.querySelectorAll('#tokenUnitSwitch [data-token-unit]').forEach(button=>button.addEventListener('click',()=>{tokenUnit=button.dataset.tokenUnit;localStorage.setItem(TOKEN_UNIT_KEY,tokenUnit);syncDisplayControls();refreshDisplayUnits()})); document.querySelectorAll('#currencySwitch [data-currency]').forEach(button=>button.addEventListener('click',()=>{currency=button.dataset.currency;localStorage.setItem(CURRENCY_KEY,currency);syncDisplayControls();refreshDisplayUnits()}));  document.querySelectorAll('#modelMetric [data-metric]').forEach(button=>button.addEventListener('click',()=>{modelMetric=button.dataset.metric; if(data)renderCharts(data)})); document.querySelectorAll('#modelRankMetric [data-rank-metric]').forEach(button=>button.addEventListener('click',()=>{modelRankMetric=button.dataset.rankMetric==='unit'||button.dataset.rankMetric==='cache'||button.dataset.rankMetric==='tps'?button.dataset.rankMetric:'value'; if(data)renderModelRank(data.by_model||[])}));
   $('langBtn').addEventListener('click', event=>{ event.stopPropagation(); const open=$('langPanel').hidden; closePrefMenus(); $('langPanel').hidden=!open; syncPrefMenus(); });
   $('themeBtn').addEventListener('click', event=>{ event.stopPropagation(); const open=$('themePanel').hidden; closePrefMenus(); $('themePanel').hidden=!open; syncPrefMenus(); });
   $('langPanel').addEventListener('click', event=>{ const button=event.target.closest('[data-locale]'); if (!button) return; setLocale(button.dataset.locale); closePrefMenus(); });
