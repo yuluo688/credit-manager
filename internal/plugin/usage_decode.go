@@ -109,8 +109,12 @@ func firstJSONInt64(root map[string]json.RawMessage, keys ...string) int64 {
 	for _, key := range keys {
 		if value, ok := root[key]; ok {
 			var result int64
-			if json.Unmarshal(value, &result) == nil {
+			if json.Unmarshal(value, &result) == nil && result >= 0 {
 				return result
+			}
+			var numbered float64
+			if json.Unmarshal(value, &numbered) == nil && numbered >= 0 {
+				return int64(numbered)
 			}
 		}
 	}

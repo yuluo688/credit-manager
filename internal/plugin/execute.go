@@ -156,7 +156,7 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	raw, err := callHost(pluginabi.MethodHostModelExecuteStream, hostModelExecutionRequest{
 		HostModelExecutionRequest: pluginapi.HostModelExecutionRequest{
 			EntryProtocol: firstNonEmpty(req.SourceFormat, "openai"),
-			ExitProtocol:  firstNonEmpty(req.Format, req.SourceFormat, "openai"),
+			ExitProtocol:  firstNonEmpty(req.SourceFormat, req.Format, "openai"),
 			Model:         strings.TrimSpace(req.Model),
 			Stream:        true,
 			Body:          body,
@@ -197,8 +197,8 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		chunkRaw, errRead := callHost(pluginabi.MethodHostModelStreamRead, pluginapi.HostModelStreamReadRequest{StreamID: stream.StreamID})
 		if errRead != nil {
 			completedAt = time.Now()
-			parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
-			_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
+			parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
+			_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
 				usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed"))
 			return errRead
 		}
@@ -211,8 +211,8 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		}
 		if chunk.Error != "" {
 			completedAt = time.Now()
-			parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
-			_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
+			parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
+			_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
 				usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed"))
 			return fmt.Errorf("%s", chunk.Error)
 		}
@@ -226,8 +226,8 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 			}
 			if err := emitPluginStreamChunk(pluginStreamID, bytes.Clone(chunk.Payload)); err != nil {
 				completedAt = time.Now()
-				parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
-				_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
+				parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
+				_ = svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
 					usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "cancelled"))
 				return err
 			}
@@ -237,9 +237,30 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		}
 	}
 	completedAt = time.Now()
-	parsed := usageparse.FromStreamBuffer(buffer.Bytes(), firstNonEmpty(req.Format, req.SourceFormat))
-	return svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.Format, req.SourceFormat),
+	parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
+	return svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
 		usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "success"))
+}
+
+func parseExecutorStreamUsage(buf []byte, req rpcExecutorRequest) usageparse.Result {
+	var best usageparse.Result
+	for _, format := range []string{req.SourceFormat, req.Format, "openai-response", "openai", "codex"} {
+		format = strings.TrimSpace(format)
+		if format == "" {
+			continue
+		}
+		got := usageparse.FromStreamBuffer(buf, format)
+		if got.Found && !got.Partial {
+			return got
+		}
+		if got.Found && !best.Found {
+			best = got
+		}
+	}
+	if !best.Found {
+		best = usageparse.FromResponseBody(buf, firstNonEmpty(req.SourceFormat, req.Format))
+	}
+	return best
 }
 
 func admitExecutorAuth(ctx context.Context, svc *service.Service, reservationID string, req pluginapi.ExecutorRequest) error {

@@ -158,17 +158,20 @@ func requestBody(req pluginapi.ExecutorRequest) []byte {
 	return req.Payload
 }
 
-// OpenAI-compatible SSE streams omit the terminal usage chunk unless it is
-// explicitly requested. Force include_usage so AI-provider streams still
-// settle official tokens, while preserving other client stream_options.
+// OpenAI Chat Completions SSE streams omit the terminal usage chunk unless
+// include_usage is requested. Force it so AI-provider streams still settle
+// official tokens, while preserving other client stream_options.
+//
+// Responses API (/v1/responses, openai-response, codex) rejects
+// stream_options.include_usage with HTTP 400. Usage for those streams arrives
+// on response.completed without this flag.
 func requestBodyWithStreamUsage(body []byte, sourceFormat, outputFormat string) []byte {
-	format := strings.ToLower(firstNonEmpty(outputFormat, sourceFormat))
-	if strings.Contains(format, "claude") || strings.Contains(format, "gemini") {
-		return body
-	}
 	var payload map[string]any
 	if len(body) == 0 || json.Unmarshal(body, &payload) != nil {
 		return body
+	}
+	if !supportsChatCompletionsStreamUsage(sourceFormat, outputFormat) || isResponsesAPIPayload(payload) {
+		return stripStreamUsageOption(body, payload)
 	}
 	options, ok := payload["stream_options"].(map[string]any)
 	if !ok {
@@ -179,6 +182,66 @@ func requestBodyWithStreamUsage(body []byte, sourceFormat, outputFormat string) 
 	updated, err := json.Marshal(payload)
 	if err != nil {
 		return body
+	}
+	return updated
+}
+
+func supportsChatCompletionsStreamUsage(formats ...string) bool {
+	for _, format := range formats {
+		format = strings.ToLower(strings.TrimSpace(format))
+		if format == "" {
+			continue
+		}
+		if strings.Contains(format, "claude") ||
+			strings.Contains(format, "gemini") ||
+			strings.Contains(format, "response") ||
+			strings.Contains(format, "codex") ||
+			strings.Contains(format, "interaction") ||
+			strings.Contains(format, "image") ||
+			strings.Contains(format, "video") {
+			return false
+		}
+	}
+	return true
+}
+
+func isResponsesAPIPayload(payload map[string]any) bool {
+	if payload == nil {
+		return false
+	}
+	if _, hasInput := payload["input"]; hasInput {
+		return true
+	}
+	switch typ := payload["type"].(type) {
+	case string:
+		typ = strings.ToLower(strings.TrimSpace(typ))
+		if typ == "response.create" || typ == "response.append" || strings.HasPrefix(typ, "response.") {
+			return true
+		}
+	}
+	if nested, ok := payload["response"].(map[string]any); ok {
+		if _, hasInput := nested["input"]; hasInput {
+			return true
+		}
+	}
+	return false
+}
+
+func stripStreamUsageOption(original []byte, payload map[string]any) []byte {
+	options, ok := payload["stream_options"].(map[string]any)
+	if !ok {
+		return original
+	}
+	if _, exists := options["include_usage"]; !exists {
+		return original
+	}
+	delete(options, "include_usage")
+	if len(options) == 0 {
+		delete(payload, "stream_options")
+	}
+	updated, err := json.Marshal(payload)
+	if err != nil {
+		return original
 	}
 	return updated
 }
