@@ -564,6 +564,10 @@ func TestFindRecentFallbackIncludesAuth(t *testing.T) {
 	if err != nil || !found || entry.Auth.AuthID != "auth-1" {
 		t.Fatalf("find after auth = (%#v, %v, %v)", entry, found, err)
 	}
+	entry, found, err = st.FindRecentFallback(ctx, []string{"grok-4.6-build"}, time.Minute)
+	if err != nil || !found || entry.Model != "grok-4.6" {
+		t.Fatalf("find by build suffix = (%#v, %v, %v)", entry, found, err)
+	}
 }
 
 func TestAuthQuotaSnapshotMigrationAndPersistence(t *testing.T) {

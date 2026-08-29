@@ -124,7 +124,7 @@ func Default() Config {
 		},
 		Settlement: SettlementConfig{
 			MissingUsage:  MissingUsageSettleReserved,
-			HostUsageWait: 1500 * time.Millisecond,
+			HostUsageWait: 4 * time.Second,
 		},
 		Stream: StreamConfig{
 			MaxBufferBytes:          4 << 20,

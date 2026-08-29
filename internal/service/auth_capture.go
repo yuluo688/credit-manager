@@ -257,8 +257,14 @@ func pendingMatchesModels(pending *pendingAuthCapture, modelSet map[string]struc
 		return false
 	}
 	for _, model := range pending.models {
-		if _, ok := modelSet[strings.ToLower(model)]; ok {
+		key := strings.ToLower(strings.TrimSpace(model))
+		if _, ok := modelSet[key]; ok {
 			return true
+		}
+		for hostModel := range modelSet {
+			if store.ModelsRelated(key, hostModel) {
+				return true
+			}
 		}
 	}
 	return false

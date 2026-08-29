@@ -51,6 +51,20 @@ func TestObserveHostUsageBackfillsAuthAfterSettle(t *testing.T) {
 	}
 }
 
+func TestObserveHostUsageMatchesBuildSuffixAmongMultiplePending(t *testing.T) {
+	svc := &Service{authPending: map[string]*pendingAuthCapture{}}
+	svc.TrackAuthCapture("res-old", "gpt-5.6-sol")
+	_ = svc.AuthForSettlement("res-old", "ledger-old")
+	svc.TrackAuthCapture("res-grok", "grok-4.6")
+	_ = svc.AuthForSettlement("res-grok", "ledger-grok")
+
+	usage := money.TokenUsage{Input: 224, Output: 152, CacheRead: 128}
+	ledgerID, ok := svc.ObserveHostUsage(time.Now(), store.AuthIdentity{Provider: "xai"}, usage, "grok-4.6-build")
+	if !ok || ledgerID != "ledger-grok" {
+		t.Fatalf("observe = (%q, %v), want ledger-grok", ledgerID, ok)
+	}
+}
+
 func TestObserveHostUsageLooseMatchWhenModelRewritten(t *testing.T) {
 	svc := &Service{authPending: map[string]*pendingAuthCapture{}}
 	svc.TrackAuthCapture("res-2", "gpt-alias")

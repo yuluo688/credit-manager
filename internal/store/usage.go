@@ -76,12 +76,51 @@ func (s *Store) FindRecentFallback(ctx context.Context, models []string, window 
 	if window <= 0 {
 		window = 15 * time.Minute
 	}
-	query := `SELECT id FROM usage_ledger
+	cleaned := uniqueLowerModels(models)
+	rows, err := s.db.QueryContext(ctx, `SELECT id, model FROM usage_ledger
 		WHERE source = 'reserved_fallback'
-		  AND created_at_unix_ms >= ?`
-	args := []any{time.Now().Add(-window).UnixMilli()}
-	cleaned := make([]string, 0, len(models))
+		  AND created_at_unix_ms >= ?
+		ORDER BY created_at_unix_ms DESC`, time.Now().Add(-window).UnixMilli())
+	if err != nil {
+		return UsageEntry{}, false, fmt.Errorf("find reserved fallback: %w", err)
+	}
+	chosenID := ""
+	relatedID := ""
+	for rows.Next() {
+		var id, model string
+		if err := rows.Scan(&id, &model); err != nil {
+			_ = rows.Close()
+			return UsageEntry{}, false, err
+		}
+		if len(cleaned) == 0 || exactModelMatch(model, cleaned) {
+			chosenID = id
+			break
+		}
+		if relatedID == "" && relatedModelMatch(model, cleaned) {
+			relatedID = id
+		}
+	}
+	err = rows.Err()
+	_ = rows.Close()
+	if err != nil {
+		return UsageEntry{}, false, err
+	}
+	if chosenID == "" {
+		chosenID = relatedID
+	}
+	if chosenID == "" {
+		return UsageEntry{}, false, nil
+	}
+	entry, err := s.GetUsage(ctx, chosenID)
+	if err != nil {
+		return UsageEntry{}, false, err
+	}
+	return entry, true, nil
+}
+
+func uniqueLowerModels(models []string) []string {
 	seen := make(map[string]struct{}, len(models))
+	out := make([]string, 0, len(models))
 	for _, model := range models {
 		model = strings.ToLower(strings.TrimSpace(model))
 		if model == "" {
@@ -91,29 +130,49 @@ func (s *Store) FindRecentFallback(ctx context.Context, models []string, window 
 			continue
 		}
 		seen[model] = struct{}{}
-		cleaned = append(cleaned, model)
+		out = append(out, model)
 	}
-	if len(cleaned) > 0 {
-		placeholders := make([]string, len(cleaned))
-		for i, model := range cleaned {
-			placeholders[i] = "?"
-			args = append(args, model)
+	return out
+}
+
+func exactModelMatch(model string, wanted []string) bool {
+	model = strings.ToLower(strings.TrimSpace(model))
+	for _, want := range wanted {
+		if model == want {
+			return true
 		}
-		query += ` AND LOWER(model) IN (` + strings.Join(placeholders, ",") + `)`
 	}
-	query += ` ORDER BY created_at_unix_ms DESC LIMIT 1`
-	var id string
-	if err := s.db.QueryRowContext(ctx, query, args...).Scan(&id); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return UsageEntry{}, false, nil
+	return false
+}
+
+func relatedModelMatch(model string, wanted []string) bool {
+	for _, want := range wanted {
+		if ModelsRelated(model, want) {
+			return true
 		}
-		return UsageEntry{}, false, fmt.Errorf("find reserved fallback: %w", err)
 	}
-	entry, err := s.GetUsage(ctx, id)
-	if err != nil {
-		return UsageEntry{}, false, err
+	return false
+}
+
+// ModelsRelated reports whether two model ids are the same or a dated/build suffix of each other.
+func ModelsRelated(left, right string) bool {
+	left = strings.ToLower(strings.TrimSpace(left))
+	right = strings.ToLower(strings.TrimSpace(right))
+	if left == "" || right == "" {
+		return false
 	}
-	return entry, true, nil
+	if left == right {
+		return true
+	}
+	return modelHasPrefix(left, right) || modelHasPrefix(right, left)
+}
+
+func modelHasPrefix(model, prefix string) bool {
+	if !strings.HasPrefix(model, prefix) || len(model) <= len(prefix) {
+		return false
+	}
+	next := model[len(prefix)]
+	return next == '-' || next == '.' || next == '_'
 }
 
 // UpdateUsageDetail replaces fallback token estimates with the host's final
