@@ -62,8 +62,11 @@ func mustPageFile(name string) []byte {
 func consolePage() pluginapi.ManagementResponse {
 	return pluginapi.ManagementResponse{
 		StatusCode: http.StatusOK,
-		Headers:    http.Header{"Content-Type": []string{"text/html; charset=utf-8"}},
-		Body:       consolePageBody,
+		Headers: http.Header{
+			"Content-Type":            []string{"text/html; charset=utf-8"},
+			"Content-Security-Policy": []string{"connect-src 'self'"},
+		},
+		Body: consolePageBody,
 	}
 }
 

@@ -210,7 +210,7 @@ http://<CPA_HOST>:8317/v0/resource/plugins/credit-manager/lookup
 /v0/resource/plugins/credit-manager/console
 ```
 
-页面在浏览器 `sessionStorage` 中保存宿主管理密钥，并调用管理 API。标签页：
+页面在浏览器 `sessionStorage` 中保存宿主管理密钥，并只调用当前 CPA 同源的管理 API。控制台不接受 URL 参数或浏览器存储覆盖 API 根地址，避免管理密钥被发送到其他来源。标签页：
 
 | 标签 | 内容 |
 |------|------|

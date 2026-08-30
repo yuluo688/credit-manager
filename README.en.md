@@ -181,7 +181,7 @@ Sidebar entry **CPA Credit Manager**:
 /v0/resource/plugins/credit-manager/console
 ```
 
-The page stores the host management token in `sessionStorage` and calls the management API.
+The page stores the host management token in `sessionStorage` and calls only the current CPA's same-origin management API. URL parameters and browser storage cannot override the API root, preventing the management token from being sent to another origin.
 
 | Tab | Contents |
 |---|---|

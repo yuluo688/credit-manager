@@ -47,6 +47,36 @@ func TestConsoleModelsDevCatalogIsProxiedAndOptional(t *testing.T) {
 	}
 }
 
+func TestConsoleManagementRequestsAreRestrictedToCurrentOrigin(t *testing.T) {
+	response := consolePage()
+	page := string(response.Body)
+	if got := response.Headers.Get("Content-Security-Policy"); got != "connect-src 'self'" {
+		t.Fatalf("console Content-Security-Policy = %q, want same-origin connections only", got)
+	}
+	for _, forbidden := range []string{
+		`q.get('api_base')`,
+		`q.get('api')`,
+		`id="apiBase"`,
+		`$('apiBase')`,
+		"function apiBase",
+		"function detectDefaultBase",
+		"sessionStorage.setItem(BASE_KEY",
+		"CLIProxyAPI 根地址",
+	} {
+		if strings.Contains(page, forbidden) {
+			t.Fatalf("console allows an untrusted API root through %q", forbidden)
+		}
+	}
+	for _, required := range []string{
+		"return new URL(p, location.origin).toString();",
+		"sessionStorage.removeItem('credit_manager_api_base')",
+	} {
+		if !strings.Contains(page, required) {
+			t.Fatalf("console is missing same-origin management protection %q", required)
+		}
+	}
+}
+
 func TestFXResourceRoute(t *testing.T) {
 	var found bool
 	for _, resource := range Resources() {

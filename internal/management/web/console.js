@@ -1,7 +1,6 @@
 
 (function () {
   const TOKEN_KEY = 'credit_manager_mgmt_token';
-  const BASE_KEY = 'credit_manager_api_base';
   const TOKEN_UNIT_KEY = 'credit_manager_token_unit';
   const CURRENCY_KEY = 'credit_manager_currency';
   const USD_CNY_RATE_KEY = 'credit_manager_usd_cny_rate';
@@ -26,7 +25,7 @@
     '计费方式': { 'zh-TW':'計費方式', en:'Billing mode', ru:'Режим тарифа' }, '按 Token（USD / 1M）': { 'zh-TW':'按 Token（USD / 1M）', en:'Per token (USD / 1M)', ru:'За токен (USD / 1M)' }, '按张（出图）': { 'zh-TW':'按張（出圖）', en:'Per image', ru:'За изображение' }, '每张 USD': { 'zh-TW':'每張 USD', en:'USD / image', ru:'USD / изображение' }, '出图': { 'zh-TW':'出圖', en:'Image', ru:'Картинка' },     '按张计费': { 'zh-TW':'按張計費', en:'Billed per image', ru:'За картинку' },
     '从请求、Token 到费用的可筛选账本视图。': { 'zh-TW':'從請求、Token 到費用的可篩選帳本檢視。', en:'A filterable ledger view from requests and tokens to costs.', ru:'Фильтруемый журнал от запросов и токенов до расходов.' }, '实时汇总': { 'zh-TW':'即時彙總', en:'Live summary', ru:'Сводка в реальном времени' }, '统计筛选': { 'zh-TW':'統計篩選', en:'Usage filters', ru:'Фильтры статистики' }, '应用筛选': { 'zh-TW':'套用篩選', en:'Apply filters', ru:'Применить фильтры' }, '清除筛选': { 'zh-TW':'清除篩選', en:'Clear filters', ru:'Очистить фильтры' }, '按密钥汇总': { 'zh-TW':'依密鑰彙總', en:'By key', ru:'По ключам' }, '按模型汇总': { 'zh-TW':'依模型彙總', en:'By model', ru:'По моделям' }, '最近明细': { 'zh-TW':'最近明細', en:'Recent activity', ru:'Последние записи' },
     '关闭提示': { 'zh-TW':'關閉提示', en:'Close notification', ru:'Закрыть уведомление' }, '取消': { 'zh-TW':'取消', en:'Cancel', ru:'Отмена' }, '保存规则': { 'zh-TW':'儲存規則', en:'Save rule', ru:'Сохранить правило' }, '删除': { 'zh-TW':'刪除', en:'Delete', ru:'Удалить' }, '编辑': { 'zh-TW':'編輯', en:'Edit', ru:'Изменить' }, '复制密钥': { 'zh-TW':'複製密鑰', en:'Copy key', ru:'Копировать ключ' }, '管理密钥': { 'zh-TW':'管理密鑰', en:'Manage key', ru:'Управлять ключом' },
-    'CLIProxyAPI 根地址': { 'zh-TW':'CLIProxyAPI 根位址', en:'CLIProxyAPI base URL', ru:'Базовый URL CLIProxyAPI' }, '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
+    '宿主管理密钥（Bearer）': { 'zh-TW':'宿主管理金鑰（Bearer）', en:'Host management token (Bearer)', ru:'Токен управления хостом (Bearer)' }, '清除本地信息': { 'zh-TW':'清除本機資訊', en:'Clear local data', ru:'Очистить локальные данные' }, '连接并加载': { 'zh-TW':'連線並載入', en:'Connect and load', ru:'Подключиться и загрузить' },
     '创建密钥': { 'zh-TW':'建立密鑰', en:'Create key', ru:'Создать ключ' }, '保存策略': { 'zh-TW':'儲存策略', en:'Save policy', ru:'Сохранить политику' }, '确认轮换': { 'zh-TW':'確認輪換', en:'Confirm rotation', ru:'Подтвердить ротацию' }, '新增价格规则': { 'zh-TW':'新增價格規則', en:'Add pricing rule', ru:'Добавить правило цены' }, '编辑价格规则': { 'zh-TW':'編輯價格規則', en:'Edit pricing rule', ru:'Изменить правило цены' },
     '生成方式': { 'zh-TW':'產生方式', en:'Key material', ru:'Способ создания' },
     '密钥已启用': { 'zh-TW':'密鑰已啟用', en:'Key enabled', ru:'Ключ включён' },
@@ -69,7 +68,7 @@
     '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
     '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无密钥': { 'zh-TW':'暫無密鑰', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
     '还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。': { 'zh-TW':'還沒有密鑰。點擊右上角「新增密鑰」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
-    '连接信息仅保存于当前浏览器会话。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。', en:'Connection details stay in this browser session only.', ru:'Данные подключения хранятся только в этом сеансе браузера.' },
+    '管理密钥仅保存于当前浏览器会话，请求固定发送到当前 CPA。': { 'zh-TW':'管理金鑰僅保存在目前瀏覽器工作階段，請求固定傳送到目前 CPA。', en:'The management token stays in this browser session, and requests are restricted to the current CPA.', ru:'Токен управления хранится только в этом сеансе, а запросы отправляются только текущему CPA.' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
     '可用模型（多选；不选=全部）': { 'zh-TW':'可用模型（多選；不選=全部）', en:'Allowed models (multi-select; none = all)', ru:'Доступные модели (несколько; пусто = все)' },
     '正在加载当前代理可用模型…': { 'zh-TW':'正在載入目前代理可用模型…', en:'Loading current proxy models…', ru:'Загрузка моделей прокси…' },
@@ -607,34 +606,14 @@
     return ($('mgmtToken').value || sessionStorage.getItem(TOKEN_KEY) || '').trim();
   }
 
-  function detectDefaultBase() {
-    try {
-      const q = new URLSearchParams(location.search || '');
-      const fromQuery = (q.get('api_base') || q.get('api') || '').trim();
-      if (fromQuery) return fromQuery.replace(/\/$/, '');
-    } catch (_) {}
-    // Resource page served by CLIProxyAPI itself.
-    if ((location.pathname || '').indexOf('/v0/resource/plugins/') === 0) {
-      return location.origin;
-    }
-    return (sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
-  }
-
-  function apiBase() {
-    const raw = ($('apiBase').value || sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
-    return raw;
-  }
-
   function managementURL(path) {
-    const base = apiBase();
     const p = '/v0/management/' + String(path || '').replace(/^\/+/, '');
-    return base ? (base + p) : p;
+    return new URL(p, location.origin).toString();
   }
 
   function hostURL(path) {
-    const base = apiBase();
     const p = '/' + String(path || '').replace(/^\/+/, '');
-    return base ? (base + p) : p;
+    return new URL(p, location.origin).toString();
   }
 
   function errorMessage(data, text, status) {
@@ -677,7 +656,7 @@
         },
       });
     } catch (e) {
-      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查 API 根地址是否可访问。');
+      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查当前 CPA 是否可访问。');
     }
     const text = await res.text();
     let data = null;
@@ -835,7 +814,7 @@
     try {
       res = await fetch(url, opts);
     } catch (e) {
-      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查 API 根地址是否可访问，以及是否跨域被浏览器拦截。');
+      throw new Error('网络失败: ' + (e && e.message ? e.message : e) + '。请检查当前 CPA 是否可访问。');
     }
     const text = await res.text();
     let data = null;
@@ -843,7 +822,7 @@
     if (!res.ok) {
       const err = (data && (data.error || data.message)) || text || res.statusText || ('HTTP ' + res.status);
       if (res.status === 404) {
-        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请把「CLIProxyAPI 根地址」改成代理实际地址（如 http://127.0.0.1:8317），确认已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
+        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请确认已部署最新插件并重启宿主；密钥必须是宿主 management secret。');
       }
       if (res.status === 401 || res.status === 403) {
         throw new Error((typeof err === 'string' ? err : JSON.stringify(err)) + '（管理密钥错误，或未允许远程管理）');
@@ -4031,7 +4010,7 @@
     const modal = $('connectionModal');
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
-    $('apiBase').focus();
+    $('mgmtToken').focus();
   };
 
   // events
@@ -4081,10 +4060,7 @@
   $('btnSaveToken').addEventListener('click', async () => {
     const t = $('mgmtToken').value.trim();
     if (!t) { flash('请输入管理密钥', false); return; }
-    const base = $('apiBase').value.trim().replace(/\/$/, '');
     sessionStorage.setItem(TOKEN_KEY, t);
-    if (base) sessionStorage.setItem(BASE_KEY, base);
-    else sessionStorage.removeItem(BASE_KEY);
     try {
       await reloadWithModelCatalog();
       closeConnectionModal();
@@ -4093,9 +4069,8 @@
   });
   $('btnClearToken').addEventListener('click', () => {
     sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(BASE_KEY);
     $('mgmtToken').value = '';
-    flash('已清除本地管理密钥与 API 根地址', true);
+    flash('已清除本地管理密钥', true);
   });
   let authQuotaSearchTimer = 0;
   $('authQuotaProviderFilter').addEventListener('change', () => {
@@ -4343,7 +4318,9 @@
   });
 
   // boot
-  const savedBase = detectDefaultBase();
+  // Earlier versions stored a caller-controlled API root. It is no longer
+  // trusted or used; remove it before any request can carry a management token.
+  sessionStorage.removeItem('credit_manager_api_base');
   state.tokenUnit = normalizeTokenUnit(localStorage.getItem(TOKEN_UNIT_KEY) || 'raw');
   state.currency = normalizeCurrency(localStorage.getItem(CURRENCY_KEY) || 'USD');
   state.usdCnyRate = normalizeUsdCnyRate(localStorage.getItem(USD_CNY_RATE_KEY) || DEFAULT_USD_CNY_RATE);
@@ -4354,7 +4331,6 @@
   initPreferences();
   fetchUsdCnyRate(false);
   window.setInterval(() => fetchUsdCnyRate(false), 30 * 60 * 1000);
-  if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
   const saved = sessionStorage.getItem(TOKEN_KEY) || '';
