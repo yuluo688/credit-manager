@@ -39,6 +39,20 @@ type UsageEntry struct {
 	CreatedAt             time.Time
 }
 
+// UpdateUsageTier records the actual upstream service_tier on a ledger row.
+func (s *Store) UpdateUsageTier(ctx context.Context, ledgerID, tier string) error {
+	ledgerID = strings.TrimSpace(ledgerID)
+	tier = strings.TrimSpace(tier)
+	if ledgerID == "" || tier == "" {
+		return fmt.Errorf("%w: ledger id and tier are required", ErrInvalidArgument)
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET tier = ? WHERE id = ?`, tier, ledgerID)
+	if err != nil {
+		return fmt.Errorf("update usage tier: %w", err)
+	}
+	return requireOneRow(result, ErrInvalidArgument)
+}
+
 // UpdateUsageExecutor attaches the concrete host executor to an existing ledger row.
 func (s *Store) UpdateUsageExecutor(ctx context.Context, ledgerID, executorType string) error {
 	ledgerID = strings.TrimSpace(ledgerID)

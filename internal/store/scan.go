@@ -131,15 +131,21 @@ func scanPricingRule(row rowScanner) (PricingRule, error) {
 	var rule PricingRule
 	var enabled int
 	var created, updated int64
+	var tiersJSON string
 	if err := row.Scan(&rule.ID, &rule.MatchKind, &rule.Pattern, &rule.Priority,
 		&rule.Price.Input, &rule.Price.Output, &rule.Price.Reasoning, &rule.Price.Cached,
 		&rule.Price.CacheRead, &rule.Price.CacheCreation, &rule.Price.AccountingMode,
-		&rule.Price.BillingMode, &rule.Price.PerImage, &enabled, &created, &updated); err != nil {
+		&rule.Price.BillingMode, &rule.Price.PerImage, &tiersJSON, &enabled, &created, &updated); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PricingRule{}, ErrPricingRuleNotFound
 		}
 		return PricingRule{}, err
 	}
+	tiers, err := unmarshalTiers(tiersJSON)
+	if err != nil {
+		return PricingRule{}, err
+	}
+	rule.Tiers = tiers
 	rule.Enabled = enabled == 1
 	rule.CreatedAt, rule.UpdatedAt = fromUnixMilli(created), fromUnixMilli(updated)
 	return rule, nil

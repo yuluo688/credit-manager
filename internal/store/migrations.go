@@ -301,6 +301,13 @@ var migrations = []migration{
 			`ALTER TABLE usage_ledger ADD COLUMN executor_type TEXT`,
 		},
 	},
+	{
+		version: 18,
+		name:    "pricing context and service tiers",
+		up: []string{
+			`ALTER TABLE pricing_rules ADD COLUMN tiers_json TEXT NOT NULL DEFAULT '[]'`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

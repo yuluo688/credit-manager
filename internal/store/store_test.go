@@ -885,6 +885,35 @@ func TestSetPricingRuleEnabled(t *testing.T) {
 	}
 }
 
+func TestPricingRuleTiersRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+
+	rule := PricingRule{
+		ID: "gpt-5.6-luna", MatchKind: MatchExact, Pattern: "gpt-5.6-luna", Priority: 100, Enabled: true,
+		Price: money.PricePerMTok{Input: 200_000, Output: 1_200_000, CacheRead: 20_000},
+		Tiers: []money.PriceTier{
+			{Kind: money.PriceTierContext, Label: "272K", Threshold: 272_000, Price: money.PricePerMTok{Input: 400_000, Output: 1_800_000, CacheRead: 40_000}},
+			{Kind: money.PriceTierService, Service: "fast,priority", Price: money.PricePerMTok{Input: 400_000, Output: 2_400_000}},
+		},
+	}
+	if err := st.PutPricingRule(ctx, rule); err != nil {
+		t.Fatalf("put: %v", err)
+	}
+	got, err := st.GetPricingRule(ctx, rule.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Tiers) != 2 || got.Tiers[0].Threshold != 272_000 || got.Tiers[1].Service != "fast,priority" {
+		t.Fatalf("tiers = %#v", got.Tiers)
+	}
+	resolved, err := st.ResolvePricingRule(ctx, "gpt-5.6-luna")
+	if err != nil || len(resolved.Tiers) != 2 {
+		t.Fatalf("resolve = %#v err=%v", resolved, err)
+	}
+}
+
 func TestWinningPricingRuleUsesPriorityAndDisabled(t *testing.T) {
 	rules := []PricingRule{
 		{ID: "all", MatchKind: MatchGlob, Pattern: "*", Priority: 1, Enabled: true},
