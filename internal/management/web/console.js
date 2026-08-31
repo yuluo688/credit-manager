@@ -1,6 +1,7 @@
 
 (function () {
   const TOKEN_KEY = 'credit_manager_mgmt_token';
+  const TOKEN_ORIGIN_KEY = 'credit_manager_mgmt_token_origin';
   const BASE_KEY = 'credit_manager_api_base';
   const TOKEN_UNIT_KEY = 'credit_manager_token_unit';
   const CURRENCY_KEY = 'credit_manager_currency';
@@ -69,7 +70,7 @@
     '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
     '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无密钥': { 'zh-TW':'暫無密鑰', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
     '还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。': { 'zh-TW':'還沒有密鑰。點擊右上角「新增密鑰」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
-    '连接信息仅保存于当前浏览器会话。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。', en:'Connection details stay in this browser session only.', ru:'Данные подключения хранятся только в этом сеансе браузера.' },
+    '连接信息仅保存于当前浏览器会话。本页只连接当前站点。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。本頁只連線目前網站。', en:'Connection details stay in this browser session only. This page only talks to the current site.', ru:'Данные подключения хранятся только в этом сеансе. Страница подключается только к текущему сайту.' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
     '可用模型（多选；不选=全部）': { 'zh-TW':'可用模型（多選；不選=全部）', en:'Allowed models (multi-select; none = all)', ru:'Доступные модели (несколько; пусто = все)' },
     '正在加载当前代理可用模型…': { 'zh-TW':'正在載入目前代理可用模型…', en:'Loading current proxy models…', ru:'Загрузка моделей прокси…' },
@@ -603,38 +604,76 @@
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
+  function pageOrigin() {
+    return String(location.origin || '').replace(/\/$/, '');
+  }
+
+  function isSameOriginBase(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return true;
+    try {
+      return new URL(raw, location.origin).origin === location.origin;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function assertSameOriginRequest(url) {
+    if (!isSameOriginBase(url)) {
+      throw new Error('已拒绝向非同源地址发送管理密钥');
+    }
+  }
+
+  function stripDangerousQuery() {
+    try {
+      const url = new URL(location.href);
+      const remove = [];
+      url.searchParams.forEach((_, key) => {
+        const k = String(key || '').toLowerCase();
+        if (k === 'api_base' || k === 'api') remove.push(key);
+      });
+      if (!remove.length) return;
+      remove.forEach((key) => url.searchParams.delete(key));
+      const search = url.searchParams.toString();
+      history.replaceState(null, '', url.pathname + (search ? '?' + search : '') + url.hash);
+    } catch (_) {}
+  }
+
+  function savedSessionToken() {
+    const savedOrigin = (sessionStorage.getItem(TOKEN_ORIGIN_KEY) || '').trim();
+    if (savedOrigin && savedOrigin !== location.origin) return '';
+    return (sessionStorage.getItem(TOKEN_KEY) || '').trim();
+  }
+
   function token() {
-    return ($('mgmtToken').value || sessionStorage.getItem(TOKEN_KEY) || '').trim();
+    const typed = ($('mgmtToken') && $('mgmtToken').value || '').trim();
+    if (typed) return typed;
+    return savedSessionToken();
   }
 
   function detectDefaultBase() {
-    try {
-      const q = new URLSearchParams(location.search || '');
-      const fromQuery = (q.get('api_base') || q.get('api') || '').trim();
-      if (fromQuery) return fromQuery.replace(/\/$/, '');
-    } catch (_) {}
-    // Resource page served by CLIProxyAPI itself.
-    if ((location.pathname || '').indexOf('/v0/resource/plugins/') === 0) {
-      return location.origin;
-    }
-    return (sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
+    return pageOrigin();
   }
 
   function apiBase() {
-    const raw = ($('apiBase').value || sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
-    return raw;
+    return pageOrigin();
+  }
+
+  function lockAPIBaseField() {
+    const input = $('apiBase');
+    if (!input) return;
+    input.value = pageOrigin();
+    input.readOnly = true;
   }
 
   function managementURL(path) {
-    const base = apiBase();
     const p = '/v0/management/' + String(path || '').replace(/^\/+/, '');
-    return base ? (base + p) : p;
+    return pageOrigin() + p;
   }
 
   function hostURL(path) {
-    const base = apiBase();
     const p = '/' + String(path || '').replace(/^\/+/, '');
-    return base ? (base + p) : p;
+    return pageOrigin() + p;
   }
 
   function errorMessage(data, text, status) {
@@ -651,7 +690,9 @@
   }
 
   async function hostAPI(path) {
-    const res = await fetch(hostURL(path), { headers: { 'Accept': 'application/json' } });
+    const url = hostURL(path);
+    assertSameOriginRequest(url);
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     const text = await res.text();
     let data;
     try { data = text ? JSON.parse(text) : null; } catch (_) { data = { raw: text }; }
@@ -667,6 +708,7 @@
     const t = token();
     if (!t) throw new Error('请先填写并保存宿主管理密钥');
     const url = managementURL(path);
+    assertSameOriginRequest(url);
     let res;
     try {
       res = await fetch(url, {
@@ -820,6 +862,7 @@
     const t = token();
     if (!t) throw new Error('请先填写并保存宿主管理密钥');
     const url = managementURL(path);
+    assertSameOriginRequest(url);
     const opts = {
       method,
       headers: {
@@ -843,7 +886,7 @@
     if (!res.ok) {
       const err = (data && (data.error || data.message)) || text || res.statusText || ('HTTP ' + res.status);
       if (res.status === 404) {
-        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请把「CLIProxyAPI 根地址」改成代理实际地址（如 http://127.0.0.1:8317），确认已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
+        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请确认当前页面就是 CPA 地址，已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
       }
       if (res.status === 401 || res.status === 403) {
         throw new Error((typeof err === 'string' ? err : JSON.stringify(err)) + '（管理密钥错误，或未允许远程管理）');
@@ -4135,8 +4178,10 @@
   $('btnSaveToken').addEventListener('click', async () => {
     const t = $('mgmtToken').value.trim();
     if (!t) { flash('请输入管理密钥', false); return; }
-    const base = $('apiBase').value.trim().replace(/\/$/, '');
+    lockAPIBaseField();
+    const base = apiBase();
     sessionStorage.setItem(TOKEN_KEY, t);
+    sessionStorage.setItem(TOKEN_ORIGIN_KEY, location.origin);
     if (base) sessionStorage.setItem(BASE_KEY, base);
     else sessionStorage.removeItem(BASE_KEY);
     try {
@@ -4147,6 +4192,7 @@
   });
   $('btnClearToken').addEventListener('click', () => {
     sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_ORIGIN_KEY);
     sessionStorage.removeItem(BASE_KEY);
     $('mgmtToken').value = '';
     flash('已清除本地管理密钥与 API 根地址', true);
@@ -4397,6 +4443,7 @@
   });
 
   // boot
+  stripDangerousQuery();
   const savedBase = detectDefaultBase();
   state.tokenUnit = normalizeTokenUnit(localStorage.getItem(TOKEN_UNIT_KEY) || 'raw');
   state.currency = normalizeCurrency(localStorage.getItem(CURRENCY_KEY) || 'USD');
@@ -4408,11 +4455,12 @@
   initPreferences();
   fetchUsdCnyRate(false);
   window.setInterval(() => fetchUsdCnyRate(false), 30 * 60 * 1000);
+  lockAPIBaseField();
   if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
-  const saved = sessionStorage.getItem(TOKEN_KEY) || '';
-  if (saved) {
+  const saved = savedSessionToken();
+  if (saved && isSameOriginBase(apiBase())) {
     $('mgmtToken').value = saved;
     reloadWithModelCatalog().catch(e => flash(e.message, false));
   } else {
