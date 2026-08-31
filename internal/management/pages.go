@@ -59,18 +59,21 @@ func mustPageFile(name string) []byte {
 	return raw
 }
 
-func htmlPageHeaders() http.Header {
-	return http.Header{
-		"Content-Type":            []string{"text/html; charset=utf-8"},
-		"Cache-Control":           []string{"no-store"},
-		"Content-Security-Policy": []string{"connect-src 'self'"},
+func htmlPageHeaders(connectSrcSelf bool) http.Header {
+	headers := http.Header{
+		"Content-Type":  []string{"text/html; charset=utf-8"},
+		"Cache-Control": []string{"no-store"},
 	}
+	if connectSrcSelf {
+		headers.Set("Content-Security-Policy", "connect-src 'self'")
+	}
+	return headers
 }
 
 func consolePage() pluginapi.ManagementResponse {
 	return pluginapi.ManagementResponse{
 		StatusCode: http.StatusOK,
-		Headers:    htmlPageHeaders(),
+		Headers:    htmlPageHeaders(false),
 		Body:       consolePageBody,
 	}
 }
@@ -78,7 +81,7 @@ func consolePage() pluginapi.ManagementResponse {
 func lookupPage() pluginapi.ManagementResponse {
 	return pluginapi.ManagementResponse{
 		StatusCode: http.StatusOK,
-		Headers:    htmlPageHeaders(),
+		Headers:    htmlPageHeaders(true),
 		Body:       lookupPageBody,
 	}
 }

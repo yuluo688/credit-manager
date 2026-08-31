@@ -464,7 +464,102 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
 .modal-backdrop { position:fixed; z-index:20; inset:0; display:grid; place-items:center; padding:20px; background:rgba(24, 35, 28, .32); backdrop-filter:blur(5px); opacity:0; pointer-events:none; transition:opacity .18s ease; }
 .modal-backdrop.open { opacity:1; pointer-events:auto; }
 .connection-modal { width:min(610px, 100%); max-height:calc(100vh - 40px); overflow:auto; background:var(--panel); border:1px solid rgba(255,255,255,.72); border-radius:16px; box-shadow:0 24px 70px rgba(21, 37, 26, .25); transform:scale(.96); transition:transform .36s cubic-bezier(.32, .72, 0, 1); }
-.connection-modal.price-modal { width:min(740px, 100%); }
+.connection-modal.price-modal {
+  width:min(520px, 100%);
+  max-height:min(640px, calc(100dvh - 28px));
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.price-modal .modal-header { flex:0 0 auto; padding:16px 18px 10px; }
+.price-modal .modal-header .hint {
+  margin-top:4px;
+  max-width:42ch;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.price-modal .modal-body {
+  flex:1 1 auto;
+  min-height:0;
+  overflow:auto;
+  padding:0 18px;
+}
+.price-modal .modal-footer {
+  flex:0 0 auto;
+  display:flex;
+  justify-content:flex-end;
+  padding:10px 18px 14px;
+  border-top:1px solid var(--line);
+}
+.price-modal .modal-actions { margin:0; flex-wrap:nowrap; }
+.price-sheet { gap:0; }
+.price-block {
+  display:grid;
+  gap:8px;
+  padding:12px 0;
+  border-bottom:1px solid var(--line);
+}
+.price-block:last-child { border-bottom:0; }
+.price-modal .modal-section-title { font-size:.72rem; }
+.price-modal .form-grid-2 { gap:8px; }
+.price-modal label { font-size:.75rem; min-width:0; }
+.price-modal input:not([type="checkbox"]),
+.price-modal select,
+.price-modal .custom-control-trigger {
+  min-height:38px;
+  height:38px;
+  padding:8px 10px;
+  box-sizing:border-box;
+}
+.price-modal .key-switch-field { min-height:0; justify-content:flex-start; gap:6px; }
+.price-modal .key-switch { min-height:38px; width:100%; }
+.price-rate-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.price-tier-title { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.price-tier-list { display:grid; gap:8px; }
+.price-tier-row {
+  display:grid;
+  gap:8px;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.price-tier-meta {
+  display:grid;
+  grid-template-columns:auto minmax(0, 1fr) auto;
+  gap:8px;
+  align-items:center;
+}
+.price-tier-meta strong {
+  min-width:3.2em;
+  font-size:.75rem;
+  font-weight:650;
+}
+.price-tier-meta .muted { font-size:.7rem; }
+.price-tier-row input { min-height:38px; height:38px; padding:8px 10px; }
+.price-tier-remove {
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:28px;
+  padding:0;
+  border-radius:7px;
+  color:var(--muted);
+}
+.price-tier-note {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:6px;
+  color:var(--table-muted);
+  font-size:.75rem;
+}
+.price-tier-note strong { color:var(--table-text); font-weight:650; }
+html[data-palette="dark"] .price-block { border-color:var(--line); }
 .connection-modal.key-modal { width:min(760px, 100%); overflow:hidden; display:flex; flex-direction:column; }
 .connection-modal.key-modal .modal-header, .connection-modal.key-modal .modal-body { flex:0 0 auto; }
 .connection-modal.key-modal .modal-body { flex:1 1 auto; min-height:0; overflow:auto; }
@@ -481,6 +576,26 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 .connection-form label { min-width:0; }
 .connection-form .row { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; }
 .connection-form .row label { min-width:0; flex:none; }
+.connection-form .remember-row {
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  color:var(--text);
+  font-size:.84rem;
+  font-weight:650;
+  cursor:pointer;
+  user-select:none;
+}
+.connection-form .remember-row input {
+  width:16px;
+  height:16px;
+  margin:0;
+  flex:none;
+  accent-color:var(--accent);
+}
+#apiBase[readonly] { cursor:not-allowed; opacity:.62; }
 .modal-section {
   display:grid;
   gap:12px;
@@ -651,11 +766,13 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   .form-grid-2,
   .form-grid-3,
   .form-grid-4 { grid-template-columns:1fr; }
+  .price-modal .form-grid-2,
+  .price-rate-grid { grid-template-columns:1fr 1fr; }
   .field-span-2 { grid-column:auto; }
   .modal-actions { justify-content:stretch; }
   .modal-actions .btn { flex:1 1 auto; }
 }
-@media (max-width: 520px) { .topbar { display:block; } .topbar-actions { margin-top:14px; } .modal-backdrop { padding:12px; } .modal-header, .modal-body { padding-left:16px; padding-right:16px; } }
+@media (max-width: 520px) { .topbar { display:block; } .topbar-actions { margin-top:14px; } .modal-backdrop { padding:12px; } .modal-header, .modal-body, .modal-footer { padding-left:16px; padding-right:16px; } }
 .workspace-content { width:100%; max-width:none; }
 html[data-palette="white"] {
   color-scheme:light;
@@ -1277,6 +1394,7 @@ html[data-palette="dark"] .pricing-actions .btn.danger:hover { background:#42252
 @media (max-width: 1080px) { .usage-grid { grid-template-columns:minmax(0, 1fr); } .usage-grid .usage-recent-card { grid-column:auto; } }
 @media (max-width: 760px) { .connection-panel .token-box { grid-template-columns:1fr 1fr; } .connection-panel .token-box .btn { width:100%; } .overview-layout, .management-layout, .pricing-layout { grid-template-columns:1fr; } .form-card { position:static; } .overview-layout .stats { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); } }
 .auth-quota-list { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; align-items:stretch; }
+.auth-quota-list > .empty-state { grid-column:1 / -1; }
 .auth-quota-card { --auth-rail: var(--accent); position:relative; display:flex; flex-direction:column; height:100%; margin:0; overflow:hidden; padding:0; border-radius:12px; background:var(--panel); box-shadow:0 4px 12px rgba(41,57,46,.04); }
 .auth-quota-card::before { content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:var(--auth-rail); }
 .auth-quota-card[data-provider="codex"] { --auth-rail:#3b6ea8; }

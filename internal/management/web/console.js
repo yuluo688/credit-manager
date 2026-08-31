@@ -3,6 +3,7 @@
   const TOKEN_KEY = 'credit_manager_mgmt_token';
   const TOKEN_ORIGIN_KEY = 'credit_manager_mgmt_token_origin';
   const BASE_KEY = 'credit_manager_api_base';
+  const CUSTOM_BASE_ENABLED_KEY = 'credit_manager_custom_api_enabled';
   const TOKEN_UNIT_KEY = 'credit_manager_token_unit';
   const CURRENCY_KEY = 'credit_manager_currency';
   const USD_CNY_RATE_KEY = 'credit_manager_usd_cny_rate';
@@ -70,7 +71,8 @@
     '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
     '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无密钥': { 'zh-TW':'暫無密鑰', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
     '还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。': { 'zh-TW':'還沒有密鑰。點擊右上角「新增密鑰」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
-    '连接信息仅保存于当前浏览器会话。本页只连接当前站点。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。本頁只連線目前網站。', en:'Connection details stay in this browser session only. This page only talks to the current site.', ru:'Данные подключения хранятся только в этом сеансе. Страница подключается только к текущему сайту.' },
+    '连接信息仅保存于当前浏览器会话。未勾选自定义 API 地址时只连接当前站点。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。未勾選自訂 API 位址時只連線目前網站。', en:'Connection details stay in this browser session only. The page only talks to the current site unless Custom API address is checked.', ru:'Данные подключения хранятся только в этом сеансе. Без галочки страница подключается только к текущему сайту.' },
+    '自定义 API 地址': { 'zh-TW':'自訂 API 位址', en:'Custom API address', ru:'Свой адрес API' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
     '可用模型（多选；不选=全部）': { 'zh-TW':'可用模型（多選；不選=全部）', en:'Allowed models (multi-select; none = all)', ru:'Доступные модели (несколько; пусто = все)' },
     '正在加载当前代理可用模型…': { 'zh-TW':'正在載入目前代理可用模型…', en:'Loading current proxy models…', ru:'Загрузка моделей прокси…' },
@@ -85,13 +87,22 @@
     '匹配条件': { 'zh-TW':'匹配條件', en:'Match conditions', ru:'Условия совпадения' }, '类型 / pattern / 优先级': { 'zh-TW':'類型 / pattern / 優先級', en:'Type / pattern / priority', ru:'Тип / pattern / приоритет' },
     '匹配类型': { 'zh-TW':'匹配類型', en:'Match type', ru:'Тип совпадения' }, 'priority（大优先）': { 'zh-TW':'priority（大優先）', en:'priority (higher first)', ru:'priority (больше — выше)' },
     '计费价格': { 'zh-TW':'計費價格', en:'Billing price', ru:'Тариф' }, 'Token 或按张': { 'zh-TW':'Token 或按張', en:'Tokens or per image', ru:'Токены или за картинку' },
+    '特殊档位': { 'zh-TW':'特殊檔位', en:'Special tiers', ru:'Особые тарифы' }, '上下文 / fast / priority': { 'zh-TW':'上下文 / fast / priority', en:'Context / fast / priority', ru:'Контекст / fast / priority' },
+    '结算按实际输入 Token 和响应里的 service_tier；未命中则用上方默认价。': { 'zh-TW':'結算依實際輸入 Token 和回應裡的 service_tier；未命中則用上方預設價。', en:'Billing uses actual input tokens and the response service_tier; otherwise the default rates above.', ru:'Счёт идёт по фактическим input-токенам и service_tier ответа; иначе базовый тариф.' },
+    '添加上下文档位': { 'zh-TW':'新增上下文檔位', en:'Add context tier', ru:'Добавить контекстный тариф' }, '上下文档位': { 'zh-TW':'上下文檔位', en:'Context tier', ru:'Контекстный тариф' }, '上下文': { 'zh-TW':'上下文', en:'Context', ru:'Контекст' },
+    '阈值 Token': { 'zh-TW':'閾值 Token', en:'Threshold tokens', ru:'Порог токенов' }, '档位': { 'zh-TW':'檔位', en:'Tier', ru:'Тариф' },
+    '未填则用上方默认价': { 'zh-TW':'未填則用上方預設價', en:'Blank uses default rates above', ru:'Пустое — базовый тариф' }, '缓存读': { 'zh-TW':'快取讀', en:'Cache read', ru:'Чтение кэша' }, '缓存写': { 'zh-TW':'快取寫', en:'Cache write', ru:'Запись кэша' },
     '缓存读取 USD/1M': { 'zh-TW':'快取讀取 USD/1M', en:'Cache read USD/1M', ru:'Чтение кэша USD/1M' }, '缓存创建 USD/1M': { 'zh-TW':'快取建立 USD/1M', en:'Cache create USD/1M', ru:'Создание кэша USD/1M' },
     '缓存会计': { 'zh-TW':'快取會計', en:'Cache accounting', ru:'Учёт кэша' },
     '按模型自动（OpenAI 含缓存 / Claude 不含）': { 'zh-TW':'依模型自動（OpenAI 含快取 / Claude 不含）', en:'Auto by model (OpenAI includes cache / Claude excludes)', ru:'Авто по модели (OpenAI с кэшем / Claude без)' },
     'input 含缓存（OpenAI）': { 'zh-TW':'input 含快取（OpenAI）', en:'input includes cache (OpenAI)', ru:'input включает кэш (OpenAI)' },
     'input 不含缓存（Claude）': { 'zh-TW':'input 不含快取（Claude）', en:'input excludes cache (Claude)', ru:'input без кэша (Claude)' },
     '价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。': { 'zh-TW':'價格來源：models.dev。同步會儲存尚未設定的目前模型價格，不會覆蓋已有規則。', en:'Prices from models.dev. Sync saves unconfigured current model prices without overwriting existing rules.', ru:'Цены из models.dev. Синхронизация сохраняет незаданные цены и не перезаписывает правила.' },
-    '同步当前模型价格': { 'zh-TW':'同步目前模型價格', en:'Sync current model prices', ru:'Синхронизировать цены моделей' },
+    '同步当前模型价格': { 'zh-TW':'同步目前模型價格', en:'Sync current model prices', ru:'Синхронизировать цены моделей' }, '同步价格': { 'zh-TW':'同步價格', en:'Sync prices', ru:'Синхронизировать' },
+    '回填价格': { 'zh-TW':'回填價格', en:'Fill from catalog', ru:'Подставить цену' }, '选择当前模型': { 'zh-TW':'選擇目前模型', en:'Select a model', ru:'Выберите модель' },
+    '匹配': { 'zh-TW':'匹配', en:'Match', ru:'Совпадение' }, '默认价': { 'zh-TW':'預設價', en:'Default rates', ru:'Базовый тариф' },
+    '按 Token': { 'zh-TW':'按 Token', en:'Per token', ru:'За токен' }, '按张': { 'zh-TW':'按張', en:'Per image', ru:'За картинку' },
+    '自动': { 'zh-TW':'自動', en:'Auto', ru:'Авто' }, '空白即用默认价': { 'zh-TW':'空白即用預設價', en:'Blank uses default', ru:'Пустое — база' }, '保存': { 'zh-TW':'儲存', en:'Save', ru:'Сохранить' },
     '文本模型按 USD / 1M tokens；纯出图模型按张计费，不要套用 Token 价。': { 'zh-TW':'文字模型按 USD / 1M tokens；純出圖模型按張計費，不要套用 Token 價。', en:'Text models use USD / 1M tokens; image models bill per image, not token prices.', ru:'Текстовые модели — USD / 1M токенов; картинки — за штуку, не по токенам.' },
     '未加载': { 'zh-TW':'未載入', en:'Not loaded', ru:'Не загружено' }, '未设置筛选': { 'zh-TW':'未設定篩選', en:'No filters', ru:'Нет фильтров' },
     '汇总和明细共用以下条件。「今日」按本地自然日，金额单位为 USD。': { 'zh-TW':'彙總和明細共用以下條件。「今天」按本地自然日，金額單位為 USD。', en:'Summary and details share these filters. Today uses the local calendar day; amounts are USD.', ru:'Сводка и детали используют одни фильтры. «Сегодня» — локальный день; суммы в USD.' },
@@ -618,25 +629,45 @@
     }
   }
 
+  function customAPIBaseEnabled() {
+    const box = $('customApiBase');
+    return !!(box && box.checked);
+  }
+
+  function persistCustomAPIBaseEnabled(enabled) {
+    try { localStorage.setItem(CUSTOM_BASE_ENABLED_KEY, enabled ? '1' : '0'); } catch (_) {}
+  }
+
+  function persistCustomAPIBase(value) {
+    const base = String(value || '').trim().replace(/\/$/, '');
+    if (!base) {
+      sessionStorage.removeItem(BASE_KEY);
+      try { localStorage.removeItem(BASE_KEY); } catch (_) {}
+      return;
+    }
+    sessionStorage.setItem(BASE_KEY, base);
+    try { localStorage.setItem(BASE_KEY, base); } catch (_) {}
+  }
+
+  function savedCustomAPIBase() {
+    const session = (sessionStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, '');
+    if (session) return session;
+    try { return (localStorage.getItem(BASE_KEY) || '').trim().replace(/\/$/, ''); }
+    catch (_) { return ''; }
+  }
+
+  function restoreCustomAPIBasePreference() {
+    const box = $('customApiBase');
+    if (!box) return;
+    try { box.checked = localStorage.getItem(CUSTOM_BASE_ENABLED_KEY) === '1'; }
+    catch (_) { box.checked = false; }
+  }
+
   function assertSameOriginRequest(url) {
+    if (customAPIBaseEnabled()) return;
     if (!isSameOriginBase(url)) {
       throw new Error('已拒绝向非同源地址发送管理密钥');
     }
-  }
-
-  function stripDangerousQuery() {
-    try {
-      const url = new URL(location.href);
-      const remove = [];
-      url.searchParams.forEach((_, key) => {
-        const k = String(key || '').toLowerCase();
-        if (k === 'api_base' || k === 'api') remove.push(key);
-      });
-      if (!remove.length) return;
-      remove.forEach((key) => url.searchParams.delete(key));
-      const search = url.searchParams.toString();
-      history.replaceState(null, '', url.pathname + (search ? '?' + search : '') + url.hash);
-    } catch (_) {}
   }
 
   function savedSessionToken() {
@@ -652,28 +683,42 @@
   }
 
   function detectDefaultBase() {
-    return pageOrigin();
+    if (!customAPIBaseEnabled()) return pageOrigin();
+    return savedCustomAPIBase() || pageOrigin();
   }
 
   function apiBase() {
-    return pageOrigin();
+    if (!customAPIBaseEnabled()) return pageOrigin();
+    const raw = (($('apiBase') && $('apiBase').value) || savedCustomAPIBase() || '').trim().replace(/\/$/, '');
+    return raw || pageOrigin();
   }
 
-  function lockAPIBaseField() {
+  function syncAPIBaseField() {
     const input = $('apiBase');
     if (!input) return;
-    input.value = pageOrigin();
-    input.readOnly = true;
+    const enabled = customAPIBaseEnabled();
+    if (!enabled) {
+      const typed = (input.value || '').trim().replace(/\/$/, '');
+      if (!input.readOnly && typed && !isSameOriginBase(typed)) persistCustomAPIBase(typed);
+      input.value = pageOrigin();
+    } else {
+      const saved = savedCustomAPIBase();
+      if (saved) input.value = saved;
+      else if (!(input.value || '').trim()) input.value = pageOrigin();
+    }
+    input.readOnly = !enabled;
   }
 
   function managementURL(path) {
+    const base = apiBase();
     const p = '/v0/management/' + String(path || '').replace(/^\/+/, '');
-    return pageOrigin() + p;
+    return base ? (base + p) : p;
   }
 
   function hostURL(path) {
+    const base = apiBase();
     const p = '/' + String(path || '').replace(/^\/+/, '');
-    return pageOrigin() + p;
+    return base ? (base + p) : p;
   }
 
   function errorMessage(data, text, status) {
@@ -886,7 +931,7 @@
     if (!res.ok) {
       const err = (data && (data.error || data.message)) || text || res.statusText || ('HTTP ' + res.status);
       if (res.status === 404) {
-        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请确认当前页面就是 CPA 地址，已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
+        throw new Error('Not Found（404）：未找到管理接口 ' + url + '。请把「CLIProxyAPI 根地址」改成代理实际地址（如 http://127.0.0.1:8317），确认已部署最新 DLL 并重启宿主；密钥必须是宿主 management secret。');
       }
       if (res.status === 401 || res.status === 403) {
         throw new Error((typeof err === 'string' ? err : JSON.stringify(err)) + '（管理密钥错误，或未允许远程管理）');
@@ -1195,7 +1240,9 @@
   }
 
   async function loadOverviewBundle() {
+    const seq = state.tabLoadSeq;
     const data = await api('GET', 'credit-manager/overview' + overviewQuery());
+    if (seq !== state.tabLoadSeq) return null;
     state.overview = data;
     renderKeys(data.keys || []);
     renderOverview(data);
@@ -1514,9 +1561,23 @@
       rank.className = 'model-rank-list';
       rank.innerHTML = chartEmptyState('', true, 'trophy');
     }
+    const stats = $('overviewStats');
+    if (stats) stats.innerHTML = '';
+    const filterState = $('overviewFilterState');
+    if (filterState) {
+      const range = $('overviewRangeFilter');
+      filterState.textContent = (range && range.selectedOptions[0] && range.selectedOptions[0].textContent.trim()) || t('今日 · 全部数据');
+    }
+    const modelCount = $('overviewModelCount');
+    if (modelCount) {
+      modelCount.textContent = '';
+      modelCount.hidden = true;
+    }
     ['overviewTrendTotal', 'overviewCostTrendTotal', 'overviewModelShareTotal', 'overviewRankCount'].forEach(id => {
       const target = $(id);
-      if (target) target.textContent = t('未连接');
+      if (!target) return;
+      target.textContent = t('未连接');
+      if (id === 'overviewRankCount') target.hidden = true;
     });
     const rankHint = $('overviewRankHint');
     if (rankHint) rankHint.textContent = t(modelRankSpec('value').hint);
@@ -1524,18 +1585,69 @@
 
   function renderDisconnectedTabStates() {
     const content = chartEmptyState('', true).replace('chart-empty-state', 'chart-empty-state tab-empty-state');
-    ['keysTable', 'pricingTable', 'usageByKey', 'usageByModel', 'usageRecent'].forEach(id => {
+    ['keysTable', 'pricingTable', 'usageByKey', 'usageByModel', 'usageRecent', 'authQuotaList'].forEach(id => {
       const target = $(id);
       if (target) target.innerHTML = content;
     });
     const stats = $('usageStats');
     if (stats) stats.innerHTML = content;
-    const pagination = $('usagePagination');
-    if (pagination) pagination.innerHTML = '';
+    ['usagePagination', 'authQuotaPagination'].forEach(id => {
+      const pagination = $(id);
+      if (pagination) pagination.innerHTML = '';
+    });
+    const usageFilter = $('usageFilterState');
+    if (usageFilter) usageFilter.textContent = t('未设置筛选');
+    const catalogStatus = $('modelCatalogStatus');
+    if (catalogStatus) catalogStatus.textContent = t('加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。');
     [['keysCount', '未连接'], ['modelCatalogCount', '未连接'], ['usageByKeyCount', '未连接'], ['usageByModelCount', '未连接'], ['usageRecentCount', '未连接']].forEach(([id, text]) => {
       const target = $(id);
-      if (target) target.textContent = text;
+      if (target) target.textContent = t(text);
     });
+  }
+
+  function resetDataBoundFilters() {
+    ['overviewKeyFilter', 'overviewAuthFilter', 'usageKeyFilter', 'usageAuthFilter', 'authQuotaNameFilter', 'authQuotaBatchConcurrency'].forEach(id => {
+      const el = $(id);
+      if (el) el.value = '';
+    });
+    [['overviewModelFilter', '全部已使用模型'], ['usageModelFilter', '全部已使用模型'], ['authQuotaProviderFilter', '全部平台'], ['priceModelPicker', '加载后选择模型']].forEach(([id, label]) => {
+      const select = $(id);
+      if (!select) return;
+      select.innerHTML = '<option value="">'+label+'</option>';
+      select.value = '';
+    });
+    closeKeySearch('overview');
+    closeKeySearch('usage');
+    closeAuthSearch('overview');
+    closeAuthSearch('usage');
+  }
+
+  function clearLoadedSession() {
+    state.tabLoadSeq += 1;
+    state.overview = null;
+    state.keys = [];
+    state.authQuotas = null;
+    state.authQuotaWeeks = {};
+    state.authQuotaRefreshing = {};
+    state.authQuotaProvider = '';
+    state.authQuotaName = '';
+    state.authQuotaPage = 1;
+    state.authQuotaPageRefreshing = false;
+    state.allKeys = [];
+    state.usedAuths = [];
+    state.modelPrices = {};
+    state.modelCatalogError = '';
+    state.availableModels = [];
+    state.usagePage = 1;
+    state.usageSummary = null;
+    state.usageRecent = null;
+    state.deleteKeyID = '';
+    closeKeyModal();
+    closePriceModal();
+    closeDeleteKeyModal();
+    resetDataBoundFilters();
+    renderDisconnectedOverview();
+    renderDisconnectedTabStates();
   }
 
   function renderOverviewEChart(id, emptyText, option, handlers) {
@@ -2747,7 +2859,8 @@
     $('pricePerImage').value = Number(priceValue(price, 'PerImage', 'per_image') || 0) / 1e6;
     $('priceEnabled').checked = ruleEnabled(rule);
     $('priceModelPicker').value = '';
-    $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」。可同步并选择当前可用模型的 models.dev 价格进行回填。' : '价格来源：models.dev。仅匹配当前代理公开的模型；同步不会自动保存。';
+    $('modelPriceStatus').textContent = rule ? '正在编辑「' + id + '」' : '价格来源：models.dev';
+    fillPriceTiers(ruleTiers(rule));
     syncPriceBillingFields();
     refreshCustomControls();
     const modal = $('priceModal');
@@ -2863,7 +2976,227 @@
 
   function modelsDevCostKey(cost) {
     const c = cost || {};
-    return [c.input, c.output, c.cache_read, c.cache_write].map(value => Number(value) || 0).join('|');
+    const base = [c.input, c.output, c.cache_read, c.cache_write].map(value => Number(value) || 0).join('|');
+    return base + '|' + JSON.stringify(c.tiers || c.context_over_200k || null);
+  }
+
+  function formatContextLabel(tokens) {
+    const n = Math.round(Number(tokens) || 0);
+    if (n >= 1000 && n % 1000 === 0) return (n / 1000) + 'K';
+    return String(n);
+  }
+
+  function modelsDevContextTiers(cost) {
+    const c = cost || {};
+    const out = [];
+    const seen = new Set();
+    const add = (threshold, rates) => {
+      const n = Number(threshold);
+      if (!(n > 0) || seen.has(n)) return;
+      seen.add(n);
+      out.push({
+        kind: 'context',
+        label: formatContextLabel(n),
+        threshold: n,
+        price: {
+          input: priceNumber(rates && rates.input),
+          output: priceNumber(rates && rates.output),
+          cache_read: priceNumber(rates && (rates.cache_read != null ? rates.cache_read : rates.cacheRead)),
+          cache_write: priceNumber(rates && (rates.cache_write != null ? rates.cache_write : rates.cache_creation)),
+        },
+      });
+    };
+    (Array.isArray(c.tiers) ? c.tiers : []).forEach(item => {
+      const spec = (item && item.tier) || {};
+      if (String(spec.type || '').toLowerCase() !== 'context') return;
+      add(spec.size, item);
+    });
+    if (c.context_over_200k) add(200000, c.context_over_200k);
+    return out.sort((a, b) => a.threshold - b.threshold);
+  }
+
+  function ruleTiers(rule) {
+    return [...((rule && (rule.Tiers || rule.tiers)) || [])];
+  }
+
+  function tierKind(tier) {
+    return String((tier && (tier.kind || tier.Kind)) || '').toLowerCase();
+  }
+
+  function tierService(tier) {
+    return String((tier && (tier.service || tier.Service)) || '').toLowerCase();
+  }
+
+  function tierThreshold(tier) {
+    return Number((tier && (tier.threshold != null ? tier.threshold : tier.Threshold)) || 0);
+  }
+
+  function tierPriceObj(tier) {
+    return (tier && (tier.price || tier.Price)) || {};
+  }
+
+  function serviceTierMatches(tier, name) {
+    return tierService(tier).split(',').map(part => part.trim()).includes(name);
+  }
+
+  function usdToMicroPrice(cost) {
+    return {
+      input: Math.round(priceNumber(cost && cost.input) * 1e6),
+      output: Math.round(priceNumber(cost && cost.output) * 1e6),
+      cache_read: Math.round(priceNumber(cost && cost.cache_read) * 1e6),
+      cache_creation: Math.round(priceNumber(cost && (cost.cache_write != null ? cost.cache_write : cost.cache_creation)) * 1e6),
+    };
+  }
+
+  function modelsDevTiersPayload(cost) {
+    return modelsDevContextTiers(cost).map(tier => ({
+      kind: 'context',
+      label: tier.label,
+      threshold: tier.threshold,
+      price: usdToMicroPrice(tier.price),
+    }));
+  }
+
+  function normalizeTierPayload(tier) {
+    const price = tierPriceObj(tier);
+    return {
+      kind: tierKind(tier),
+      label: String((tier && (tier.label || tier.Label)) || ''),
+      threshold: tierThreshold(tier),
+      service: tierService(tier),
+      price: {
+        input: Number(priceValue(price, 'Input', 'input') || 0),
+        output: Number(priceValue(price, 'Output', 'output') || 0),
+        cache_read: Number(priceValue(price, 'CacheRead', 'cache_read') || 0),
+        cache_creation: Number(priceValue(price, 'CacheCreation', 'cache_creation') || 0),
+      },
+    };
+  }
+
+  function microToUsdField(value) {
+    const n = Number(value || 0) / 1e6;
+    return Number.isFinite(n) && n > 0 ? String(n) : '';
+  }
+
+  function emptyIfZero(value) {
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? String(n) : '';
+  }
+
+  function tierRateInputs(row) {
+    return '<div class="price-rate-grid">' +
+      '<label>input<input data-tier-in type="number" step="0.000001" min="0" value="'+esc(row.input || '')+'"/></label>' +
+      '<label>output<input data-tier-out type="number" step="0.000001" min="0" value="'+esc(row.output || '')+'"/></label>' +
+      '<label>缓存读<input data-tier-cache-read type="number" step="0.000001" min="0" value="'+esc(row.cache_read || '')+'"/></label>' +
+      '<label>缓存写<input data-tier-cache-write type="number" step="0.000001" min="0" value="'+esc(row.cache_write || '')+'"/></label>' +
+      '</div>';
+  }
+
+  function contextTierCardHTML(row) {
+    return '<div class="price-tier-row">' +
+      '<div class="price-tier-meta"><strong>上下文</strong><input data-tier-threshold type="number" min="1" step="1000" aria-label="阈值 Token" placeholder="272000" value="'+esc(row.threshold || '')+'"/><button class="btn ghost price-tier-remove" type="button" data-remove-context-tier aria-label="删除">×</button></div>' +
+      tierRateInputs(row) +
+      '</div>';
+  }
+
+  function renderContextTierCards(rows) {
+    $('priceContextTiers').innerHTML = (rows || []).map(row => contextTierCardHTML(row)).join('');
+  }
+
+  function renderServiceTierCards(prices) {
+    $('priceServiceTiers').innerHTML = ['fast', 'priority'].map(name => {
+      const row = (prices && prices[name]) || {};
+      return '<div class="price-tier-row" data-service="'+name+'"><div class="price-tier-meta"><strong>'+esc(name)+'</strong><span class="muted">service_tier</span></div>'+tierRateInputs(row)+'</div>';
+    }).join('');
+  }
+
+  function collectTierPrice(card) {
+    return {
+      input: microFromUSD(card.querySelector('[data-tier-in]').value) || 0,
+      output: microFromUSD(card.querySelector('[data-tier-out]').value) || 0,
+      cache_read: microFromUSD(card.querySelector('[data-tier-cache-read]').value) || 0,
+      cache_creation: microFromUSD(card.querySelector('[data-tier-cache-write]').value) || 0,
+    };
+  }
+
+  function tierPriceFilled(price) {
+    return ['input', 'output', 'cache_read', 'cache_creation'].some(key => Number(price[key] || 0) > 0);
+  }
+
+  function collectPriceTiers() {
+    const tiers = [];
+    document.querySelectorAll('#priceContextTiers .price-tier-row').forEach(card => {
+      const threshold = Number(card.querySelector('[data-tier-threshold]').value || 0);
+      const price = collectTierPrice(card);
+      if (!(threshold > 0) || !tierPriceFilled(price)) return;
+      tiers.push({ kind: 'context', label: formatContextLabel(threshold), threshold, price });
+    });
+    document.querySelectorAll('#priceServiceTiers .price-tier-row').forEach(card => {
+      const service = String(card.dataset.service || '').trim();
+      const price = collectTierPrice(card);
+      if (!service || !tierPriceFilled(price)) return;
+      tiers.push({ kind: 'service', label: service, service, price });
+    });
+    return tiers;
+  }
+
+  function fillPriceTiers(tiers, modelsDevCost) {
+    const context = [];
+    const servicePrices = { fast: {}, priority: {} };
+    (tiers || []).forEach(tier => {
+      if (tierKind(tier) === 'context') {
+        const price = tierPriceObj(tier);
+        context.push({
+          threshold: tierThreshold(tier) || '',
+          input: microToUsdField(priceValue(price, 'Input', 'input')),
+          output: microToUsdField(priceValue(price, 'Output', 'output')),
+          cache_read: microToUsdField(priceValue(price, 'CacheRead', 'cache_read')),
+          cache_write: microToUsdField(priceValue(price, 'CacheCreation', 'cache_creation')),
+        });
+        return;
+      }
+      if (tierKind(tier) !== 'service') return;
+      const usd = {
+        input: microToUsdField(priceValue(tierPriceObj(tier), 'Input', 'input')),
+        output: microToUsdField(priceValue(tierPriceObj(tier), 'Output', 'output')),
+        cache_read: microToUsdField(priceValue(tierPriceObj(tier), 'CacheRead', 'cache_read')),
+        cache_write: microToUsdField(priceValue(tierPriceObj(tier), 'CacheCreation', 'cache_creation')),
+      };
+      if (serviceTierMatches(tier, 'fast')) servicePrices.fast = usd;
+      if (serviceTierMatches(tier, 'priority')) servicePrices.priority = usd;
+    });
+    if (!context.length && modelsDevCost) {
+      modelsDevContextTiers(modelsDevCost).forEach(tier => {
+        context.push({
+          threshold: tier.threshold,
+          input: emptyIfZero(tier.price.input),
+          output: emptyIfZero(tier.price.output),
+          cache_read: emptyIfZero(tier.price.cache_read),
+          cache_write: emptyIfZero(tier.price.cache_write),
+        });
+      });
+    }
+    renderContextTierCards(context);
+    renderServiceTierCards(servicePrices);
+  }
+
+  function tierDisplayName(tier) {
+    if (tierKind(tier) === 'service') {
+      const names = tierService(tier).split(',').map(part => part.trim()).filter(Boolean);
+      return names.join(' / ') || String((tier && (tier.label || tier.Label)) || 'service');
+    }
+    return String((tier && (tier.label || tier.Label)) || '') || formatContextLabel(tierThreshold(tier));
+  }
+
+  function renderTierNotes(tiers, usd) {
+    return (tiers || []).map(tier => {
+      const price = usd ? (tier.price || {}) : tierPriceObj(tier);
+      const inn = usd ? priceNumber(price.input) : formatMoney(priceValue(price, 'Input', 'input'));
+      const out = usd ? priceNumber(price.output) : formatMoney(priceValue(price, 'Output', 'output'));
+      const name = usd ? (tier.label || formatContextLabel(tier.threshold)) : tierDisplayName(tier);
+      if (!name) return '';
+      return '<div class="price-tier-note"><span>'+esc(name)+'</span><strong>'+esc(inn)+' / '+esc(out)+'</strong></div>';
+    }).join('');
   }
 
   function modelsDevHasPrice(cost) {
@@ -2968,6 +3301,8 @@
     const perImage = $('priceBillingMode').value === 'per_image';
     $('priceTokenFields').classList.toggle('hidden', perImage);
     $('priceImageFields').classList.toggle('hidden', !perImage);
+    $('priceTierSection').classList.toggle('hidden', perImage);
+    $('priceAccountingWrap').classList.toggle('hidden', perImage);
   }
 
   function loadModelPrice(modelID) {
@@ -2989,6 +3324,7 @@
       $('modelPriceStatus').textContent = item.imageGen
         ? '已回填 ' + modelID + ' 的 Token 价（图片输出按 Token，不是按张），来源：models.dev / ' + item.provider + '。'
         : '已回填 ' + modelID + ' 的价格，来源：models.dev / ' + item.provider + '。请核对后保存。';
+      fillPriceTiers(collectPriceTiers().filter(tier => tier.kind === 'service'), item.cost);
     } else {
       $('priceBillingMode').value = 'per_image';
       $('priceIn').value = 0;
@@ -3019,34 +3355,50 @@
     return Math.max(100, current + 1);
   }
 
-  function modelsDevPricingRule(modelID, item) {
+  function modelsDevPricingRule(modelID, item, existing) {
     const cost = item.cost || {};
-    return {
+    const contextTiers = modelsDevTiersPayload(cost);
+    const serviceTiers = ruleTiers(existing).filter(tier => tierKind(tier) === 'service').map(normalizeTierPayload);
+    const rule = {
       id: modelID,
       match_kind: 'exact',
       pattern: modelID,
       priority: nextExactPriority(modelID, (state.overview && state.overview.pricing) || []),
       enabled: true,
-        price: {
-          input: Math.round(priceNumber(cost.input) * 1e6),
-          output: Math.round(priceNumber(cost.output) * 1e6),
-          cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
-          cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
-          accounting_mode: /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache',
-          billing_mode: 'token',
-        },
+      price: {
+        input: Math.round(priceNumber(cost.input) * 1e6),
+        output: Math.round(priceNumber(cost.output) * 1e6),
+        cache_read: Math.round(priceNumber(cost.cache_read) * 1e6),
+        cache_creation: Math.round(priceNumber(cost.cache_write) * 1e6),
+        accounting_mode: /claude|anthropic/i.test(modelID) ? 'input_excludes_cache' : 'input_includes_cache',
+        billing_mode: 'token',
+      },
+      tiers: contextTiers.concat(serviceTiers),
     };
+    if (existing) {
+      rule.id = existing.ID || existing.id || modelID;
+      rule.priority = Number(existing.Priority != null ? existing.Priority : existing.priority) || rule.priority;
+      rule.enabled = ruleEnabled(existing);
+      rule.price = cloneRulePrice(existing);
+    }
+    return rule;
   }
 
   async function syncModelsDevPrices(prices, rules) {
     const exactRules = pricingRuleIndex(rules);
     const ruleIDs = new Set((rules || []).map(rule => String(rule.ID || rule.id || '').trim()));
-    const pending = Object.entries(prices).filter(([modelID, item]) => item && item.tokenPriced && !exactRules.has(modelID) && !ruleIDs.has(modelID));
+    const pending = Object.entries(prices).filter(([modelID, item]) => {
+      if (!item || !item.tokenPriced) return false;
+      const exact = exactRules.get(modelID);
+      if (!exact && ruleIDs.has(modelID)) return false;
+      if (!exact) return true;
+      return !ruleTiers(exact).some(tier => tierKind(tier) === 'context') && modelsDevContextTiers(item.cost).length > 0;
+    });
     let saved = 0;
     const failed = [];
     for (const [modelID, item] of pending) {
       try {
-        await api('POST', 'credit-manager/pricing', modelsDevPricingRule(modelID, item));
+        await api('POST', 'credit-manager/pricing', modelsDevPricingRule(modelID, item, exactRules.get(modelID)));
         saved += 1;
       } catch (error) {
         failed.push(modelID + '（' + (error && error.message ? error.message : error) + '）');
@@ -3060,6 +3412,7 @@
   }
 
   async function loadModelCatalog() {
+    const seq = state.tabLoadSeq;
     const status = $('modelCatalogStatus');
     const button = $('btnLoadModelCatalog');
     button.disabled = true;
@@ -3069,6 +3422,7 @@
         fetchAvailableModels(),
         fetchModelsDevCatalog(false),
       ]);
+      if (seq !== state.tabLoadSeq) return;
       if (catalogResult[0].status !== 'fulfilled') {
         throw catalogResult[0].reason || new Error('无法读取当前代理模型');
       }
@@ -3191,6 +3545,7 @@
         priority: nextExactPriority(modelID, rules),
         enabled,
         price: cloneRulePrice(inherited),
+        tiers: ruleTiers(inherited).map(normalizeTierPayload),
       };
     }
     const imageGen = (matched && matched.imageGen) || isImageGenerationModel(modelID);
@@ -3308,9 +3663,9 @@
         const enabled = !modelIsDisabled(modelID, rules);
         const pricePairs = tokenPriced ? [
           ['输入', matched.cost.input], ['输出', matched.cost.output], ['缓存读取', matched.cost.cache_read], ['缓存创建', matched.cost.cache_write],
-        ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') : (imageGen ? '<span class="muted">按张计费，不能套用 Token 价</span>' : '<span class="muted">未找到唯一匹配价格</span>');
+        ].map(([label, value]) => '<span class="price-pair"><span>'+esc(label)+'</span><strong>'+esc(priceNumber(value))+'</strong></span>').join('') + renderTierNotes(modelsDevContextTiers(matched.cost), true) : (imageGen ? '<span class="muted">按张计费，不能套用 Token 价</span>' : '<span class="muted">未找到唯一匹配价格</span>');
         const ruleBilling = priceValue(price, 'BillingMode', 'billing_mode');
-        const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">'+(ruleBilling === 'per_image' ? '每张 '+esc(formatMoney(priceValue(price, 'PerImage', 'per_image'))) : '输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output'))))+'</div>' : '<span class="muted">未设置</span>';
+        const currentRule = rule ? '<div class="pricing-rule-id mono">'+esc(rule.ID || rule.id)+'</div><div class="hint">'+(ruleBilling === 'per_image' ? '每张 '+esc(formatMoney(priceValue(price, 'PerImage', 'per_image'))) : '输入 '+esc(formatMoney(priceValue(price, 'Input', 'input')))+' · 输出 '+esc(formatMoney(priceValue(price, 'Output', 'output'))))+'</div>'+renderTierNotes(ruleTiers(rule), false) : '<span class="muted">未设置</span>';
         const st = '<label class="key-switch" title="'+esc(enabled ? t('启用') : t('禁用'))+'"><input type="checkbox" role="switch" data-enable-price="'+esc(modelID)+'" aria-label="'+esc(t('启用'))+'"'+(enabled ? ' checked' : '')+'/><span class="key-switch-ui" aria-hidden="true"></span></label>';
         return '<tr'+(!enabled ? ' class="is-disabled"' : '')+'>' +
           '<td><div class="pricing-rule-id mono">'+esc(modelID)+'</div>'+(matched && matched.provider ? '<div class="hint">models.dev / '+esc(matched.provider)+(imageGen ? ' · 出图' : '')+'</div>' : (imageGen ? '<div class="hint">出图模型</div>' : ''))+'</td>' +
@@ -3528,10 +3883,12 @@
 
   async function loadUsage(resetPage) {
     if (resetPage) state.usagePage = 1;
+    const seq = state.tabLoadSeq;
     const [summary, recent] = await Promise.all([
       api('GET', 'credit-manager/usage/summary' + usageQuery(false)),
       api('GET', 'credit-manager/usage' + usageQuery(true)),
     ]);
+    if (seq !== state.tabLoadSeq) return;
     state.usageSummary = summary;
     state.usageRecent = recent;
     renderUsage(summary, recent);
@@ -4128,7 +4485,8 @@
     const modal = $('connectionModal');
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
-    $('apiBase').focus();
+    if (customAPIBaseEnabled()) $('apiBase').focus();
+    else $('mgmtToken').focus();
   };
 
   // events
@@ -4175,15 +4533,19 @@
       closeDeleteKeyModal();
     }
   });
+  $('customApiBase').addEventListener('change', () => {
+    persistCustomAPIBaseEnabled(customAPIBaseEnabled());
+    syncAPIBaseField();
+  });
   $('btnSaveToken').addEventListener('click', async () => {
     const t = $('mgmtToken').value.trim();
     if (!t) { flash('请输入管理密钥', false); return; }
-    lockAPIBaseField();
+    persistCustomAPIBaseEnabled(customAPIBaseEnabled());
+    syncAPIBaseField();
     const base = apiBase();
     sessionStorage.setItem(TOKEN_KEY, t);
     sessionStorage.setItem(TOKEN_ORIGIN_KEY, location.origin);
-    if (base) sessionStorage.setItem(BASE_KEY, base);
-    else sessionStorage.removeItem(BASE_KEY);
+    if (customAPIBaseEnabled() && base) persistCustomAPIBase(base);
     try {
       await reloadWithModelCatalog();
       closeConnectionModal();
@@ -4191,10 +4553,13 @@
     } catch (e) { flash(e.message, false); }
   });
   $('btnClearToken').addEventListener('click', () => {
+    window.clearTimeout(authQuotaSearchTimer);
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_ORIGIN_KEY);
-    sessionStorage.removeItem(BASE_KEY);
+    persistCustomAPIBase('');
     $('mgmtToken').value = '';
+    syncAPIBaseField();
+    clearLoadedSession();
     flash('已清除本地管理密钥与 API 根地址', true);
   });
   let authQuotaSearchTimer = 0;
@@ -4398,6 +4763,13 @@
   });
   $('priceModelPicker').addEventListener('change', event => loadModelPrice(event.target.value));
   $('priceBillingMode').addEventListener('change', syncPriceBillingFields);
+  $('btnAddContextTier').addEventListener('click', () => {
+    $('priceContextTiers').insertAdjacentHTML('beforeend', contextTierCardHTML({}));
+  });
+  $('priceContextTiers').addEventListener('click', event => {
+    const button = event.target.closest('[data-remove-context-tier]');
+    if (button) button.closest('.price-tier-row').remove();
+  });
   $('btnSavePrice').addEventListener('click', async () => {
     try {
       const body = {
@@ -4415,6 +4787,7 @@
           billing_mode: $('priceBillingMode').value || 'token',
           per_image: microFromUSD($('pricePerImage').value) || 0,
         },
+        tiers: $('priceBillingMode').value === 'per_image' ? [] : collectPriceTiers(),
       };
       if (!body.id || !body.pattern) throw new Error('规则 ID 与 pattern 必填');
       await api('POST', 'credit-manager/pricing', body);
@@ -4443,7 +4816,8 @@
   });
 
   // boot
-  stripDangerousQuery();
+  restoreCustomAPIBasePreference();
+  syncAPIBaseField();
   const savedBase = detectDefaultBase();
   state.tokenUnit = normalizeTokenUnit(localStorage.getItem(TOKEN_UNIT_KEY) || 'raw');
   state.currency = normalizeCurrency(localStorage.getItem(CURRENCY_KEY) || 'USD');
@@ -4455,16 +4829,14 @@
   initPreferences();
   fetchUsdCnyRate(false);
   window.setInterval(() => fetchUsdCnyRate(false), 30 * 60 * 1000);
-  lockAPIBaseField();
   if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
   const saved = savedSessionToken();
-  if (saved && isSameOriginBase(apiBase())) {
+  if (saved && (customAPIBaseEnabled() || isSameOriginBase(apiBase()))) {
     $('mgmtToken').value = saved;
     reloadWithModelCatalog().catch(e => flash(e.message, false));
   } else {
-    renderDisconnectedOverview();
-    renderDisconnectedTabStates();
+    clearLoadedSession();
   }
 })();

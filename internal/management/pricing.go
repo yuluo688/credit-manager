@@ -32,14 +32,17 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 			BillingMode    string `json:"billing_mode"`
 			PerImage       int64  `json:"per_image"`
 		} `json:"price"`
+		Tiers *[]money.PriceTier `json:"tiers"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
 	}
 	enabled := true
+	var existingTiers []money.PriceTier
 	if id := strings.TrimSpace(req.ID); id != "" {
 		if existing, err := svc.Store().GetPricingRule(ctx, id); err == nil {
 			enabled = existing.Enabled
+			existingTiers = existing.Tiers
 		} else if !errors.Is(err, store.ErrPricingRuleNotFound) {
 			return jsonErr(http.StatusInternalServerError, err.Error()), nil
 		}
@@ -47,8 +50,13 @@ func putPricing(ctx context.Context, svc *service.Service, body []byte) (plugina
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
+	tiers := existingTiers
+	if req.Tiers != nil {
+		tiers = *req.Tiers
+	}
 	rule := store.PricingRule{
 		ID: req.ID, MatchKind: store.MatchKind(req.MatchKind), Pattern: req.Pattern, Priority: req.Priority, Enabled: enabled,
+		Tiers: tiers,
 		Price: money.PricePerMTok{
 			Input: money.MicroUSD(req.Price.Input), Output: money.MicroUSD(req.Price.Output),
 			Reasoning: money.MicroUSD(req.Price.Reasoning), Cached: money.MicroUSD(req.Price.Cached),

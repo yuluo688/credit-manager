@@ -638,6 +638,28 @@ func TestConsoleDiscoversAIProviderModels(t *testing.T) {
 	}
 }
 
+func TestConsolePricingSpecialTiers(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"function modelsDevContextTiers",
+		"function collectPriceTiers",
+		"function fillPriceTiers",
+		`id="priceTierSection"`,
+		`id="priceContextTiers"`,
+		`id="priceServiceTiers"`,
+		"添加上下文档位",
+		"特殊档位",
+		"service_tier",
+		"272000",
+		"kind: 'context'",
+		"kind: 'service'",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing special pricing tiers: %q", text)
+		}
+	}
+}
+
 func TestConsolePricingEnableDisable(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
@@ -699,5 +721,66 @@ func TestLookupStatsIconsAndEmptyLayouts(t *testing.T) {
 	}
 	if strings.Contains(page, ".key-head h2::before") {
 		t.Fatal("lookup key title still uses the caret-like accent bar")
+	}
+}
+
+func TestConsoleClearLocalDataResetsLoadedView(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	start := strings.Index(page, "function clearLoadedSession()")
+	if start < 0 {
+		t.Fatal("clearLoadedSession is missing")
+	}
+	body := page[start:]
+	end := strings.Index(body, "function renderOverviewEChart")
+	if end < 0 {
+		t.Fatal("clearLoadedSession body could not be bounded")
+	}
+	reset := body[:end]
+	for _, text := range []string{
+		"state.tabLoadSeq += 1;",
+		"state.overview = null;",
+		"state.keys = [];",
+		"state.authQuotas = null;",
+		"state.usageSummary = null;",
+		"resetDataBoundFilters();",
+		"renderDisconnectedOverview();",
+		"renderDisconnectedTabStates();",
+	} {
+		if !strings.Contains(reset, text) {
+			t.Fatalf("clearLoadedSession is missing %q", text)
+		}
+	}
+	handlerStart := strings.Index(page, "$('btnClearToken').addEventListener('click'")
+	if handlerStart < 0 {
+		t.Fatal("clear local data button handler is missing")
+	}
+	handler := page[handlerStart:]
+	handlerEnd := strings.Index(handler, "let authQuotaSearchTimer")
+	if handlerEnd < 0 || !strings.Contains(handler[:handlerEnd], "clearLoadedSession();") {
+		t.Fatal("clear local data does not reset the loaded workspace")
+	}
+	if !strings.Contains(handler[:handlerEnd], "$('mgmtToken').value = '';") {
+		t.Fatal("clear local data does not clear the management token input")
+	}
+	disconnectedStart := strings.Index(page, "function renderDisconnectedTabStates()")
+	if disconnectedStart < 0 {
+		t.Fatal("renderDisconnectedTabStates is missing")
+	}
+	disconnected := page[disconnectedStart:]
+	disconnectedEnd := strings.Index(disconnected, "function resetDataBoundFilters()")
+	if disconnectedEnd < 0 || !strings.Contains(disconnected[:disconnectedEnd], "'authQuotaList'") {
+		t.Fatal("disconnected tab states do not clear auth quota cards")
+	}
+	if !strings.Contains(page, "if (stats) stats.innerHTML = '';") {
+		t.Fatal("disconnected overview does not clear overview stats")
+	}
+	bundleStart := strings.Index(page, "async function loadOverviewBundle()")
+	if bundleStart < 0 {
+		t.Fatal("loadOverviewBundle is missing")
+	}
+	bundle := page[bundleStart:]
+	bundleEnd := strings.Index(bundle, "async function refreshActiveTab()")
+	if bundleEnd < 0 || !strings.Contains(bundle[:bundleEnd], "if (seq !== state.tabLoadSeq) return null;") {
+		t.Fatal("overview reload can still paint after local data is cleared")
 	}
 }

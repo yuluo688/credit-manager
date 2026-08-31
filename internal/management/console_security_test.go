@@ -7,8 +7,8 @@ import (
 
 func TestConsolePageBlocksAPIBaseOverride(t *testing.T) {
 	response := consolePage()
-	if got := response.Headers.Get("Content-Security-Policy"); got != "connect-src 'self'" {
-		t.Fatalf("console CSP = %q, want connect-src 'self'", got)
+	if got := response.Headers.Get("Content-Security-Policy"); got == "connect-src 'self'" {
+		t.Fatal("console CSP still blocks opted-in custom API addresses")
 	}
 	if got := response.Headers.Get("Cache-Control"); got != "no-store" {
 		t.Fatalf("console Cache-Control = %q, want no-store", got)
@@ -26,27 +26,38 @@ func TestConsolePageBlocksAPIBaseOverride(t *testing.T) {
 		}
 	}
 	for _, text := range []string{
-		"function stripDangerousQuery",
 		"function isSameOriginBase",
 		"function assertSameOriginRequest",
 		"function savedSessionToken",
-		"history.replaceState",
+		"function customAPIBaseEnabled",
+		"function persistCustomAPIBaseEnabled",
+		"function persistCustomAPIBase",
+		"function savedCustomAPIBase",
+		"function restoreCustomAPIBasePreference",
+		"function syncAPIBaseField",
 		"credit_manager_mgmt_token_origin",
+		"credit_manager_custom_api_enabled",
 		"已拒绝向非同源地址发送管理密钥",
-		"input.readOnly = true",
-		"本页只连接当前站点",
+		`id="customApiBase"`,
 		`id="apiBase"`,
-		"readonly",
+		"自定义 API 地址",
+		"input.readOnly = !enabled",
 	} {
 		if !strings.Contains(page, text) {
-			t.Fatalf("console page is missing same-origin management lock: %q", text)
+			t.Fatalf("console page is missing custom API address gate: %q", text)
 		}
 	}
-	if !strings.Contains(page, "stripDangerousQuery();\n  const savedBase = detectDefaultBase();") {
-		t.Fatal("console does not strip api_base query parameters before boot")
+	if strings.Contains(page, `id="customApiBase" type="checkbox" checked`) {
+		t.Fatal("custom API address checkbox must default to unchecked")
 	}
-	if !strings.Contains(page, "if (saved && isSameOriginBase(apiBase()))") {
-		t.Fatal("console still auto-sends a saved management token without a same-origin check")
+	if strings.Contains(page, "function stripDangerousQuery") || strings.Contains(page, "history.replaceState") {
+		t.Fatal("console still mutates the page URL for api_base query parameters")
+	}
+	if !strings.Contains(page, "if (saved && (customAPIBaseEnabled() || isSameOriginBase(apiBase())))") {
+		t.Fatal("console still auto-sends a saved management token without a same-origin or custom-API check")
+	}
+	if !strings.Contains(page, "if (customAPIBaseEnabled()) return;") {
+		t.Fatal("same-origin request lock is not gated by the custom API checkbox")
 	}
 }
 

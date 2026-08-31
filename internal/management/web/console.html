@@ -54,11 +54,12 @@
     <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
       <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">连接信息仅保存于当前浏览器会话。本页只连接当前站点。</p></div>
+          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">连接信息仅保存于当前浏览器会话。未勾选自定义 API 地址时只连接当前站点。</p></div>
           <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="connection-form">
+            <label class="remember-row"><input id="customApiBase" type="checkbox"/>自定义 API 地址</label>
             <label>CLIProxyAPI 根地址
               <input id="apiBase" type="text" placeholder="例如 http://127.0.0.1:8317" autocomplete="off" readonly/>
             </label>
@@ -181,90 +182,94 @@
     <div class="modal-backdrop" id="priceModal" aria-hidden="true">
       <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint">文本模型按 USD / 1M tokens；纯出图模型按张计费，不要套用 Token 价。</p></div>
+          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint" id="modelPriceStatus">价格来源：models.dev</p></div>
           <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="priceModalMode" value="create"/>
-          <div class="connection-form">
-            <div class="modal-section">
-              <p class="modal-section-title">规则标识<span>ID 与参考价格</span></p>
+          <div class="connection-form price-sheet">
+            <div class="price-block">
+              <p class="modal-section-title">规则</p>
               <div class="form-grid-2">
                 <label>规则 ID
                   <input id="priceId" placeholder="gpt-4o"/>
                 </label>
-                <label>可用模型价格
-                  <select id="priceModelPicker"><option value="">加载后选择模型</option></select>
+                <label>回填价格
+                  <select id="priceModelPicker"><option value="">选择当前模型</option></select>
                 </label>
-              </div>
-            </div>
-            <div class="modal-section">
-              <p class="modal-section-title">匹配条件<span>类型 / pattern / 优先级</span></p>
-              <div class="form-grid-2">
-                <label>匹配类型
+                <label>匹配
                   <select id="priceKind">
                     <option value="exact">exact</option>
                     <option value="glob">glob</option>
                     <option value="regexp">regexp</option>
                   </select>
                 </label>
-                <label>priority（大优先）
+                <label>priority
                   <input id="pricePriority" type="number" value="100"/>
                 </label>
-                <label id="priceEnabledWrap" class="key-switch-field">状态
+                <label>pattern
+                  <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
+                </label>
+                <label id="priceEnabledWrap" class="key-switch-field">启用
                   <span class="key-switch">
                     <input id="priceEnabled" type="checkbox" role="switch" checked/>
                     <span class="key-switch-ui" aria-hidden="true"></span>
                   </span>
                 </label>
-                <label class="field-span-2">pattern
-                  <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
-                </label>
               </div>
             </div>
-            <div class="modal-section">
-              <p class="modal-section-title">计费价格<span>Token 或按张</span></p>
-              <div class="form-grid-4">
-                <label class="field-span-2">计费方式
+            <div class="price-block">
+              <p class="modal-section-title">默认价<span>USD / 1M</span></p>
+              <div class="form-grid-2">
+                <label>计费
                   <select id="priceBillingMode">
-                    <option value="token">按 Token（USD / 1M）</option>
+                    <option value="token">按 Token</option>
                     <option value="per_image">按张（出图）</option>
                   </select>
                 </label>
-                <div id="priceTokenFields" class="field-span-2 form-grid-4">
-                <label>input USD/1M
-                  <input id="priceIn" type="number" step="0.000001" value="0"/>
-                </label>
-                <label>output USD/1M
-                  <input id="priceOut" type="number" step="0.000001" value="0"/>
-                </label>
-                <label>缓存读取 USD/1M
-                  <input id="priceCacheRead" type="number" step="0.000001" value="0"/>
-                </label>
-                <label>缓存创建 USD/1M
-                  <input id="priceCacheCreation" type="number" step="0.000001" value="0"/>
-                </label>
-                <label class="field-span-2">缓存会计
+                <label id="priceAccountingWrap">缓存会计
                   <select id="priceAccountingMode">
-                    <option value="">按模型自动（OpenAI 含缓存 / Claude 不含）</option>
-                    <option value="input_includes_cache">input 含缓存（OpenAI）</option>
-                    <option value="input_excludes_cache">input 不含缓存（Claude）</option>
+                    <option value="">自动</option>
+                    <option value="input_includes_cache">input 含缓存</option>
+                    <option value="input_excludes_cache">input 不含缓存</option>
                   </select>
                 </label>
-                </div>
-                <div id="priceImageFields" class="field-span-2 hidden">
+              </div>
+              <div id="priceTokenFields" class="price-rate-grid">
+                <label>input
+                  <input id="priceIn" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>output
+                  <input id="priceOut" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存读
+                  <input id="priceCacheRead" type="number" step="0.000001" value="0"/>
+                </label>
+                <label>缓存写
+                  <input id="priceCacheCreation" type="number" step="0.000001" value="0"/>
+                </label>
+              </div>
+              <div id="priceImageFields" class="hidden">
                 <label>每张 USD
                   <input id="pricePerImage" type="number" step="0.000001" value="0"/>
                 </label>
-                </div>
               </div>
             </div>
-            <p class="modal-status" id="modelPriceStatus">价格来源：models.dev。同步会保存尚未配置的当前模型价格，不会覆盖已有规则。</p>
-            <div class="modal-actions">
-              <button class="btn ghost" id="btnLoadModelPrices">同步当前模型价格</button>
-              <button class="btn ghost" id="btnCancelPriceModal">取消</button>
-              <button class="btn primary" id="btnSavePrice">保存规则</button>
+            <div class="price-block" id="priceTierSection">
+              <p class="modal-section-title price-tier-title">
+                <span>特殊档位<span>空白即用默认价</span></span>
+                <button class="btn ghost sm" id="btnAddContextTier" type="button">添加上下文档位</button>
+              </p>
+              <div id="priceContextTiers" class="price-tier-list"></div>
+              <div id="priceServiceTiers" class="price-tier-list"></div>
             </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-actions">
+            <button class="btn ghost" id="btnLoadModelPrices">同步价格</button>
+            <button class="btn ghost" id="btnCancelPriceModal">取消</button>
+            <button class="btn primary" id="btnSavePrice">保存</button>
           </div>
         </div>
       </section>
