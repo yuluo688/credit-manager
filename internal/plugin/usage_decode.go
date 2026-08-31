@@ -71,6 +71,21 @@ func applyUsageTokenBreakdown(detail *pluginapi.UsageDetail, breakdown map[strin
 	}
 }
 
+func hostServiceTier(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var root map[string]json.RawMessage
+	if json.Unmarshal(raw, &root) != nil {
+		return ""
+	}
+	if tier := firstJSONString(root, "ServiceTier", "service_tier", "Tier", "tier"); tier != "" {
+		return tier
+	}
+	detail := firstJSONObject(root, "Detail", "detail")
+	return firstJSONString(detail, "ServiceTier", "service_tier", "Tier", "tier")
+}
+
 func hostUsageRecordUseful(record pluginapi.UsageRecord) bool {
 	if strings.TrimSpace(record.Model) != "" || strings.TrimSpace(record.Alias) != "" {
 		return true

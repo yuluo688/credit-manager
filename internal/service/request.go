@@ -42,12 +42,22 @@ func estimateTokens(body []byte, defaultOutput, maxTotal int64) (input, output i
 }
 
 func extractModel(body []byte) string {
+	return extractString(body, "model")
+}
+
+func extractServiceTier(body []byte) string {
+	return extractString(body, "service_tier", "tier")
+}
+
+func extractString(body []byte, keys ...string) string {
 	var root map[string]any
 	if err := json.Unmarshal(body, &root); err != nil {
 		return ""
 	}
-	if model, ok := root["model"].(string); ok {
-		return strings.TrimSpace(model)
+	for _, key := range keys {
+		if value, ok := root[key].(string); ok && strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
 	}
 	return ""
 }

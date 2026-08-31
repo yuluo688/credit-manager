@@ -32,6 +32,15 @@ func TestDecodeHostUsageRecordAcceptsTotalTokensOnly(t *testing.T) {
 	}
 }
 
+func TestHostServiceTierReadsSnakeAndDetail(t *testing.T) {
+	if got := hostServiceTier([]byte(`{"service_tier":"priority","detail":{"input_tokens":1}}`)); got != "priority" {
+		t.Fatalf("root tier = %q", got)
+	}
+	if got := hostServiceTier([]byte(`{"detail":{"service_tier":"default"}}`)); got != "default" {
+		t.Fatalf("detail tier = %q", got)
+	}
+}
+
 func TestDecodeHostUsageRecordReadsTokenBreakdown(t *testing.T) {
 	raw := []byte(`{"model":"glm-5.3-flash","detail":{"token_breakdown":{"total_tokens":30,"input":{"total_tokens":10},"output":{"total_tokens":20,"reasoning_tokens":4}}}}`)
 	record, ok := decodeHostUsageRecord(raw)

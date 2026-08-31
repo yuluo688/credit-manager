@@ -22,9 +22,28 @@ type ReservePlan struct {
 	TokenEstimate  int64
 	ImageCount     int64
 	Price          money.PricePerMTok
+	Tiers          []money.PriceTier
 	PricingRuleID  *string
 	Amount         money.MicroUSD
 	AllowUnpriced  bool
+}
+
+func (p ReservePlan) priceFor(usage money.TokenUsage, serviceTier string) money.PricePerMTok {
+	return money.SelectPrice(p.Price, p.Tiers, usage, serviceTier)
+}
+
+func metricsServiceTier(metrics store.UsageMetrics) string {
+	if metrics.Tier == nil {
+		return ""
+	}
+	return strings.TrimSpace(*metrics.Tier)
+}
+
+func overlayParsedServiceTier(metrics store.UsageMetrics, parsed usageparse.Result) store.UsageMetrics {
+	if t := strings.TrimSpace(parsed.ServiceTier); t != "" {
+		metrics.Tier = &t
+	}
+	return metrics
 }
 
 func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byte) (ReservePlan, error) {
@@ -43,6 +62,7 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 			return ReservePlan{}, fmt.Errorf("%w: %s", store.ErrModelDisabled, model)
 		}
 		plan.Price = rule.Price
+		plan.Tiers = rule.Tiers
 		id := rule.ID
 		plan.PricingRuleID = &id
 	case errors.Is(err, store.ErrPricingRuleNotFound):
@@ -84,7 +104,8 @@ func (s *Service) BuildReservePlan(ctx context.Context, model string, body []byt
 	plan.InputEstimate = inputEst
 	plan.OutputEstimate = outputEst
 	plan.TokenEstimate = inputEst + outputEst
-	cost, err := money.CostFor(money.TokenUsage{Input: inputEst, Output: outputEst}, plan.Price, plan.Model, "")
+	usage := money.TokenUsage{Input: inputEst, Output: outputEst}
+	cost, err := money.CostFor(usage, money.SelectPrice(plan.Price, money.ServiceTiers(plan.Tiers), usage, extractServiceTier(body)), plan.Model, "")
 	if err != nil {
 		return ReservePlan{}, err
 	}
@@ -130,6 +151,7 @@ func (s *Service) TouchReservation(ctx context.Context, reservationID string) er
 }
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
+	metrics = overlayParsedServiceTier(metrics, parsed)
 	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
 		return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)
 	}
@@ -170,7 +192,7 @@ func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Res
 	if plan.Price.IsPerImage() && usage.Images <= 0 {
 		usage.Images = plan.ImageCount
 	}
-	cost, err := money.CostFor(usage, plan.Price, plan.Model, "")
+	cost, err := money.CostFor(usage, plan.priceFor(usage, metricsServiceTier(metrics)), plan.Model, "")
 	if err != nil {
 		return err
 	}
@@ -192,6 +214,20 @@ func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Res
 }
 
 func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {
+	return s.applyHostUsage(ctx, ledgerID, usage, "", false)
+}
+
+func (s *Service) ApplyHostUsageRecord(ctx context.Context, ledgerID string, usage money.TokenUsage, hostServiceTier string) error {
+	hostServiceTier = strings.TrimSpace(hostServiceTier)
+	if hostServiceTier != "" {
+		if err := s.store.UpdateUsageTier(ctx, ledgerID, hostServiceTier); err != nil {
+			return err
+		}
+	}
+	return s.applyHostUsage(ctx, ledgerID, usage, hostServiceTier, true)
+}
+
+func (s *Service) applyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage, hostServiceTier string, fromHost bool) error {
 	if !usageFound(usage) {
 		return nil
 	}
@@ -199,7 +235,16 @@ func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage mon
 	if err != nil {
 		return err
 	}
-	price, err := s.priceForUsage(ctx, entry)
+	serviceTier := metricsServiceTier(entry.Metrics)
+	if fromHost {
+		if hostServiceTier != "" {
+			serviceTier = hostServiceTier
+		} else if entry.Source == "reserved_fallback" {
+			serviceTier = ""
+			_ = s.store.UpdateUsageTier(ctx, ledgerID, "default")
+		}
+	}
+	price, err := s.priceForUsage(ctx, entry, usage, serviceTier)
 	if err != nil {
 		return err
 	}
@@ -216,29 +261,35 @@ func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage mon
 	return s.store.UpdateUsageDetail(ctx, ledgerID, usage, cost)
 }
 
-func (s *Service) priceForUsage(ctx context.Context, entry store.UsageEntry) (money.PricePerMTok, error) {
+func (s *Service) priceForUsage(ctx context.Context, entry store.UsageEntry, usage money.TokenUsage, serviceTier string) (money.PricePerMTok, error) {
+	base := money.PricePerMTok{}
+	var tiers []money.PriceTier
+	found := false
 	if entry.PricingRuleID != nil {
 		if rule, err := s.store.GetPricingRule(ctx, *entry.PricingRuleID); err == nil {
-			return rule.Price, nil
+			base, tiers, found = rule.Price, rule.Tiers, true
 		} else if !errors.Is(err, store.ErrPricingRuleNotFound) {
 			return money.PricePerMTok{}, err
 		}
 	}
-	rule, err := s.store.ResolvePricingRule(ctx, entry.Model)
-	if err == nil {
-		return rule.Price, nil
+	if !found {
+		rule, err := s.store.ResolvePricingRule(ctx, entry.Model)
+		switch {
+		case err == nil:
+			base, tiers = rule.Price, rule.Tiers
+		case errors.Is(err, store.ErrPricingRuleNotFound):
+			if s.cfg.Pricing.UnknownPolicy == config.UnknownPricingDefault && s.cfg.Pricing.Default != nil {
+				base = money.PricePerMTok{
+					Input: money.MicroUSD(s.cfg.Pricing.Default.Input), Output: money.MicroUSD(s.cfg.Pricing.Default.Output),
+					Reasoning: money.MicroUSD(s.cfg.Pricing.Default.Reasoning), Cached: money.MicroUSD(s.cfg.Pricing.Default.Cached),
+					CacheRead: money.MicroUSD(s.cfg.Pricing.Default.CacheRead), CacheCreation: money.MicroUSD(s.cfg.Pricing.Default.CacheCreation),
+				}
+			}
+		default:
+			return money.PricePerMTok{}, err
+		}
 	}
-	if !errors.Is(err, store.ErrPricingRuleNotFound) {
-		return money.PricePerMTok{}, err
-	}
-	if s.cfg.Pricing.UnknownPolicy == config.UnknownPricingDefault && s.cfg.Pricing.Default != nil {
-		return money.PricePerMTok{
-			Input: money.MicroUSD(s.cfg.Pricing.Default.Input), Output: money.MicroUSD(s.cfg.Pricing.Default.Output),
-			Reasoning: money.MicroUSD(s.cfg.Pricing.Default.Reasoning), Cached: money.MicroUSD(s.cfg.Pricing.Default.Cached),
-			CacheRead: money.MicroUSD(s.cfg.Pricing.Default.CacheRead), CacheCreation: money.MicroUSD(s.cfg.Pricing.Default.CacheCreation),
-		}, nil
-	}
-	return money.PricePerMTok{}, nil
+	return money.SelectPrice(base, tiers, usage, serviceTier), nil
 }
 
 func (s *Service) settleWithAuth(ctx context.Context, settlement store.Settlement) error {

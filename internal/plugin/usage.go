@@ -47,7 +47,7 @@ func handleUsage(raw []byte) ([]byte, error) {
 			_ = svc.Store().UpdateUsageExecutor(context.Background(), ledgerID, record.ExecutorType)
 		}
 		if hostUsageFound(usage) {
-			_ = svc.ApplyHostUsage(context.Background(), ledgerID, usage)
+			_ = svc.ApplyHostUsageRecord(context.Background(), ledgerID, usage, hostServiceTier(raw))
 		}
 	}
 	return okEnvelope(map[string]any{})
