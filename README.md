@@ -5,14 +5,14 @@
 [English README](README.en.md)
 
 插件 ID：`credit-manager`  
-当前版本：`1.6.0`  
+当前版本：`1.7.0`  
 仓库：https://github.com/yuluo688/credit-manager
 
 ## 核心能力
 
 1. **独立插件 Key 鉴权**：代理请求使用插件签发的 `tk-...` Key，不依赖宿主 `api-keys`。
 2. **按 Key 严格预占**：转发前按保守 Token 上限或出图张数预留额度，余额或并发不足时拒绝请求。
-3. **按实际用量结算**：解析上游 usage；文本按 Token 计价，纯出图按张计价。
+3. **按实际用量结算**：解析上游 usage；文本按 Token 计价，纯出图按张计价。价格规则可叠加上下文档位与 `service_tier` 档位。
 4. **可视化与 API 管理**：统一管理 Key、模型启停、价格规则、额度、用量和审计。
 5. **认证额度视图**：管理端可查看 Codex、Claude、Antigravity、Kimi、xAI OAuth 认证的上游额度窗口，以及可安全映射的本地用量预测。
 6. **Key 自助查询**：Key 持有人无需 CPA 管理密钥即可查看自己的额度和用量。
@@ -288,6 +288,18 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/pricing" \
     "per_image": 40000
   }
 }
+```
+
+可选 `tiers` 在默认价之上叠加特殊档位。空白费率沿用默认价；预留额度只按请求中的 service 档加价，不用粗估 Token 套用上下文档位。
+
+- `kind: "context"`：实际输入 Token 达到 `threshold` 时用该档价格
+- `kind: "service"`：响应里的 `service_tier` 匹配 `service`（如 `fast`、`priority`）时用该档价格
+
+```json
+"tiers": [
+  {"kind":"context","label":"272K","threshold":272000,"price":{"input":400000,"output":1800000,"cache_read":40000}},
+  {"kind":"service","service":"fast,priority","price":{"input":400000,"output":2400000}}
+]
 ```
 
 也可使用通配：

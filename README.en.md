@@ -5,14 +5,14 @@
 A native Go plugin for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). It provides dedicated plugin-key authentication, Key-level credit controls, usage-based settlement, and a self-service usage dashboard.
 
 Plugin ID: `credit-manager`  
-Version: `1.6.0`  
+Version: `1.7.0`  
 Repository: https://github.com/yuluo688/credit-manager
 
 ## Features
 
 1. Dedicated `tk-...` plugin-key authentication, independent of host `api-keys`.
 2. Strict Key-level reservation before a request is forwarded.
-3. Settlement from actual upstream usage: tokens for text models, per image for image-only models.
+3. Settlement from actual upstream usage: tokens for text models, per image for image-only models. Pricing rules can overlay context and `service_tier` cards.
 4. Per-Key total, daily, weekly, monthly, and concurrency limits, plus optional model allowlists.
 5. Management console and API for Keys, model enable/disable, pricing, usage, and audit history.
 6. A public self-service dashboard where a Key holder can view only their own quota and usage.
@@ -187,7 +187,7 @@ The page stores the host management token in `sessionStorage` and calls the mana
 |---|---|
 | Overview | Filters by time, Key, upstream account, model, and source. "Today" is the browser's local calendar day, not the Key's UTC daily quota |
 | Keys | Mint, reveal, rotate, enable/disable, revoke, delete; quotas, concurrency, allowlists |
-| Models & pricing | Load proxied models, set token or per-image prices, enable/disable models; optional models.dev public-price backfill |
+| Models & pricing | Load proxied models, set token or per-image prices, context/`service_tier` cards, enable/disable models; optional models.dev public-price backfill |
 | Usage | Same filters plus cost/Token ranges; per-Key and per-model summaries with pagination |
 | Auth quotas | Upstream OAuth quota windows and local estimates |
 
@@ -293,6 +293,18 @@ Per-image example:
 ```
 
 Price fields: `input`, `output`, `reasoning`, `cached`, `cache_read`, `cache_creation`, optional `accounting_mode`, `billing_mode` (`token` or `per_image`), and `per_image`.
+
+Optional `tiers` overlay the base card. Blank overlay rates inherit the default. Reservation only applies request `service_tier` cards, not crude token estimates against context thresholds.
+
+- `kind: "context"`: used when actual input tokens reach `threshold`
+- `kind: "service"`: used when the response `service_tier` matches `service` (for example `fast` or `priority`)
+
+```json
+"tiers": [
+  {"kind":"context","label":"272K","threshold":272000,"price":{"input":400000,"output":1800000,"cache_read":40000}},
+  {"kind":"service","service":"fast,priority","price":{"input":400000,"output":2400000}}
+]
+```
 
 ### Call a model
 
