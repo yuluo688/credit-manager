@@ -1,6 +1,9 @@
 package usageparse
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestFromResponseBodyFindsOpenAITotalTokens(t *testing.T) {
 	got := FromResponseBody([]byte(`{"usage":{"total_tokens":42}}`), "openai")
@@ -46,5 +49,42 @@ func TestFromStreamBufferFindsOpenAIChatUsageChunk(t *testing.T) {
 	got := FromStreamBuffer(buf, "openai")
 	if !got.Found || got.Usage.Input != 217 || got.Usage.Output != 68 || got.Usage.CacheRead != 128 || got.Usage.Reasoning != 67 {
 		t.Fatalf("got %#v, want chat usage chunk", got)
+	}
+}
+
+func TestFromResponseBodyReadsServiceTier(t *testing.T) {
+	got := FromResponseBody([]byte(`{"service_tier":"priority","usage":{"prompt_tokens":12,"completion_tokens":3,"total_tokens":15}}`), "openai")
+	if !got.Found || got.ServiceTier != "priority" || got.Usage.Input != 12 {
+		t.Fatalf("got %#v, want priority service_tier", got)
+	}
+}
+
+func TestFromResponseBodyPrefersNestedResponsesServiceTier(t *testing.T) {
+	got := FromResponseBody([]byte(`{"type":"response.completed","response":{"service_tier":"default","usage":{"input_tokens":9,"output_tokens":2,"total_tokens":11}}}`), "openai-response")
+	if !got.Found || got.ServiceTier != "default" {
+		t.Fatalf("got %#v, want nested default service_tier", got)
+	}
+}
+
+func TestFromResponsesCapsNestedResponseDepth(t *testing.T) {
+	nested := any(map[string]any{"usage": map[string]any{"input_tokens": 3.0, "output_tokens": 1.0, "total_tokens": 4.0}})
+	for i := 0; i < 12; i++ {
+		nested = map[string]any{"response": nested}
+	}
+	raw, err := json.Marshal(nested)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := FromResponseBody(raw, "openai-response")
+	if got.Found {
+		t.Fatalf("deeply nested response must not recurse unbounded: %#v", got)
+	}
+}
+
+func TestFromStreamBufferReadsCompletedServiceTier(t *testing.T) {
+	buf := []byte("data: {\"service_tier\":\"priority\",\"usage\":null}\n\ndata: {\"service_tier\":\"default\",\"usage\":{\"prompt_tokens\":4,\"completion_tokens\":1,\"total_tokens\":5}}\n\n")
+	got := FromStreamBuffer(buf, "openai")
+	if !got.Found || got.ServiceTier != "default" || got.Usage.Input != 4 {
+		t.Fatalf("got %#v, want last completed default tier", got)
 	}
 }
