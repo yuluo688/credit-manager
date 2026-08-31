@@ -29,6 +29,7 @@ var (
 	ErrOverflow      = errors.New("micro-USD calculation overflow")
 	ErrAccounting    = errors.New("invalid accounting mode")
 	ErrBilling       = errors.New("invalid billing mode")
+	ErrPriceTier     = errors.New("invalid price tier")
 )
 
 // MicroUSD is the only persisted monetary unit. Floating-point currency is
