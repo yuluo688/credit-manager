@@ -2636,7 +2636,7 @@
           mode: period.dataset.mode,
         });
       };
-      return { model: row.dataset.model, daily: read('daily'), weekly: read('weekly'), monthly: read('monthly') };
+      return { model: row.dataset.model, total: read('total'), daily: read('daily'), weekly: read('weekly'), monthly: read('monthly') };
     }).filter(item => item.model);
   }
 
@@ -2656,7 +2656,7 @@
     const items = Array.isArray(limits) ? limits : [];
     const target = $('keyModalTokenLimits');
     if (!items.length) {
-      target.innerHTML = '<p class="token-limit-empty">'+esc(t('添加模型后，可设置日 / 周 / 月 Token 上限'))+'</p>';
+      target.innerHTML = '<p class="token-limit-empty">'+esc(t('添加模型后，可设置总 / 日 / 周 / 月 Token 上限'))+'</p>';
       return;
     }
     const periodField = (name, label, period) => {
@@ -2675,6 +2675,7 @@
         '<div class="token-limit-head"><span class="token-limit-model" title="'+esc(model)+'">'+esc(model)+'</span>' +
         '<button type="button" class="btn ghost sm" data-remove-token-limit="'+esc(model)+'"'+(disabled ? ' disabled' : '')+'>'+esc(t('移除'))+'</button></div>' +
         '<div class="token-limit-periods">' +
+          periodField('total', '总 Token', item.total) +
           periodField('daily', '日 Token', item.daily) +
           periodField('weekly', '周 Token', item.weekly) +
           periodField('monthly', '月 Token', item.monthly) +
@@ -2784,6 +2785,7 @@
     }
     current.push({
       model,
+      total: { tokens: 0, mode: 'unlimited' },
       daily: { tokens: 0, mode: 'unlimited' },
       weekly: { tokens: 0, mode: 'unlimited' },
       monthly: { tokens: 0, mode: 'unlimited' },

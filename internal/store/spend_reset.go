@@ -64,11 +64,19 @@ func loadSpendResetTimes(ctx context.Context, db queryRower, keyID string) (spen
 }
 
 func keyPeriodStarts(ctx context.Context, db queryRower, keyID string, nowUnixMilli int64) (day, week, month int64, err error) {
+	_, day, week, month, err = keyTokenPeriodStarts(ctx, db, keyID, nowUnixMilli)
+	return day, week, month, err
+}
+
+// keyTokenPeriodStarts returns the token usage windows. Total begins at the
+// most recent total reset, while day/week/month also honor their UTC boundary.
+func keyTokenPeriodStarts(ctx context.Context, db queryRower, keyID string, nowUnixMilli int64) (total, day, week, month int64, err error) {
 	resets, err := loadSpendResetTimes(ctx, db, keyID)
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
-	return periodStart(utcDayStart(nowUnixMilli), resets.Daily),
+	return resets.Total,
+		periodStart(utcDayStart(nowUnixMilli), resets.Daily),
 		periodStart(utcWeekStart(nowUnixMilli), resets.Weekly),
 		periodStart(utcMonthStart(nowUnixMilli), resets.Monthly), nil
 }

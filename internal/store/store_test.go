@@ -76,6 +76,44 @@ func TestReserveEnforcesModelTokenLimits(t *testing.T) {
 	}
 }
 
+func TestReserveEnforcesTotalModelTokenLimit(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{
+		ModelTokenLimits: []ModelTokenLimit{{
+			Model: "test-model",
+			Total: ModelPeriodTokenLimit{Tokens: 100},
+		}},
+	})
+	first := reserveRequest(key, "first", 1)
+	first.RequestTokenEstimate = 60
+	firstReservation, err := st.Reserve(ctx, first)
+	if err != nil {
+		t.Fatalf("first reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: firstReservation.ID, Model: firstReservation.Model,
+		Usage: money.TokenUsage{Input: 60}, CostMicroUSD: 1, EstimatedCostMicroUSD: 1, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle first reserve: %v", err)
+	}
+	second := reserveRequest(key, "second", 1)
+	second.RequestTokenEstimate = 50
+	if _, err := st.Reserve(ctx, second); !errors.Is(err, ErrTotalTokenLimitExceeded) {
+		t.Fatalf("second reserve error = %v, want %v", err, ErrTotalTokenLimitExceeded)
+	}
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Total: true}); err != nil {
+		t.Fatalf("reset total token limit: %v", err)
+	}
+	afterReset := reserveRequest(key, "after-reset", 1)
+	afterReset.RequestTokenEstimate = 100
+	if _, err := st.Reserve(ctx, afterReset); err != nil {
+		t.Fatalf("reserve after total reset: %v", err)
+	}
+}
+
 func TestReserveModelTokenLimitAvailableOrUnlimitedSkipsCap(t *testing.T) {
 	for _, mode := range []string{ModelTokenLimitModeAvailable, ModelTokenLimitModeUnlimited} {
 		t.Run(mode, func(t *testing.T) {
@@ -194,6 +232,7 @@ func TestUpdatePluginKeyPolicyModelTokenLimits(t *testing.T) {
 	key := newTestKey(t, ctx, st, PluginKeySpec{})
 	limits := []ModelTokenLimit{{
 		Model:   "gpt-4o",
+		Total:   ModelPeriodTokenLimit{Tokens: 2_000},
 		Daily:   ModelPeriodTokenLimit{Tokens: 1000},
 		Weekly:  ModelPeriodTokenLimit{Mode: ModelTokenLimitModeAvailable},
 		Monthly: ModelPeriodTokenLimit{Mode: ModelTokenLimitModeUnlimited},
@@ -203,6 +242,7 @@ func TestUpdatePluginKeyPolicyModelTokenLimits(t *testing.T) {
 		t.Fatalf("update policy: %v", err)
 	}
 	if len(updated.ModelTokenLimits) != 1 || updated.ModelTokenLimits[0].Model != "gpt-4o" ||
+		updated.ModelTokenLimits[0].Total.Cap() != 2_000 ||
 		updated.ModelTokenLimits[0].Daily.Cap() != 1000 ||
 		updated.ModelTokenLimits[0].Weekly.NormalizedMode() != ModelTokenLimitModeAvailable ||
 		updated.ModelTokenLimits[0].Monthly.NormalizedMode() != ModelTokenLimitModeUnlimited {
@@ -1203,8 +1243,33 @@ func TestListModelTokenUsageRespectsDailyReset(t *testing.T) {
 	if got[0].DailyUsed != 0 {
 		t.Fatalf("daily used = %d, want 0 after reset", got[0].DailyUsed)
 	}
-	if got[0].WeeklyUsed != 40 || got[0].MonthlyUsed != 40 {
-		t.Fatalf("weekly=%d monthly=%d, want 40", got[0].WeeklyUsed, got[0].MonthlyUsed)
+	if got[0].TotalUsed != 40 || got[0].WeeklyUsed != 40 || got[0].MonthlyUsed != 40 {
+		t.Fatalf("total=%d weekly=%d monthly=%d, want 40", got[0].TotalUsed, got[0].WeeklyUsed, got[0].MonthlyUsed)
+	}
+}
+
+func TestListModelTokenUsageRespectsTotalReset(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	now := time.Now().UTC()
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES ('u-total-reset', 'r-total-reset', ?, ?, 'test-model', 40, 0, 0, 0, 0, 0, 1, 'usage', ?)`, key.CallerID, key.ID, now.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Total: true}); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+	got, err := st.ListModelTokenUsage(ctx, key.ID, []ModelTokenLimit{{Model: "test-model", Total: ModelPeriodTokenLimit{Tokens: 100}}}, time.Now().UTC().UnixMilli())
+	if err != nil || len(got) != 1 {
+		t.Fatalf("usage=%#v err=%v", got, err)
+	}
+	if got[0].TotalUsed != 0 {
+		t.Fatalf("total used = %d, want 0 after reset", got[0].TotalUsed)
 	}
 }
 

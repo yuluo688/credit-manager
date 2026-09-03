@@ -721,7 +721,7 @@ input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
   font-size:.8rem;
   letter-spacing:-.02em;
 }
-.token-limit-periods { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; }
+.token-limit-periods { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
 .token-limit-period { display:grid; gap:6px; min-width:0; }
 .token-limit-period > span { color:var(--muted); font-size:.7rem; font-weight:650; }
 .token-limit-period input { min-width:0; padding:8px 9px; }

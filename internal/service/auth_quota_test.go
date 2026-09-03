@@ -16,15 +16,17 @@ import (
 )
 
 type fakeQuotaSource struct {
-	files     []AuthQuotaFile
-	auth      string
-	auths     map[string]string
-	responses map[string]string
-	requests  []AuthQuotaHTTPRequest
-	gets      int
-	got       []string
-	fail      bool
-	failHTTP  bool
+	files      []AuthQuotaFile
+	auth       string
+	auths      map[string]string
+	responses  map[string]string
+	requests   []AuthQuotaHTTPRequest
+	gets       int
+	got        []string
+	fail       bool
+	failHTTP   bool
+	status     int
+	statusBody string
 }
 
 func (f *fakeQuotaSource) ListAuthQuotaFiles(context.Context) ([]AuthQuotaFile, error) {
@@ -47,6 +49,9 @@ func (f *fakeQuotaSource) DoAuthQuotaHTTP(_ context.Context, _ string, r AuthQuo
 	f.requests = append(f.requests, r)
 	if f.failHTTP {
 		return AuthQuotaHTTPResponse{}, errors.New("upstream failed")
+	}
+	if f.status != 0 {
+		return AuthQuotaHTTPResponse{StatusCode: f.status, Body: []byte(f.statusBody)}, nil
 	}
 	for k, v := range f.responses {
 		if strings.Contains(r.URL, k) {
@@ -129,6 +134,12 @@ func TestAuthQuotaProviderPayloadsAndAuthorization(t *testing.T) {
 				if string(src.requests[0].Body) != `{"project":"project-1"}` {
 					t.Fatalf("body=%s", src.requests[0].Body)
 				}
+				if got := src.requests[0].Header.Get("User-Agent"); got != antigravityQuotaUserAgent {
+					t.Fatalf("User-Agent=%q", got)
+				}
+				if got := src.requests[0].Header.Get("Accept"); got != "*/*" {
+					t.Fatalf("Accept=%q", got)
+				}
 			}
 			if provider == "xai" && src.requests[0].Header.Get("X-Userid") != "user-1" {
 				t.Fatal("missing xAI user id")
@@ -140,6 +151,25 @@ func TestAuthQuotaProviderPayloadsAndAuthorization(t *testing.T) {
 		})
 	}
 }
+
+func TestAuthQuotaAntigravityRequiresProject(t *testing.T) {
+	s := quotaService(t)
+	src := &fakeQuotaSource{files: []AuthQuotaFile{{ID: "auth", AuthIndex: "idx", Provider: "antigravity"}}, auth: `{"tokens":{"access_token":"oauth-token"}}`}
+	s.SetAuthQuotaSource(src)
+	item, err := s.RefreshAuthQuota(context.Background(), "", "antigravity", "auth", "idx")
+	if err != nil || item.Status != "unavailable" || item.Error != "OAuth project id is unavailable" {
+		t.Fatalf("item=%#v err=%v", item, err)
+	}
+}
+
+func TestQuotaHTTPStatusIncludesSafeUpstreamReason(t *testing.T) {
+	src := &fakeQuotaSource{status: http.StatusForbidden, statusBody: `{"error":{"status":"PERMISSION_DENIED","message":"do not persist this","details":[{"reason":"SUBSCRIPTION_REQUIRED"}]}}`}
+	_, err := request(context.Background(), src, "", http.MethodGet, "https://example.test", http.Header{}, nil)
+	if err == nil || err.Error() != "quota endpoint returned status 403 (PERMISSION_DENIED/SUBSCRIPTION_REQUIRED)" {
+		t.Fatalf("error=%v", err)
+	}
+}
+
 func TestNormalizeQuotaPlan(t *testing.T) {
 	cases := map[string]string{
 		"plus": "plus", "PLUS": "plus", "pro": "pro", "claude_pro": "pro",

@@ -214,11 +214,11 @@
     const limits = (result.key && result.key.model_token_limits) || [];
     const unmatched = (result.key && result.key.unmatched_models_mode) === 'disabled';
     const section = $('modelTokenLimitsSection');
-    const items = usage.length ? usage : limits.map(limit => ({ model:limit.model, daily:limit.daily, weekly:limit.weekly, monthly:limit.monthly, daily_used:0, weekly_used:0, monthly_used:0 }));
+    const items = usage.length ? usage : limits.map(limit => ({ model:limit.model, total:limit.total, daily:limit.daily, weekly:limit.weekly, monthly:limit.monthly, total_used:0, daily_used:0, weekly_used:0, monthly_used:0 }));
     if (!items.length && !unmatched) { section.classList.add('hidden'); $('modelTokenLimits').innerHTML = ''; return; }
     section.classList.remove('hidden');
     $('modelTokenLimitsState').textContent = unmatched ? t('未匹配模型已禁用，仅列出的模型可调用。') : t('未匹配模型可用，未列入的模型不限制 Token。');
-    const cards = items.map(item => '<div class="quota-card token-limit-card"><div class="quota-top"><span class="quota-name" title="'+esc(item.model)+'">'+esc(item.model)+'</span></div><div class="token-period-grid">'+tokenPeriodBar('日 Token', item.daily_used, item.daily)+tokenPeriodBar('周 Token', item.weekly_used, item.weekly)+tokenPeriodBar('月 Token', item.monthly_used, item.monthly)+'</div></div>');
+    const cards = items.map(item => '<div class="quota-card token-limit-card"><div class="quota-top"><span class="quota-name" title="'+esc(item.model)+'">'+esc(item.model)+'</span></div><div class="token-period-grid">'+tokenPeriodBar('总 Token', item.total_used, item.total)+tokenPeriodBar('日 Token', item.daily_used, item.daily)+tokenPeriodBar('周 Token', item.weekly_used, item.weekly)+tokenPeriodBar('月 Token', item.monthly_used, item.monthly)+'</div></div>');
     if (!cards.length) cards.push('<div class="quota-card token-limit-card"><div class="quota-top"><span class="quota-name">'+esc(t('未匹配模型'))+'</span><span class="unlimited">'+esc(unmatched ? t('禁用') : t('可用'))+'</span></div></div>');
     $('modelTokenLimits').innerHTML = cards.join('');
   }

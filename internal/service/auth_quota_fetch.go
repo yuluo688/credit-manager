@@ -241,6 +241,23 @@ func headers(token string) http.Header {
 	h.Set("Accept", "application/json")
 	return h
 }
+
+type quotaHTTPStatusError struct {
+	status int
+	code   string
+	reason string
+}
+
+func (e *quotaHTTPStatusError) Error() string {
+	if e.code == "" {
+		return fmt.Sprintf("quota endpoint returned status %d", e.status)
+	}
+	if e.reason == "" {
+		return fmt.Sprintf("quota endpoint returned status %d (%s)", e.status, e.code)
+	}
+	return fmt.Sprintf("quota endpoint returned status %d (%s/%s)", e.status, e.code, e.reason)
+}
+
 func request(ctx context.Context, s AuthQuotaSource, callback, method, url string, h http.Header, b []byte) (map[string]any, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -250,11 +267,28 @@ func request(ctx context.Context, s AuthQuotaSource, callback, method, url strin
 		return nil, e
 	}
 	if r.StatusCode < 200 || r.StatusCode > 299 {
-		return nil, fmt.Errorf("quota endpoint returned status %d", r.StatusCode)
+		return nil, quotaHTTPStatus(r.StatusCode, r.Body)
 	}
 	var out map[string]any
 	if json.Unmarshal(r.Body, &out) != nil {
 		return nil, fmt.Errorf("decode quota response")
 	}
 	return out, nil
+}
+
+func quotaHTTPStatus(status int, body []byte) error {
+	var payload struct {
+		Error struct {
+			Status  string `json:"status"`
+			Details []struct {
+				Reason string `json:"reason"`
+			} `json:"details"`
+		} `json:"error"`
+	}
+	_ = json.Unmarshal(body, &payload)
+	reason := ""
+	if len(payload.Error.Details) > 0 {
+		reason = strings.TrimSpace(payload.Error.Details[0].Reason)
+	}
+	return &quotaHTTPStatusError{status: status, code: strings.TrimSpace(payload.Error.Status), reason: reason}
 }

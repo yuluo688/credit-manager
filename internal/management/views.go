@@ -77,6 +77,7 @@ func modelTokenLimitViews(limits []store.ModelTokenLimit) []map[string]any {
 	for _, item := range limits {
 		out = append(out, map[string]any{
 			"model":   item.Model,
+			"total":   periodTokenLimitView(item.Total),
 			"daily":   periodTokenLimitView(item.Daily),
 			"weekly":  periodTokenLimitView(item.Weekly),
 			"monthly": periodTokenLimitView(item.Monthly),
@@ -99,9 +100,11 @@ func modelTokenUsageViews(items []store.ModelTokenUsage) []map[string]any {
 	for _, item := range items {
 		out = append(out, map[string]any{
 			"model":        item.Model,
+			"total":        periodTokenLimitView(item.Total),
 			"daily":        periodTokenLimitView(item.Daily),
 			"weekly":       periodTokenLimitView(item.Weekly),
 			"monthly":      periodTokenLimitView(item.Monthly),
+			"total_used":   item.TotalUsed,
 			"daily_used":   item.DailyUsed,
 			"weekly_used":  item.WeeklyUsed,
 			"monthly_used": item.MonthlyUsed,

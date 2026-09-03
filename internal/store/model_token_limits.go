@@ -17,7 +17,7 @@ const (
 	maxModelTokenLimits          = 200
 )
 
-// ModelPeriodTokenLimit is one day/week/month token cap for a model.
+// ModelPeriodTokenLimit is one total/day/week/month token cap for a model.
 // Tokens > 0 is a hard cap. Tokens == 0 uses Mode:
 //   - unlimited: no token cap
 //   - available: model remains usable with no token cap for this period
@@ -43,6 +43,7 @@ func (p ModelPeriodTokenLimit) NormalizedMode() string {
 
 type ModelTokenLimit struct {
 	Model   string                `json:"model"`
+	Total   ModelPeriodTokenLimit `json:"total"`
 	Daily   ModelPeriodTokenLimit `json:"daily"`
 	Weekly  ModelPeriodTokenLimit `json:"weekly"`
 	Monthly ModelPeriodTokenLimit `json:"monthly"`
@@ -50,9 +51,11 @@ type ModelTokenLimit struct {
 
 type ModelTokenUsage struct {
 	Model       string                `json:"model"`
+	Total       ModelPeriodTokenLimit `json:"total"`
 	Daily       ModelPeriodTokenLimit `json:"daily"`
 	Weekly      ModelPeriodTokenLimit `json:"weekly"`
 	Monthly     ModelPeriodTokenLimit `json:"monthly"`
+	TotalUsed   int64                 `json:"total_used"`
 	DailyUsed   int64                 `json:"daily_used"`
 	WeeklyUsed  int64                 `json:"weekly_used"`
 	MonthlyUsed int64                 `json:"monthly_used"`
@@ -92,6 +95,10 @@ func normalizeModelTokenLimits(limits []ModelTokenLimit) ([]ModelTokenLimit, err
 			return nil, fmt.Errorf("%w: duplicate model token limit for %s", ErrInvalidArgument, model)
 		}
 		seen[model] = struct{}{}
+		total, err := item.Total.normalize()
+		if err != nil {
+			return nil, err
+		}
 		daily, err := item.Daily.normalize()
 		if err != nil {
 			return nil, err
@@ -104,7 +111,7 @@ func normalizeModelTokenLimits(limits []ModelTokenLimit) ([]ModelTokenLimit, err
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, ModelTokenLimit{Model: model, Daily: daily, Weekly: weekly, Monthly: monthly})
+		out = append(out, ModelTokenLimit{Model: model, Total: total, Daily: daily, Weekly: weekly, Monthly: monthly})
 	}
 	return out, nil
 }
@@ -206,7 +213,7 @@ func enforceModelTokenLimits(ctx context.Context, db tokenQueryer, keyID, model 
 	if estimate < 0 {
 		estimate = 0
 	}
-	if matched.Daily.Cap() <= 0 && matched.Weekly.Cap() <= 0 && matched.Monthly.Cap() <= 0 {
+	if matched.Total.Cap() <= 0 && matched.Daily.Cap() <= 0 && matched.Weekly.Cap() <= 0 && matched.Monthly.Cap() <= 0 {
 		return nil
 	}
 	totals, err := loadModelPeriodTokenTotals(ctx, db, keyID, nowUnixMilli)
@@ -218,6 +225,7 @@ func enforceModelTokenLimits(ctx context.Context, db tokenQueryer, keyID, model 
 		used int64
 		err  error
 	}{
+		{matched.Total.Cap(), sumMatchingModelTokens(totals.total, matched.Model), ErrTotalTokenLimitExceeded},
 		{matched.Daily.Cap(), sumMatchingModelTokens(totals.daily, matched.Model), ErrDailyTokenLimitExceeded},
 		{matched.Weekly.Cap(), sumMatchingModelTokens(totals.weekly, matched.Model), ErrWeeklyTokenLimitExceeded},
 		{matched.Monthly.Cap(), sumMatchingModelTokens(totals.monthly, matched.Model), ErrMonthlyTokenLimitExceeded},
@@ -233,41 +241,46 @@ func enforceModelTokenLimits(ctx context.Context, db tokenQueryer, keyID, model 
 }
 
 type modelPeriodTokenTotals struct {
+	total   map[string]int64
 	daily   map[string]int64
 	weekly  map[string]int64
 	monthly map[string]int64
 }
 
 func loadModelPeriodTokenTotals(ctx context.Context, db tokenQueryer, keyID string, nowUnixMilli int64) (modelPeriodTokenTotals, error) {
-	dayStart, weekStart, monthStart, err := keyPeriodStarts(ctx, db, keyID, nowUnixMilli)
+	totalStart, dayStart, weekStart, monthStart, err := keyTokenPeriodStarts(ctx, db, keyID, nowUnixMilli)
 	if err != nil {
 		return modelPeriodTokenTotals{}, err
 	}
-	from := dayStart
-	if weekStart < from {
-		from = weekStart
-	}
-	if monthStart < from {
-		from = monthStart
+	from := totalStart
+	for _, start := range []int64{dayStart, weekStart, monthStart} {
+		if from == 0 || start < from {
+			from = start
+		}
 	}
 	tokenExpr := usageReportedTotalSQL("")
 	settled, err := queryModelPeriodTokenTotals(ctx, db, `SELECT model,
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN (`+tokenExpr+`) ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN (`+tokenExpr+`) ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN (`+tokenExpr+`) ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN (`+tokenExpr+`) ELSE 0 END), 0)
 		FROM usage_ledger WHERE plugin_key_id = ? AND created_at_unix_ms >= ? GROUP BY model`,
-		dayStart, weekStart, monthStart, keyID, from)
+		totalStart, dayStart, weekStart, monthStart, keyID, from)
 	if err != nil {
 		return modelPeriodTokenTotals{}, fmt.Errorf("sum model period tokens: %w", err)
 	}
 	held, err := queryModelPeriodTokenTotals(ctx, db, `SELECT model,
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN request_token_estimate ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN request_token_estimate ELSE 0 END), 0),
+		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN request_token_estimate ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN created_at_unix_ms >= ? THEN request_token_estimate ELSE 0 END), 0)
 		FROM reservations WHERE plugin_key_id = ? AND status = 'held' AND created_at_unix_ms >= ? GROUP BY model`,
-		dayStart, weekStart, monthStart, keyID, from)
+		totalStart, dayStart, weekStart, monthStart, keyID, from)
 	if err != nil {
 		return modelPeriodTokenTotals{}, fmt.Errorf("sum model period held tokens: %w", err)
+	}
+	for model, tokens := range held.total {
+		settled.total[model] += tokens
 	}
 	for model, tokens := range held.daily {
 		settled.daily[model] += tokens
@@ -288,16 +301,18 @@ func queryModelPeriodTokenTotals(ctx context.Context, db tokenQueryer, query str
 	}
 	defer rows.Close()
 	out := modelPeriodTokenTotals{
+		total:   make(map[string]int64),
 		daily:   make(map[string]int64),
 		weekly:  make(map[string]int64),
 		monthly: make(map[string]int64),
 	}
 	for rows.Next() {
 		var model string
-		var daily, weekly, monthly int64
-		if err := rows.Scan(&model, &daily, &weekly, &monthly); err != nil {
+		var total, daily, weekly, monthly int64
+		if err := rows.Scan(&model, &total, &daily, &weekly, &monthly); err != nil {
 			return modelPeriodTokenTotals{}, err
 		}
+		out.total[model] += total
 		out.daily[model] += daily
 		out.weekly[model] += weekly
 		out.monthly[model] += monthly
@@ -334,9 +349,11 @@ func (s *Store) ListModelTokenUsage(ctx context.Context, keyID string, limits []
 	for _, limit := range clean {
 		out = append(out, ModelTokenUsage{
 			Model:       limit.Model,
+			Total:       limit.Total,
 			Daily:       limit.Daily,
 			Weekly:      limit.Weekly,
 			Monthly:     limit.Monthly,
+			TotalUsed:   sumMatchingModelTokens(totals.total, limit.Model),
 			DailyUsed:   sumMatchingModelTokens(totals.daily, limit.Model),
 			WeeklyUsed:  sumMatchingModelTokens(totals.weekly, limit.Model),
 			MonthlyUsed: sumMatchingModelTokens(totals.monthly, limit.Model),

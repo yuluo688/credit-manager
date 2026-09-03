@@ -8,13 +8,16 @@ import (
 	"time"
 )
 
+const antigravityQuotaUserAgent = "antigravity/windows/amd64"
+
 func antigravity(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredentials) (quotaSnapshot, error) {
 	if c.projectID == "" {
 		return quotaSnapshot{}, fmt.Errorf("OAuth project id is unavailable")
 	}
 	h := headers(c.token)
+	h.Set("Accept", "*/*")
 	h.Set("Content-Type", "application/json")
-	h.Set("User-Agent", "credit-manager")
+	h.Set("User-Agent", antigravityQuotaUserAgent)
 	body := []byte(`{"project":` + strconv.Quote(c.projectID) + `}`)
 	var d map[string]any
 	var e error

@@ -646,7 +646,8 @@ func TestConsoleModelTokenLimits(t *testing.T) {
 		"未匹配模型",
 		"data-unmatched-set=\"disabled\"",
 		"unmatched_models_mode",
-		"日/周/月未填写时选择「可用」或「无限制」",
+		"总/日/周/月未填写时选择「可用」或「无限制」",
+		"总 Token",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console page is missing model token limits: %q", text)
