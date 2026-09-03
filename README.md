@@ -463,6 +463,12 @@ curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/delete
   -H "Authorization: Bearer MGMT_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"id":"<plugin_key_id>"}'
+
+# 重置已用额度：不删用量记录。total/daily/weekly/monthly 可多选；all=true 重置全部未撤销 Key
+curl -sS -X POST "http://127.0.0.1:8317/v0/management/credit-manager/keys/reset-spend" \
+  -H "Authorization: Bearer MGMT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"<plugin_key_id>","total":true,"daily":false,"weekly":false,"monthly":false}'
 ```
 
 ### 列出插件 Key（不含明文）
@@ -490,6 +496,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 | POST | `/v0/management/credit-manager/keys/reveal` | 揭示明文 |
 | POST | `/v0/management/credit-manager/keys/revoke` | 撤销 Key（不可再启用） |
 | POST | `/v0/management/credit-manager/keys/delete` | 标记删除（行仍保留，控制台显示已删除） |
+| POST | `/v0/management/credit-manager/keys/reset-spend` | 重置 Key 已用额度（可选总/日/周/月，不删用量记录） |
 | POST | `/v0/management/credit-manager/pricing` | 新增/更新价格规则 |
 | GET | `/v0/management/credit-manager/pricing` | 列出价格规则 |
 | POST | `/v0/management/credit-manager/pricing/enabled` | 启用/禁用规则（从而启停模型） |
@@ -566,6 +573,7 @@ curl -sS "http://127.0.0.1:8317/v0/management/credit-manager/keys?caller_id=team
 - 纯出图按张计费，不能套用 Token 价。缺 usage 时按请求里的张数（默认 1）结算，而不是按 Token 预估实扣。
 - **严格预占**：单个 Key 可用额度不足时直接拒绝；Key 之间不共享额度。
 - Key 可分别设置总、日、周、月额度和最大并发；`0` 或省略表示不限制。日/周/月按 UTC 自然周期，周从周一开始。
+- 管理台可手动重置 Key 的总/日/周/月**已用**额度（可多选），不删除用量记录、不改限额。日/周/月重置后从当前时刻重新起算，到下一个 UTC 自然周期仍按日历切换。模型 Token 日/周/月上限随对应项一起重置。
 - 周期额度 = 已结算费用 + 当前周期在途预占；并发按未结算或未释放的请求数计算。全部检查在同一个预占事务内完成。
 - **实际结算可能超过预占额**：文本按真实 usage 计价，可能大于预占。此时 Key 余额可能为负，后续请求继续 fail-closed，直到额度恢复。
 - 文本请求若始终没有 usage，默认**不会**把预估 Token 当成实扣；账本先记 0。若后来宿主补到官方用量，再按实际回填。

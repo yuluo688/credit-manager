@@ -113,6 +113,16 @@
     '按日汇总实际费用': { 'zh-TW':'按日彙總實際費用', en:'Actual cost by day', ru:'Фактические расходы по дням' },
     '删除密钥': { 'zh-TW':'刪除密鑰', en:'Delete key', ru:'Удалить ключ' }, '确认删除': { 'zh-TW':'確認刪除', en:'Confirm delete', ru:'Подтвердить удаление' },
     '删除后该密钥将立即失效，历史使用统计、预占和审计记录会保留。': { 'zh-TW':'刪除後該密鑰將立即失效，歷史使用統計、預占和稽核記錄會保留。', en:'The key is revoked immediately. Usage stats, holds, and audit records are kept.', ru:'Ключ сразу отключается. Статистика, резервы и аудит сохраняются.' },
+    '重置已用': { 'zh-TW':'重設已用', en:'Reset used', ru:'Сбросить расход' }, '重置全部已用': { 'zh-TW':'重設全部已用', en:'Reset all used', ru:'Сбросить весь расход' },
+    '重置已用额度': { 'zh-TW':'重設已用額度', en:'Reset used quota', ru:'Сброс израсходованной квоты' }, '确认重置': { 'zh-TW':'確認重設', en:'Confirm reset', ru:'Подтвердить сброс' },
+    '不会删除用量记录，只把勾选周期的已用清零，限额不变。日/周/月到下一个自然周期后仍按 UTC 日历切换。': { 'zh-TW':'不會刪除用量記錄，只把勾選週期的已用清零，限額不變。日/週/月到下一個自然週期後仍按 UTC 日曆切換。', en:'Usage history is kept. Checked periods start from zero; caps stay the same. Day/week/month return to the UTC calendar at the next boundary.', ru:'История сохраняется. Отмеченные периоды обнуляются, лимиты те же. День/неделя/месяц снова идут по UTC с следующей границы.' },
+    '总额度已用': { 'zh-TW':'總額度已用', en:'Total used', ru:'Общий расход' }, '日额度已用': { 'zh-TW':'日額度已用', en:'Daily used', ru:'Дневной расход' }, '周额度已用': { 'zh-TW':'週額度已用', en:'Weekly used', ru:'Недельный расход' }, '月额度已用': { 'zh-TW':'月額度已用', en:'Monthly used', ru:'Месячный расход' },
+    '请至少选择一项': { 'zh-TW':'請至少選擇一項', en:'Select at least one period', ru:'Выберите хотя бы один период' },
+    '即将重置：': { 'zh-TW':'即將重設：', en:'Will reset: ', ru:'Будет сброшено: ' },
+    '全部启用密钥': { 'zh-TW':'全部啟用密鑰', en:'all active keys', ru:'все активные ключи' },
+    '把密钥': { 'zh-TW':'把密鑰', en:'keys', ru:'ключа' },
+    '已用额度已重置': { 'zh-TW':'已用額度已重設', en:'Used quota reset', ru:'Расход сброшен' },
+    '关闭重置确认': { 'zh-TW':'關閉重設確認', en:'Close reset confirmation', ru:'Закрыть подтверждение сброса' },
     '0 或留空 = 不限制': { 'zh-TW':'0 或留空 = 不限制', en:'0 or empty = unlimited', ru:'0 или пусто = без лимита' },
     'gpt-4o 或 * 或 .*': { 'zh-TW':'gpt-4o 或 * 或 .*', en:'gpt-4o or * or .*', ru:'gpt-4o или * или .*' },
     '人民币（按汇率换算）': { 'zh-TW':'人民幣（按匯率換算）', en:'Chinese yuan (converted)', ru:'Юань (по курсу)' },
@@ -202,6 +212,8 @@
     usageSummary: null,
     usageRecent: null,
     deleteKeyID: '',
+    resetSpendID: '',
+    resetSpendAll: false,
     tokenUnit: 'raw',
     currency: 'USD',
     usdCnyRate: DEFAULT_USD_CNY_RATE,
@@ -1332,7 +1344,7 @@
       : overviewRangeDates();
     const auth = resolveAuthFilter(value('overviewAuthFilter'));
     const filter = {
-      plugin_key_id: resolveKeyFilter(value('overviewKeyFilter')),
+      plugin_key_id: resolveKeyFilter($('overviewKeyFilter')),
       auth_id: auth.auth_id,
       auth_provider: auth.auth_provider,
       auth_index: auth.auth_index,
@@ -1603,12 +1615,16 @@
       const target = $(id);
       if (target) target.textContent = t(text);
     });
+    if ($('btnResetAllKeySpend')) $('btnResetAllKeySpend').disabled = true;
   }
 
   function resetDataBoundFilters() {
     ['overviewKeyFilter', 'overviewAuthFilter', 'usageKeyFilter', 'usageAuthFilter', 'authQuotaNameFilter', 'authQuotaBatchConcurrency'].forEach(id => {
       const el = $(id);
-      if (el) el.value = '';
+      if (el) {
+        el.value = '';
+        delete el.dataset.selectedKeyId;
+      }
     });
     [['overviewModelFilter', '全部已使用模型'], ['usageModelFilter', '全部已使用模型'], ['authQuotaProviderFilter', '全部平台'], ['priceModelPicker', '加载后选择模型']].forEach(([id, label]) => {
       const select = $(id);
@@ -1642,9 +1658,12 @@
     state.usageSummary = null;
     state.usageRecent = null;
     state.deleteKeyID = '';
+    state.resetSpendID = '';
+    state.resetSpendAll = false;
     closeKeyModal();
     closePriceModal();
     closeDeleteKeyModal();
+    closeResetSpendModal();
     resetDataBoundFilters();
     renderDisconnectedOverview();
     renderDisconnectedTabStates();
@@ -2188,6 +2207,7 @@
     if ($('keysCount')) {
       $('keysCount').textContent = state.keys.length ? (state.keys.length + ' ' + t('个密钥')) : '暂无密钥';
     }
+    if ($('btnResetAllKeySpend')) $('btnResetAllKeySpend').disabled = !state.keys.length;
 
     if (!state.keys.length) {
       $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。</span></div>';
@@ -2249,12 +2269,14 @@
           '<td><div class="row-actions">' +
             '<button class="btn soft sm" data-copy="'+esc(k.id)+'">'+uiIcon('copy')+esc(t('复制密钥'))+'</button>' +
             '<button class="btn primary sm" data-manage="'+esc(k.id)+'">'+uiIcon('gear')+esc(t('管理密钥'))+'</button>' +
+            '<button class="btn soft sm" data-reset-spend="'+esc(k.id)+'">'+uiIcon('refresh')+esc(t('重置已用'))+'</button>' +
             '<button class="btn danger sm" data-delete="'+esc(k.id)+'">'+uiIcon('trash')+esc(t('删除'))+'</button>' +
           '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
 
     $('keysTable').querySelectorAll('[data-copy]').forEach(btn => btn.addEventListener('click', () => copyKeyByID(btn.dataset.copy)));
     $('keysTable').querySelectorAll('[data-manage]').forEach(btn => btn.addEventListener('click', () => openKeyModal('manage', btn.dataset.manage)));
+    $('keysTable').querySelectorAll('[data-reset-spend]').forEach(btn => btn.addEventListener('click', () => openResetSpendModal(btn.dataset.resetSpend)));
     $('keysTable').querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => openDeleteKeyModal(btn.dataset.delete)));
     $('keysTable').querySelectorAll('[data-enable-key]').forEach(input => input.addEventListener('change', () => toggleKeyEnabled(input.dataset.enableKey, input.checked, input)));
   }
@@ -2280,8 +2302,12 @@
     }
   }
 
+  function keyFilterDisplayLabel(key) {
+    return (key.label || '(无标签)') + (key.revoked_at ? '（已删除）' : '');
+  }
+
   function keyFilterLabel(key) {
-    return (key.label || '(无标签)') + (key.revoked_at ? '（已删除）' : '') + ' · ' + key.id;
+    return keyFilterDisplayLabel(key) + ' · ' + key.id;
   }
 
   function keySearchMatches(query) {
@@ -2302,7 +2328,8 @@
     panel.querySelectorAll('[data-key-id]').forEach(button => button.addEventListener('click', () => {
       const key = state.allKeys.find(item => item.id === button.dataset.keyId);
       if (!key) return;
-      input.value = keyFilterLabel(key);
+      input.value = keyFilterDisplayLabel(key);
+      input.dataset.selectedKeyId = key.id;
       closeKeySearch(kind);
     }));
   }
@@ -2326,11 +2353,12 @@
     panel.hidden = true;
   }
 
-  function resolveKeyFilter(raw) {
-    raw = String(raw || '').trim();
+  function resolveKeyFilter(control) {
+    const input = typeof control === 'string' ? null : control;
+    const raw = String(input ? input.value : control || '').trim();
     if (!raw) return '';
-    const exact = state.allKeys.find(key => key.id === raw || keyFilterLabel(key) === raw);
-    if (exact) return exact.id;
+    const selectedKeyID = input && input.dataset.selectedKeyId;
+    if (selectedKeyID && state.allKeys.some(key => key.id === selectedKeyID)) return selectedKeyID;
     const needle = raw.toLocaleLowerCase();
     const matches = state.allKeys.filter(key =>
       key.id.toLocaleLowerCase().includes(needle) || keyFilterLabel(key).toLocaleLowerCase().includes(needle)
@@ -3850,7 +3878,7 @@
       : usageRangeDates();
     const auth = resolveAuthFilter(value('usageAuthFilter'));
     const filter = {
-      plugin_key_id: resolveKeyFilter(value('usageKeyFilter')),
+      plugin_key_id: resolveKeyFilter($('usageKeyFilter')),
       auth_id: auth.auth_id,
       auth_provider: auth.auth_provider,
       auth_index: auth.auth_index,
@@ -4450,6 +4478,62 @@
     });
   }
 
+  function openResetSpendModal(id, all) {
+    state.resetSpendAll = Boolean(all);
+    state.resetSpendID = all ? '' : id;
+    const count = (state.keys || []).length;
+    if (all) {
+      $('resetSpendTarget').textContent = t('即将重置：') + t('全部启用密钥') + '（' + count + '）';
+    } else {
+      const key = state.keys.find(item => item.id === id);
+      $('resetSpendTarget').textContent = t('即将重置：') + (key && (key.label || key.id) || id);
+    }
+    $('resetSpendTotal').checked = true;
+    $('resetSpendDaily').checked = false;
+    $('resetSpendWeekly').checked = false;
+    $('resetSpendMonthly').checked = false;
+    const modal = $('resetSpendModal');
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('btnConfirmResetSpend').focus();
+  }
+
+  function closeResetSpendModal() {
+    state.resetSpendID = '';
+    state.resetSpendAll = false;
+    const modal = $('resetSpendModal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function selectedSpendResetScopes() {
+    return {
+      total: Boolean($('resetSpendTotal') && $('resetSpendTotal').checked),
+      daily: Boolean($('resetSpendDaily') && $('resetSpendDaily').checked),
+      weekly: Boolean($('resetSpendWeekly') && $('resetSpendWeekly').checked),
+      monthly: Boolean($('resetSpendMonthly') && $('resetSpendMonthly').checked),
+    };
+  }
+
+  async function confirmResetKeySpend() {
+    const scopes = selectedSpendResetScopes();
+    if (!scopes.total && !scopes.daily && !scopes.weekly && !scopes.monthly) {
+      flash('请至少选择一项', false);
+      return;
+    }
+    const payload = { ...scopes };
+    if (state.resetSpendAll) payload.all = true;
+    else payload.id = state.resetSpendID;
+    if (!payload.all && !payload.id) return;
+    try {
+      await api('POST', 'credit-manager/keys/reset-spend', payload);
+      closeResetSpendModal();
+      await reload();
+      flash(t('已用额度已重置'), true);
+    } catch (e) { flash(e.message, false); }
+  }
+
   function openDeleteKeyModal(id) {
     const key = state.keys.find(item => item.id === id);
     state.deleteKeyID = id;
@@ -4531,6 +4615,7 @@
       closeKeyModal();
       closePriceModal();
       closeDeleteKeyModal();
+      closeResetSpendModal();
     }
   });
   $('customApiBase').addEventListener('change', () => {
@@ -4625,6 +4710,7 @@
     const input = $(kind + 'KeyFilter');
     input.addEventListener('focus', () => openKeySearch(kind));
     input.addEventListener('input', () => {
+      delete input.dataset.selectedKeyId;
       renderKeySearchOptions(kind);
       openKeySearch(kind);
     });
@@ -4658,6 +4744,7 @@
   $('btnResetOverview').addEventListener('click', async () => {
     $('overviewRangeFilter').value = 'today';
     $('overviewKeyFilter').value = '';
+    delete $('overviewKeyFilter').dataset.selectedKeyId;
     $('overviewAuthFilter').value = '';
     closeKeySearch('overview');
     closeAuthSearch('overview');
@@ -4678,6 +4765,21 @@
     try { await loadModelCatalog(); flash(state.modelCatalogError ? '已加载代理模型，价格目录暂不可用' : '已加载全部模型并同步新价格规则', true); } catch (e) { $('modelCatalogStatus').textContent = '加载失败：' + e.message; flash(e.message, false); }
   });
   $('btnOpenCreateKey').addEventListener('click', () => openKeyModal('create'));
+  $('btnResetAllKeySpend').addEventListener('click', () => {
+    if (!(state.keys || []).length) return;
+    openResetSpendModal('', true);
+  });
+  $('btnResetManagedKeySpend').addEventListener('click', () => {
+    const id = $('keyModalId').value;
+    if (!id) return;
+    openResetSpendModal(id);
+  });
+  $('btnCloseResetSpendModal').addEventListener('click', closeResetSpendModal);
+  $('btnCancelResetSpend').addEventListener('click', closeResetSpendModal);
+  $('resetSpendModal').addEventListener('click', event => {
+    if (event.target === $('resetSpendModal')) closeResetSpendModal();
+  });
+  $('btnConfirmResetSpend').addEventListener('click', confirmResetKeySpend);
   $('btnClosePriceModal').addEventListener('click', closePriceModal);
   $('btnCancelPriceModal').addEventListener('click', closePriceModal);
   $('priceModal').addEventListener('click', event => {

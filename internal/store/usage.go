@@ -231,9 +231,12 @@ func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage mo
 	defer tx.Rollback()
 
 	var callerID, pluginKeyID, reservationID string
-	var previousCost int64
-	if err := tx.QueryRowContext(ctx, `SELECT caller_id, plugin_key_id, reservation_id, cost_micro_usd
-		FROM usage_ledger WHERE id = ?`, ledgerID).Scan(&callerID, &pluginKeyID, &reservationID, &previousCost); err != nil {
+	var previousCost, createdAt int64
+	var totalReset sql.NullInt64
+	if err := tx.QueryRowContext(ctx, `SELECT u.caller_id, u.plugin_key_id, u.reservation_id, u.cost_micro_usd, u.created_at_unix_ms,
+		k.total_spend_reset_at_unix_ms
+		FROM usage_ledger u JOIN plugin_keys k ON k.id = u.plugin_key_id
+		WHERE u.id = ?`, ledgerID).Scan(&callerID, &pluginKeyID, &reservationID, &previousCost, &createdAt, &totalReset); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%w: usage ledger not found", ErrInvalidArgument)
 		}
@@ -257,18 +260,20 @@ func (s *Store) UpdateUsageDetail(ctx context.Context, ledgerID string, usage mo
 
 	delta := int64(cost) - previousCost
 	if delta != 0 {
-		result, err = tx.ExecContext(ctx, `UPDATE plugin_keys SET
-			settled_spend_micro_usd = CASE
-				WHEN settled_spend_micro_usd + ? < 0 THEN 0
-				ELSE settled_spend_micro_usd + ?
-			END,
-			updated_at_unix_ms = ?
-			WHERE id = ?`, delta, delta, now, pluginKeyID)
-		if err != nil {
-			return fmt.Errorf("adjust settled spend: %w", err)
-		}
-		if err := requireOneRow(result, ErrPluginKeyNotFound); err != nil {
-			return err
+		if !(totalReset.Valid && createdAt < totalReset.Int64) {
+			result, err = tx.ExecContext(ctx, `UPDATE plugin_keys SET
+				settled_spend_micro_usd = CASE
+					WHEN settled_spend_micro_usd + ? < 0 THEN 0
+					ELSE settled_spend_micro_usd + ?
+				END,
+				updated_at_unix_ms = ?
+				WHERE id = ?`, delta, delta, now, pluginKeyID)
+			if err != nil {
+				return fmt.Errorf("adjust settled spend: %w", err)
+			}
+			if err := requireOneRow(result, ErrPluginKeyNotFound); err != nil {
+				return err
+			}
 		}
 		if _, err := tx.ExecContext(ctx, `UPDATE reservations SET settled_micro_usd=?, updated_at_unix_ms=?
 			WHERE id=? AND status='settled'`, cost, now, reservationID); err != nil {

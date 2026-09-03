@@ -43,9 +43,11 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent, settled, held int64
 	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var created, updated int64
+	var totalReset, dailyReset, weeklyReset, monthlyReset sql.NullInt64
 	if err := row.Scan(&key.ID, &key.CallerID, &key.Kid, &key.KeyHash, &key.EncryptedKeyMaterial, &key.PepperID, &key.Fingerprint,
 		&key.Label, &key.Principal, &key.CallerScope, &enabled, &revoked, &expires, &lastUsed, &created, &updated,
-		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON, &tokenLimitsJSON, &unmatchedMode); err != nil {
+		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON, &tokenLimitsJSON, &unmatchedMode,
+		&totalReset, &dailyReset, &weeklyReset, &monthlyReset); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PluginKey{}, ErrPluginKeyNotFound
 		}
@@ -85,8 +87,20 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	}
 	key.ModelTokenLimits = tokenLimits
 	key.UnmatchedModelsMode = normalizeUnmatchedModelsMode(unmatchedMode)
+	key.TotalSpendResetAt = optionalUnixTime(totalReset)
+	key.DailySpendResetAt = optionalUnixTime(dailyReset)
+	key.WeeklySpendResetAt = optionalUnixTime(weeklyReset)
+	key.MonthlySpendResetAt = optionalUnixTime(monthlyReset)
 	key.CreatedAt, key.UpdatedAt = fromUnixMilli(created), fromUnixMilli(updated)
 	return key, nil
+}
+
+func optionalUnixTime(value sql.NullInt64) *time.Time {
+	if !value.Valid {
+		return nil
+	}
+	parsed := fromUnixMilli(value.Int64)
+	return &parsed
 }
 
 func marshalAllowedModels(models []string) (string, error) {

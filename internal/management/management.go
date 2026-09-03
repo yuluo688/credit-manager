@@ -29,6 +29,7 @@ func Routes() []pluginapi.ManagementRoute {
 		{http.MethodPost, "credit-manager/keys/revoke"},
 		{http.MethodPost, "credit-manager/keys/reveal"},
 		{http.MethodPost, "credit-manager/keys/delete"},
+		{http.MethodPost, "credit-manager/keys/reset-spend"},
 		{http.MethodPost, "credit-manager/pricing"},
 		{http.MethodGet, "credit-manager/pricing"},
 		{http.MethodPost, "credit-manager/pricing/enabled"},
@@ -135,6 +136,8 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return revealKey(ctx, svc, req.Body)
 	case req.Method == http.MethodPost && path == "credit-manager/keys/delete":
 		return deleteKeyPermanently(ctx, svc, req.Body)
+	case req.Method == http.MethodPost && path == "credit-manager/keys/reset-spend":
+		return resetKeySpend(ctx, svc, req.Body)
 	case req.Method == http.MethodPost && path == "credit-manager/pricing":
 		return putPricing(ctx, svc, req.Body)
 	case req.Method == http.MethodGet && path == "credit-manager/pricing":

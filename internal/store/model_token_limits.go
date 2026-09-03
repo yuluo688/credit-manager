@@ -239,9 +239,10 @@ type modelPeriodTokenTotals struct {
 }
 
 func loadModelPeriodTokenTotals(ctx context.Context, db tokenQueryer, keyID string, nowUnixMilli int64) (modelPeriodTokenTotals, error) {
-	dayStart := utcDayStart(nowUnixMilli)
-	weekStart := utcWeekStart(nowUnixMilli)
-	monthStart := utcMonthStart(nowUnixMilli)
+	dayStart, weekStart, monthStart, err := keyPeriodStarts(ctx, db, keyID, nowUnixMilli)
+	if err != nil {
+		return modelPeriodTokenTotals{}, err
+	}
 	from := dayStart
 	if weekStart < from {
 		from = weekStart

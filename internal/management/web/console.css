@@ -566,6 +566,11 @@ html[data-palette="dark"] .price-block { border-color:var(--line); }
 .modal-backdrop.open .connection-modal { transform:scale(1); }
 .delete-key-modal { width:min(480px, 100%); }
 .delete-key-target { margin:0; padding:11px 12px; border:1px solid #f0d4d0; border-radius:10px; background:#fff8f7; color:#7d342d; font-weight:650; word-break:break-word; }
+.reset-spend-modal { width:min(480px, 100%); }
+.reset-spend-target { margin:0; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--text); font-weight:650; word-break:break-word; }
+.reset-spend-scopes { display:grid; gap:10px; margin:14px 0 4px; }
+.reset-spend-scopes .remember-row { display:flex; flex-direction:row; align-items:center; gap:8px; min-width:0; color:var(--text); font-size:.84rem; font-weight:650; cursor:pointer; user-select:none; }
+.reset-spend-scopes .remember-row input { width:16px; height:16px; margin:0; flex:none; accent-color:var(--accent); }
 input:disabled, select:disabled { cursor:not-allowed; opacity:.62; }
 .modal-header { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:22px 24px 16px; border-bottom:1px solid var(--line); }
 .modal-header .panel-title { margin:0; font-size:1.12rem; letter-spacing:-.02em; }
@@ -922,13 +927,13 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .keys-card { padding:0; overflow:hidden; }
 .keys-card .section-heading { padding:16px 18px 0; margin-bottom:0; }
 .keys-card #keysTable { padding:12px 14px 16px; }
-.keys-table { min-width:1020px; table-layout:fixed; }
+.keys-table { min-width:1180px; table-layout:fixed; }
 .keys-table th:nth-child(1) { width:8rem; }
 .keys-table th:nth-child(2) { width:11.5rem; }
 .keys-table th:nth-child(3) { width:16.5rem; }
 .keys-table th:nth-child(4) { width:7.75rem; }
 .keys-table th:nth-child(5) { width:5.5rem; }
-.keys-table th:nth-child(6) { width:15.5rem; }
+.keys-table th:nth-child(6) { width:21rem; }
 .keys-table th { position:sticky; top:0; z-index:1; background:#f7faf7; white-space:nowrap; }
 .keys-table td { vertical-align:middle; padding:14px 10px; }
 .keys-table td:nth-child(4), .keys-table td:nth-child(5) { white-space:nowrap; }

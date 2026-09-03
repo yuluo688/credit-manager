@@ -535,6 +535,53 @@ func TestAuthQuotaConcurrencyRoute(t *testing.T) {
 	}
 }
 
+func TestKeySpendResetRoute(t *testing.T) {
+	var found bool
+	for _, route := range Routes() {
+		if route.Method == "POST" && route.Path == "credit-manager/keys/reset-spend" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("key spend reset route is not registered")
+	}
+}
+
+func TestConsoleKeySpendResetUI(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"credit-manager/keys/reset-spend",
+		"function openResetSpendModal",
+		"resetSpendTotal",
+		"重置全部已用",
+		"data-reset-spend",
+		"btnResetManagedKeySpend",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console spend reset UI is missing %q", text)
+		}
+	}
+	if !strings.Contains(page, "await reload();\n      flash(t('已用额度已重置')") {
+		t.Fatal("reset success toast is cleared before the refreshed data finishes loading")
+	}
+}
+
+func TestConsoleKeyFilterShowsLabelOnly(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"function keyFilterDisplayLabel(key)",
+		"input.value = keyFilterDisplayLabel(key)",
+		"input.dataset.selectedKeyId = key.id",
+		"resolveKeyFilter($('overviewKeyFilter'))",
+		"resolveKeyFilter($('usageKeyFilter'))",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console key filter display is missing %q", text)
+		}
+	}
+}
+
 func TestPricingEnabledRoute(t *testing.T) {
 	var found bool
 	for _, route := range Routes() {

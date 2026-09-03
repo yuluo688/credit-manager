@@ -37,6 +37,10 @@ type PluginKey struct {
 	RevokedAt             *time.Time
 	ExpiresAt             *time.Time
 	LastUsedAt            *time.Time
+	TotalSpendResetAt     *time.Time
+	DailySpendResetAt     *time.Time
+	WeeklySpendResetAt    *time.Time
+	MonthlySpendResetAt   *time.Time
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
@@ -427,5 +431,6 @@ func ModelAllowed(key PluginKey, model string) bool {
 const pluginKeySelect = `SELECT id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 	enabled, revoked_at_unix_ms, expires_at_unix_ms, last_used_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 	quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
+	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode,
+	total_spend_reset_at_unix_ms, daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms
 	FROM plugin_keys`

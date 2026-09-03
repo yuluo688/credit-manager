@@ -268,6 +268,38 @@ func revealKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 	}, nil
 }
 
+func resetKeySpend(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
+	var req struct {
+		ID      string   `json:"id"`
+		IDs     []string `json:"ids"`
+		All     bool     `json:"all"`
+		Total   bool     `json:"total"`
+		Daily   bool     `json:"daily"`
+		Weekly  bool     `json:"weekly"`
+		Monthly bool     `json:"monthly"`
+	}
+	if err := json.Unmarshal(body, &req); err != nil {
+		return jsonErr(http.StatusBadRequest, "invalid json"), nil
+	}
+	ids := append([]string(nil), req.IDs...)
+	if strings.TrimSpace(req.ID) != "" {
+		ids = append(ids, req.ID)
+	}
+	reset, err := svc.Store().ResetPluginKeySpend(ctx, ids, req.All, store.SpendResetScopes{
+		Total:   req.Total,
+		Daily:   req.Daily,
+		Weekly:  req.Weekly,
+		Monthly: req.Monthly,
+	})
+	if err != nil {
+		if errors.Is(err, store.ErrPluginKeyNotFound) {
+			return jsonErr(http.StatusNotFound, err.Error()), nil
+		}
+		return jsonErr(http.StatusBadRequest, err.Error()), nil
+	}
+	return jsonOK(map[string]any{"reset": reset, "total": req.Total, "daily": req.Daily, "weekly": req.Weekly, "monthly": req.Monthly}), nil
+}
+
 func deleteKeyPermanently(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
 	var req struct {
 		ID string `json:"id"`

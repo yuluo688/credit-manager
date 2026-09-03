@@ -980,6 +980,234 @@ func TestAuthConcurrencyLimitRoundTrip(t *testing.T) {
 	}
 }
 
+func TestResetPluginKeySpendRestartsSelectedCycles(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{
+		QuotaMicroUSD:        10,
+		DailyQuotaMicroUSD:   100,
+		WeeklyQuotaMicroUSD:  100,
+		MonthlyQuotaMicroUSD: 100,
+	})
+	first, err := st.Reserve(ctx, reserveRequest(key, "used", 6))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: first.ID, Model: first.Model,
+		Usage: money.TokenUsage{Input: 1}, CostMicroUSD: 6, EstimatedCostMicroUSD: 6, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "blocked-total", 5)); !errors.Is(err, ErrInsufficientQuota) {
+		t.Fatalf("blocked total = %v, want %v", err, ErrInsufficientQuota)
+	}
+
+	time.Sleep(2 * time.Millisecond)
+	if n, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Daily: true}); err != nil || n != 1 {
+		t.Fatalf("reset daily = %d, %v", n, err)
+	}
+	updated, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("get key: %v", err)
+	}
+	if updated.SettledSpendMicroUSD != 6 || updated.DailySpendResetAt == nil || updated.TotalSpendResetAt != nil {
+		t.Fatalf("after daily reset: settled=%d dailyReset=%v totalReset=%v", updated.SettledSpendMicroUSD, updated.DailySpendResetAt, updated.TotalSpendResetAt)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "still-blocked-total", 5)); !errors.Is(err, ErrInsufficientQuota) {
+		t.Fatalf("total still blocks = %v", err)
+	}
+
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Total: true}); err != nil {
+		t.Fatalf("reset total: %v", err)
+	}
+	updated, err = st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("get key after total reset: %v", err)
+	}
+	if updated.SettledSpendMicroUSD != 0 || updated.RemainingMicroUSD() != 10 || updated.TotalSpendResetAt == nil {
+		t.Fatalf("after total reset: settled=%d remaining=%d reset=%v", updated.SettledSpendMicroUSD, updated.RemainingMicroUSD(), updated.TotalSpendResetAt)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "after-total-reset", 5)); err != nil {
+		t.Fatalf("reserve after total reset: %v", err)
+	}
+
+	events, err := st.ListAuditEventsFiltered(ctx, AuditFilter{PluginKeyID: key.ID, Limit: 20})
+	if err != nil {
+		t.Fatalf("list audit: %v", err)
+	}
+	var resets int
+	for _, event := range events {
+		if event.EventType == "quota_spend_reset" {
+			resets++
+			if !bytes.Contains([]byte(event.DetailsJSON), []byte(`"total"`)) {
+				t.Fatalf("reset audit details = %s", event.DetailsJSON)
+			}
+		}
+	}
+	if resets != 2 {
+		t.Fatalf("spend reset audits = %d, want 2", resets)
+	}
+}
+
+func TestResetPluginKeySpendWeeklyDoesNotClearDaily(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 10})
+	first, err := st.Reserve(ctx, reserveRequest(key, "week", 6))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: first.ID, Model: first.Model,
+		Usage: money.TokenUsage{Input: 1}, CostMicroUSD: 6, EstimatedCostMicroUSD: 6, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "blocked-week", 5)); !errors.Is(err, ErrWeeklyQuotaExceeded) {
+		t.Fatalf("blocked week = %v, want %v", err, ErrWeeklyQuotaExceeded)
+	}
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Weekly: true}); err != nil {
+		t.Fatalf("reset weekly: %v", err)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "after-week-reset", 5)); err != nil {
+		t.Fatalf("reserve after weekly reset: %v", err)
+	}
+	overview, err := st.GetKeyUsageOverview(ctx, key.ID, time.Now().UTC())
+	if err != nil {
+		t.Fatalf("overview: %v", err)
+	}
+	if overview.WeeklyMicroUSD != 5 {
+		t.Fatalf("weekly used = %d, want 5", overview.WeeklyMicroUSD)
+	}
+	if overview.DailyMicroUSD != 11 {
+		t.Fatalf("daily used = %d, want 11 (history plus new hold)", overview.DailyMicroUSD)
+	}
+}
+
+func TestResetPluginKeySpendAllSkipsRevoked(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	first := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10, Kid: "test-key-one", Principal: "credit-manager:test-key-one", CallerScope: "credit-manager:test-key-one"})
+	second := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10, Kid: "test-key-two", Principal: "credit-manager:test-key-two", CallerScope: "credit-manager:test-key-two"})
+	held, err := st.Reserve(ctx, reserveRequest(first, "one", 4))
+	if err != nil {
+		t.Fatalf("reserve first: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: held.ID, Model: held.Model,
+		Usage: money.TokenUsage{Input: 1}, CostMicroUSD: 4, EstimatedCostMicroUSD: 4, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle first: %v", err)
+	}
+	held, err = st.Reserve(ctx, reserveRequest(second, "two", 4))
+	if err != nil {
+		t.Fatalf("reserve second: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: held.ID, Model: held.Model,
+		Usage: money.TokenUsage{Input: 1}, CostMicroUSD: 4, EstimatedCostMicroUSD: 4, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle second: %v", err)
+	}
+	if err := st.RevokePluginKey(ctx, second.ID); err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+	n, err := st.ResetPluginKeySpend(ctx, nil, true, SpendResetScopes{Total: true})
+	if err != nil || n != 1 {
+		t.Fatalf("reset all = %d, %v", n, err)
+	}
+	got, err := st.GetPluginKey(ctx, first.ID)
+	if err != nil || got.SettledSpendMicroUSD != 0 {
+		t.Fatalf("active settled = %#v err=%v", got, err)
+	}
+	got, err = st.GetPluginKey(ctx, second.ID)
+	if err != nil || got.SettledSpendMicroUSD != 4 {
+		t.Fatalf("revoked settled = %#v err=%v", got, err)
+	}
+}
+
+func TestResetPluginKeySpendRequiresScopeAndID(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{}); !errors.Is(err, ErrInvalidArgument) {
+		t.Fatalf("empty scopes = %v", err)
+	}
+	if _, err := st.ResetPluginKeySpend(ctx, nil, false, SpendResetScopes{Total: true}); !errors.Is(err, ErrInvalidArgument) {
+		t.Fatalf("missing id = %v", err)
+	}
+	if _, err := st.ResetPluginKeySpend(ctx, []string{"missing"}, false, SpendResetScopes{Total: true}); !errors.Is(err, ErrPluginKeyNotFound) {
+		t.Fatalf("missing key = %v", err)
+	}
+}
+
+func TestUpdateUsageDetailIgnoresPreResetLedger(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 10_000})
+	reservation, err := st.Reserve(ctx, reserveRequest(key, "reprice-reset", 1_000))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	ledgerID := NewID()
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: ledgerID, ReservationID: reservation.ID, Model: "test-model",
+		Usage: money.TokenUsage{Input: 100_000, Output: 4_096}, CostMicroUSD: 1_000, EstimatedCostMicroUSD: 1_000, Source: "reserved_fallback",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Total: true}); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+	if err := st.UpdateUsageDetail(ctx, ledgerID, money.TokenUsage{Input: 20, Output: 8}, 3); err != nil {
+		t.Fatalf("reprice: %v", err)
+	}
+	updated, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("get key: %v", err)
+	}
+	if updated.SettledSpendMicroUSD != 0 {
+		t.Fatalf("settled spend = %d, want 0", updated.SettledSpendMicroUSD)
+	}
+}
+
+func TestListModelTokenUsageRespectsDailyReset(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{})
+	now := time.Now().UTC()
+	if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES ('u-reset', 'r-reset', ?, ?, 'test-model', 40, 0, 0, 0, 0, 0, 1, 'usage', ?)`, key.CallerID, key.ID, now.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(2 * time.Millisecond)
+	if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, SpendResetScopes{Daily: true}); err != nil {
+		t.Fatalf("reset: %v", err)
+	}
+	got, err := st.ListModelTokenUsage(ctx, key.ID, []ModelTokenLimit{{Model: "test-model"}}, time.Now().UTC().UnixMilli())
+	if err != nil || len(got) != 1 {
+		t.Fatalf("usage=%#v err=%v", got, err)
+	}
+	if got[0].DailyUsed != 0 {
+		t.Fatalf("daily used = %d, want 0 after reset", got[0].DailyUsed)
+	}
+	if got[0].WeeklyUsed != 40 || got[0].MonthlyUsed != 40 {
+		t.Fatalf("weekly=%d monthly=%d, want 40", got[0].WeeklyUsed, got[0].MonthlyUsed)
+	}
+}
+
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
 	st, err := Open(context.Background(), filepath.Join(t.TempDir(), "credit-manager.db"), OpenOptions{BusyTimeout: time.Second})

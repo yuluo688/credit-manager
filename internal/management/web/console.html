@@ -164,6 +164,7 @@
             <div id="keyModalManageActions" class="actions key-modal-manage-actions hidden">
               <button class="btn soft" id="btnRevealManagedKey">查看密钥</button>
               <button class="btn ghost" id="btnRotateManagedKey">轮换密钥</button>
+              <button class="btn ghost" id="btnResetManagedKeySpend" type="button">重置已用</button>
             </div>
             <div id="keyPlainResult" class="hidden">
               <p class="hint">密钥明文已加密保存，可在已有密钥中再次查看。</p>
@@ -414,6 +415,7 @@
       <div><h2>密钥管理</h2><p>按密钥设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
       <div class="actions">
         <span class="badge ok">额度隔离</span>
+        <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部已用</button>
         <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
       </div>
     </div>
@@ -556,6 +558,28 @@
     <div id="authQuotaList" class="auth-quota-list"></div>
     <div class="usage-pagination" id="authQuotaPagination"></div>
   </section>
+
+  <div class="modal-backdrop" id="resetSpendModal" aria-hidden="true">
+    <section class="connection-modal reset-spend-modal" role="dialog" aria-modal="true" aria-labelledby="resetSpendModalTitle">
+      <div class="modal-header">
+        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">不会删除用量记录，只把勾选周期的已用清零，限额不变。日/周/月到下一个自然周期后仍按 UTC 日历切换。</p></div>
+        <button class="modal-close" id="btnCloseResetSpendModal" aria-label="关闭重置确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <p class="reset-spend-target" id="resetSpendTarget"></p>
+        <div class="reset-spend-scopes">
+          <label class="remember-row"><input id="resetSpendTotal" type="checkbox" checked/>总额度已用</label>
+          <label class="remember-row"><input id="resetSpendDaily" type="checkbox"/>日额度已用</label>
+          <label class="remember-row"><input id="resetSpendWeekly" type="checkbox"/>周额度已用</label>
+          <label class="remember-row"><input id="resetSpendMonthly" type="checkbox"/>月额度已用</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn ghost" id="btnCancelResetSpend">取消</button>
+          <button class="btn primary" id="btnConfirmResetSpend">确认重置</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
     <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">

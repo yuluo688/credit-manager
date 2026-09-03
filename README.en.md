@@ -142,7 +142,7 @@ Every Key can have the following independent limits. `0` or an omitted field mea
 | `expires_at` | Optional RFC3339 expiry |
 | `key_material` | Optional existing `tk-...` plaintext to import |
 
-Period limits include settled usage plus active reservations. Amounts are integer micro-USD: `1 USD = 1,000,000 micro-USD`.
+Period limits include settled usage plus active reservations. Amounts are integer micro-USD: `1 USD = 1,000,000 micro-USD`. Admins can reset a Key's used total/daily/weekly/monthly spend without deleting ledger history. Day/week/month then follow `max(UTC calendar start, reset time)` until the next calendar boundary; matching model token caps follow the same reset.
 
 The system reserves a conservative amount before forwarding, then settles from actual usage. Settlement can exceed the reservation; a Key balance may go negative, after which new requests fail closed.
 
@@ -209,6 +209,7 @@ Management endpoints require the **host management token**, not a plugin Key. Pa
 | POST | `/credit-manager/keys/reveal` | Reveal stored plaintext |
 | POST | `/credit-manager/keys/revoke` | Revoke a Key (cannot be re-enabled) |
 | POST | `/credit-manager/keys/delete` | Mark deleted (row kept; console shows Deleted) |
+| POST | `/credit-manager/keys/reset-spend` | Reset used spend for total/daily/weekly/monthly without deleting ledger history |
 | POST / GET | `/credit-manager/pricing` | Create, update, or list pricing rules |
 | POST | `/credit-manager/pricing/enabled` | Enable or disable a rule (and therefore a model) |
 | POST | `/credit-manager/pricing/delete` | Delete a pricing rule |

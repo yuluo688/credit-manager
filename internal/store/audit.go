@@ -99,7 +99,7 @@ func insertAudit(ctx context.Context, tx *sql.Tx, callerID, pluginKeyID, reserva
 	}
 	_, err := tx.ExecContext(ctx, `INSERT INTO audit_events(caller_id, plugin_key_id, reservation_id, event_type,
 		amount_micro_usd, details_json, created_at_unix_ms) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		callerID, pluginKeyID, reservationID, eventType, amount, details, now)
+		nullableString(callerID), nullableString(pluginKeyID), nullableString(reservationID), eventType, amount, details, now)
 	if err != nil {
 		return fmt.Errorf("write audit event: %w", err)
 	}

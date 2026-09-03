@@ -90,11 +90,13 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	var revoked, expires sql.NullInt64
 	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent int64
+	var dailyReset, weeklyReset, monthlyReset sql.NullInt64
 	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json, model_token_limits_json, unmatched_models_mode,
-		daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests
+		daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
+		daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms
 		FROM plugin_keys WHERE id = ? AND caller_id = ?`,
 		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON, &tokenLimitsJSON, &unmatchedMode,
-		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent); err != nil {
+		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &dailyReset, &weeklyReset, &monthlyReset); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Reservation{}, ErrPluginKeyNotFound
 		}
@@ -140,9 +142,9 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 		start int64
 		err   error
 	}{
-		{money.MicroUSD(dailyQuota), utcDayStart(now), ErrDailyQuotaExceeded},
-		{money.MicroUSD(weeklyQuota), utcWeekStart(now), ErrWeeklyQuotaExceeded},
-		{money.MicroUSD(monthlyQuota), utcMonthStart(now), ErrMonthlyQuotaExceeded},
+		{money.MicroUSD(dailyQuota), periodStart(utcDayStart(now), nullUnixMilli(dailyReset)), ErrDailyQuotaExceeded},
+		{money.MicroUSD(weeklyQuota), periodStart(utcWeekStart(now), nullUnixMilli(weeklyReset)), ErrWeeklyQuotaExceeded},
+		{money.MicroUSD(monthlyQuota), periodStart(utcMonthStart(now), nullUnixMilli(monthlyReset)), ErrMonthlyQuotaExceeded},
 	} {
 		if limit.quota == 0 {
 			continue
@@ -220,14 +222,18 @@ func (s *Store) GetKeyUsageOverview(ctx context.Context, keyID string, now time.
 		WHERE plugin_key_id = ? AND status = 'held'`, keyID).Scan(&overview.ActiveReservations); err != nil {
 		return KeyUsageOverview{}, fmt.Errorf("count active key reservations: %w", err)
 	}
-	var err error
-	if overview.DailyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcDayStart(now.UTC().UnixMilli())); err != nil {
+	nowMilli := now.UTC().UnixMilli()
+	dayStart, weekStart, monthStart, err := keyPeriodStarts(ctx, s.db, keyID, nowMilli)
+	if err != nil {
 		return KeyUsageOverview{}, err
 	}
-	if overview.WeeklyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcWeekStart(now.UTC().UnixMilli())); err != nil {
+	if overview.DailyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, dayStart); err != nil {
 		return KeyUsageOverview{}, err
 	}
-	if overview.MonthlyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, utcMonthStart(now.UTC().UnixMilli())); err != nil {
+	if overview.WeeklyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, weekStart); err != nil {
+		return KeyUsageOverview{}, err
+	}
+	if overview.MonthlyMicroUSD, err = keyPeriodSpend(ctx, s.db, keyID, monthStart); err != nil {
 		return KeyUsageOverview{}, err
 	}
 	return overview, nil

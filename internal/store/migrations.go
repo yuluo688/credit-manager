@@ -308,6 +308,16 @@ var migrations = []migration{
 			`ALTER TABLE pricing_rules ADD COLUMN tiers_json TEXT NOT NULL DEFAULT '[]'`,
 		},
 	},
+	{
+		version: 19,
+		name:    "plugin key spend reset epochs",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN total_spend_reset_at_unix_ms INTEGER`,
+			`ALTER TABLE plugin_keys ADD COLUMN daily_spend_reset_at_unix_ms INTEGER`,
+			`ALTER TABLE plugin_keys ADD COLUMN weekly_spend_reset_at_unix_ms INTEGER`,
+			`ALTER TABLE plugin_keys ADD COLUMN monthly_spend_reset_at_unix_ms INTEGER`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.
