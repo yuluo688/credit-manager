@@ -1414,8 +1414,9 @@ html[data-palette="dark"] .pricing-actions .btn.danger:hover { background:#42252
 .auth-quota-provider { margin:0; min-width:0; flex:1 1 auto; color:var(--auth-rail, var(--accent)); font-size:.68rem; font-weight:760; letter-spacing:.1em; line-height:1.2; text-transform:uppercase; }
 .auth-quota-provider.is-custom { letter-spacing:.02em; text-transform:none; }
 .auth-quota-plan { flex:0 0 auto; color:var(--table-muted); font-size:.66rem; font-weight:650; letter-spacing:.02em; }
-.auth-quota-title { margin:0; overflow:hidden; color:var(--table-text); font-size:.9rem; font-weight:720; letter-spacing:-.02em; text-overflow:ellipsis; white-space:nowrap; }
-.auth-quota-sync { margin:0; color:var(--table-muted); font-size:.7rem; }
+.auth-quota-account-row { display:flex; align-items:baseline; gap:8px; min-width:0; }
+.auth-quota-title { flex:1 1 auto; margin:0; overflow:hidden; color:var(--table-text); font-size:.9rem; font-weight:720; letter-spacing:-.02em; text-overflow:ellipsis; white-space:nowrap; }
+.auth-quota-sync { flex:0 0 auto; margin:0; color:var(--table-muted); font-size:.7rem; white-space:nowrap; }
 .auth-quota-header-tools { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:6px; align-items:center; min-width:0; }
 .auth-quota-reload { min-height:30px; padding:4px 8px; font-size:.74rem; white-space:nowrap; }
 .auth-quota-card.is-refreshing { opacity:.72; }

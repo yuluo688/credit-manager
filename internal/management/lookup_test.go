@@ -434,7 +434,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
 		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用到本页", "应用到筛选", "btnAuthQuotaBatchPage", "data-provider",
 		"auth-codex-fill", "M6.469 8.776L16.512 23", "function authQuotaProviderIcon",
-		"align-items:stretch", "flex-direction:column", "height:100%",
+		"align-items:stretch", "flex-direction:column", "height:100%", "auth-quota-account-row", "t('已用')+' '+ratio.percent+'%'",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console auth quota view is missing %q", text)
