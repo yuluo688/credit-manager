@@ -41,9 +41,9 @@ func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, q
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
-	pageSize := queryInt(query, "page_size", 50)
+	pageSize := queryInt(query, "page_size", 10)
 	if pageSize < 1 {
-		pageSize = 50
+		pageSize = 10
 	}
 	if pageSize > 200 {
 		pageSize = 200
@@ -114,9 +114,9 @@ func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, q
 }
 
 func lookupRecentUsage(ctx context.Context, svc *service.Service, filter store.UsageFilter, query map[string][]string) (pluginapi.ManagementResponse, error) {
-	pageSize := queryInt(query, "page_size", 50)
+	pageSize := queryInt(query, "page_size", 10)
 	if pageSize < 1 {
-		pageSize = 50
+		pageSize = 10
 	}
 	if pageSize > 200 {
 		pageSize = 200
