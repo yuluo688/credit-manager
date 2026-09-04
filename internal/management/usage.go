@@ -15,7 +15,7 @@ import (
 )
 
 func listUsage(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
-	pageSize := queryInt(query, "page_size", queryInt(query, "limit", 50))
+	pageSize := queryInt(query, "page_size", queryInt(query, "limit", 10))
 	if pageSize > 200 {
 		pageSize = 200
 	}

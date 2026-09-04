@@ -266,6 +266,58 @@ func (s *Store) ListPluginKeys(ctx context.Context, limit int) ([]PluginKey, err
 	return out, rows.Err()
 }
 
+func pluginKeyListFilter(callerID string, activeOnly bool) (string, []any) {
+	clauses := make([]string, 0, 2)
+	args := make([]any, 0, 1)
+	if callerID = strings.TrimSpace(callerID); callerID != "" {
+		clauses = append(clauses, "caller_id = ?")
+		args = append(args, callerID)
+	}
+	if activeOnly {
+		clauses = append(clauses, "revoked_at_unix_ms IS NULL")
+	}
+	if len(clauses) == 0 {
+		return "", args
+	}
+	return " WHERE " + strings.Join(clauses, " AND "), args
+}
+
+// CountPluginKeys returns the number of plugin keys matching a management list filter.
+func (s *Store) CountPluginKeys(ctx context.Context, callerID string, activeOnly bool) (int64, error) {
+	where, args := pluginKeyListFilter(callerID, activeOnly)
+	var total int64
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM plugin_keys"+where, args...).Scan(&total); err != nil {
+		return 0, err
+	}
+	return total, nil
+}
+
+// ListPluginKeysPage lists a stable slice of plugin keys for management pagination.
+func (s *Store) ListPluginKeysPage(ctx context.Context, callerID string, activeOnly bool, limit, offset int) ([]PluginKey, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	where, args := pluginKeyListFilter(callerID, activeOnly)
+	args = append(args, limit, offset)
+	rows, err := s.db.QueryContext(ctx, pluginKeySelect+where+` ORDER BY created_at_unix_ms DESC, id DESC LIMIT ? OFFSET ?`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []PluginKey
+	for rows.Next() {
+		key, err := scanPluginKey(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, key)
+	}
+	return out, rows.Err()
+}
+
 func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolicyUpdate) (PluginKey, error) {
 	if strings.TrimSpace(update.ID) == "" {
 		return PluginKey{}, fmt.Errorf("%w: key id is required", ErrInvalidArgument)

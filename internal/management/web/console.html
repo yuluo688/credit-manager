@@ -99,9 +99,6 @@
                     <span class="key-switch-ui" aria-hidden="true"></span>
                   </span>
                 </label>
-                <label>总额度（USD）
-                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
-                </label>
                 <label>日额度（USD）
                   <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>
@@ -110,6 +107,9 @@
                 </label>
                 <label>月额度（USD）
                   <input id="keyModalMonthlyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                </label>
+                <label>总额度（USD）
+                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>
                 <label>最大并发请求数
                   <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="0 或留空 = 不限制"/>
@@ -120,22 +120,24 @@
                     <span class="key-switch-ui" aria-hidden="true"></span>
                   </span>
                 </label>
-                  <label class="field-span-2">可用模型（多选；不选=全部）
+                  <div class="field-span-2 model-access-field">
+                    <label for="keyModalModels">可用模型（默认全部；选择后仅限所选）</label>
                     <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
                     <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
-                  </label>
+                    <span class="model-access-actions"><button type="button" class="btn ghost sm" id="btnKeyModalAllowAllModels">恢复默认：全部模型</button></span>
+                  </div>
                 </div>
               </div>
             <div class="modal-section" id="keyModalTokenLimitsSection">
-              <p class="modal-section-title">模型 Token 限制<span>按模型设置总/日/周/月数量</span></p>
+              <p class="modal-section-title">模型 Token 限制<span>为指定模型设置总/日/周/月上限</span></p>
               <div class="token-limit-fallback" id="keyModalUnmatched" data-unmatched="available">
                 <div class="token-limit-fallback-copy">
-                  <strong>未匹配模型</strong>
-                  <span id="keyModalUnmatchedHint">未列入下方的模型可以调用，且不限制 Token。</span>
+                  <strong>未列入限制的模型</strong>
+                  <span id="keyModalUnmatchedHint">不在下方列表的模型允许调用，且不限制 Token。</span>
                 </div>
-                <div class="token-limit-mode" role="group" aria-label="未匹配模型">
-                  <button type="button" data-unmatched-set="available" class="active">可用</button>
-                  <button type="button" data-unmatched-set="disabled">禁用</button>
+                <div class="token-limit-mode" role="group" aria-label="未列入限制的模型">
+                  <button type="button" data-unmatched-set="available" class="active">允许调用</button>
+                  <button type="button" data-unmatched-set="disabled">拒绝调用</button>
                 </div>
               </div>
               <div class="token-limit-add">
@@ -145,7 +147,7 @@
                 </span>
                 <button type="button" class="btn soft" id="btnAddKeyTokenLimit">添加模型</button>
               </div>
-              <p class="hint" id="keyModalTokenLimitsHint">总/日/周/月未填写时选择「可用」或「无限制」。未匹配模型单独选择可用或禁用。</p>
+              <p class="hint" id="keyModalTokenLimitsHint">填写数字才启用对应周期的 Token 上限；留空即不限制。</p>
               <div id="keyModalTokenLimits" class="token-limit-list"></div>
             </div>
             <div class="modal-section" id="keyModalCredentialSection">
@@ -164,7 +166,7 @@
             <div id="keyModalManageActions" class="actions key-modal-manage-actions hidden">
               <button class="btn soft" id="btnRevealManagedKey">查看密钥</button>
               <button class="btn ghost" id="btnRotateManagedKey">轮换密钥</button>
-              <button class="btn ghost" id="btnResetManagedKeySpend" type="button">重置已用</button>
+              <button class="btn ghost" id="btnResetManagedKeySpend" type="button">重置额度</button>
             </div>
             <div id="keyPlainResult" class="hidden">
               <p class="hint">密钥明文已加密保存，可在已有密钥中再次查看。</p>
@@ -415,13 +417,15 @@
       <div><h2>密钥管理</h2><p>按密钥设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
       <div class="actions">
         <span class="badge ok">额度隔离</span>
-        <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部已用</button>
+        <button class="btn ghost" id="btnResetSelectedKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg><span id="selectedKeyResetLabel">重置已选额度</span></button>
+        <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部额度</button>
         <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
       </div>
     </div>
     <div class="card keys-card">
       <div class="section-heading"><div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>已有密钥</h2><span class="muted" id="keysCount">额度与状态一览</span></div></div>
       <div id="keysTable"></div>
+      <div class="usage-pagination table-pagination" id="keyPagination"></div>
     </div>
   </section>
 
@@ -434,6 +438,7 @@
     <div class="card list-card">
       <div class="section-heading"><div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>当前代理模型</h2><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="actions"><span class="muted" id="modelCatalogCount">未加载</span><button class="btn primary" id="btnLoadModelCatalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="8" cy="3.6" rx="5.4" ry="1.9"/><path d="M2.6 3.6v8.8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9V3.6M2.6 8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9"/></svg>加载全部模型</button></div></div>
       <div id="pricingTable"></div>
+      <div class="usage-pagination table-pagination" id="pricingPagination"></div>
     </div>
     </div>
   </section>
@@ -562,17 +567,40 @@
   <div class="modal-backdrop" id="resetSpendModal" aria-hidden="true">
     <section class="connection-modal reset-spend-modal" role="dialog" aria-modal="true" aria-labelledby="resetSpendModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">不会删除用量记录，只把勾选周期的已用清零，限额不变。日/周/月到下一个自然周期后仍按 UTC 日历切换。</p></div>
+        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">范围按日、周、月、总递进；选择后面的周期会自动包含前面的周期。</p></div>
         <button class="modal-close" id="btnCloseResetSpendModal" aria-label="关闭重置确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
-      <div class="modal-body">
-        <p class="reset-spend-target" id="resetSpendTarget"></p>
-        <div class="reset-spend-scopes">
-          <label class="remember-row"><input id="resetSpendTotal" type="checkbox" checked/>总额度已用</label>
-          <label class="remember-row"><input id="resetSpendDaily" type="checkbox"/>日额度已用</label>
-          <label class="remember-row"><input id="resetSpendWeekly" type="checkbox"/>周额度已用</label>
-          <label class="remember-row"><input id="resetSpendMonthly" type="checkbox"/>月额度已用</label>
+      <div class="modal-body reset-spend-body">
+        <div class="reset-spend-target">
+          <span>重置对象</span>
+          <strong id="resetSpendTarget"></strong>
         </div>
+        <fieldset class="reset-spend-scopes" aria-describedby="resetSpendNote resetSpendUtcNote">
+          <legend>选择要重置的最长周期</legend>
+          <label class="reset-spend-scope">
+            <input id="resetSpendDaily" data-reset-period="daily" type="checkbox" checked/>
+            <span class="reset-spend-scope-card"><span><strong>日额度</strong><small>当日费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+          </label>
+          <label class="reset-spend-scope">
+            <input id="resetSpendWeekly" data-reset-period="weekly" type="checkbox" checked/>
+            <span class="reset-spend-scope-card"><span><strong>周额度</strong><small>本周费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+          </label>
+          <label class="reset-spend-scope">
+            <input id="resetSpendMonthly" data-reset-period="monthly" type="checkbox" checked/>
+            <span class="reset-spend-scope-card"><span><strong>月额度</strong><small>本月费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+          </label>
+          <label class="reset-spend-scope">
+            <input id="resetSpendTotal" data-reset-period="total" type="checkbox" checked/>
+            <span class="reset-spend-scope-card"><span><strong>总额度</strong><small>总费用与总 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+          </label>
+        </fieldset>
+        <div class="reset-spend-note" id="resetSpendNote">
+          <span class="reset-spend-note-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.7"/><path d="M8 7.2v3.4"/><circle cx="8" cy="5.1" r=".75" fill="currentColor" stroke="none"/></svg></span>
+          <p><strong>额度和模型 Token 上限不会变化</strong><span>只会重置所选周期的已用金额与 Token 计数；历史账本保留。</span></p>
+        </div>
+        <p class="reset-spend-utc-note" id="resetSpendUtcNote">日、周、月将在下一个 UTC 日历边界恢复自然周期。</p>
+      </div>
+      <div class="modal-footer reset-spend-footer">
         <div class="modal-actions">
           <button class="btn ghost" id="btnCancelResetSpend">取消</button>
           <button class="btn primary" id="btnConfirmResetSpend">确认重置</button>

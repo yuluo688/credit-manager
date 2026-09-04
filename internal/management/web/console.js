@@ -36,21 +36,22 @@
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
     '按密钥设置额度、启停状态、可用模型和 Token 数量限制。': { 'zh-TW':'依密鑰設定額度、啟停狀態、可用模型和 Token 數量限制。', en:'Set spend limits, status, model access, and token caps for each key.', ru:'Настройте лимиты, статус, модели и потолки токенов для каждого ключа.' },
     '模型 Token 限制': { 'zh-TW':'模型 Token 限制', en:'Model token limits', ru:'Лимиты токенов модели' }, '按模型设置日/周/月数量': { 'zh-TW':'依模型設定日/週/月數量', en:'Daily, weekly, and monthly caps per model', ru:'Дневные, недельные и месячные лимиты по модели' },
+    '为指定模型设置总/日/周/月上限': { 'zh-TW':'為指定模型設定總/日/週/月上限', en:'Set total, daily, weekly, and monthly caps for selected models', ru:'Задайте общий, дневной, недельный и месячный лимиты для выбранных моделей' },
     '搜索或输入模型 ID / glob': { 'zh-TW':'搜尋或輸入模型 ID / glob', en:'Search or type a model ID / glob', ru:'Поиск или ввод ID модели / glob' },
     '使用': { 'zh-TW':'使用', en:'Use', ru:'Использовать' },
     '没有可添加的模型': { 'zh-TW':'沒有可新增的模型', en:'No models to add', ru:'Нет моделей для добавления' },
     '添加模型': { 'zh-TW':'新增模型', en:'Add model', ru:'Добавить модель' },
-    '日/周/月未填写时选择「可用」或「无限制」。未匹配模型单独选择可用或禁用。': { 'zh-TW':'日/週/月未填寫時選擇「可用」或「無限制」。未匹配模型單獨選擇可用或停用。', en:'Empty day/week/month fields can be Available or Unlimited. Unmatched models are Available or Disabled.', ru:'Пустые поля дня/недели/месяца: доступно или без лимита. Несовпавшие модели: доступны или отключены.' },
-    '未匹配模型': { 'zh-TW':'未匹配模型', en:'Unmatched models', ru:'Несовпавшие модели' },
-    '未列入下方的模型可以调用，且不限制 Token。': { 'zh-TW':'未列入下方的模型可以呼叫，且不限制 Token。', en:'Models not listed below can be called with no token cap.', ru:'Модели вне списка можно вызывать без лимита токенов.' },
-    '仅下方列出的模型可以调用；未匹配的模型会被拒绝。': { 'zh-TW':'僅下方列出的模型可以呼叫；未匹配的模型會被拒絕。', en:'Only listed models can be called; unmatched models are rejected.', ru:'Можно вызывать только модели из списка; остальные отклоняются.' },
+    '填写数字才启用对应周期的 Token 上限；留空即不限制。': { 'zh-TW':'填寫數字才啟用對應週期的 Token 上限；留空即不限制。', en:'Enter a number to set that period\'s token cap; leave it blank for no cap.', ru:'Введите число, чтобы задать лимит Token на период; пустое поле означает без лимита.' },
+    '未列入限制的模型': { 'zh-TW':'未列入限制的模型', en:'Models without a listed limit', ru:'Модели без указанного лимита' },
+    '不在下方列表的模型允许调用，且不限制 Token。': { 'zh-TW':'不在下方列表的模型允許呼叫，且不限制 Token。', en:'Models outside the list are allowed with no token cap.', ru:'Модели вне списка разрешены без лимита Token.' },
+    '仅下方列出的模型允许调用，其他模型会被拒绝。': { 'zh-TW':'僅下方列出的模型允許呼叫，其他模型會被拒絕。', en:'Only models listed below are allowed; all others are blocked.', ru:'Разрешены только модели из списка; остальные заблокированы.' },
     '暂无模型 Token 限制': { 'zh-TW':'暫無模型 Token 限制', en:'No model token limits', ru:'Нет лимитов токенов' },
     '添加模型后，可设置日 / 周 / 月 Token 上限': { 'zh-TW':'新增模型後，可設定日 / 週 / 月 Token 上限', en:'Add a model to set daily, weekly, and monthly token caps', ru:'Добавьте модель, чтобы задать лимиты токенов' },
-    '未填则选可用或无限制': { 'zh-TW':'未填則選可用或無限制', en:'Empty: Available or Unlimited', ru:'Пусто: доступно или без лимита' },
-    '未匹配可用': { 'zh-TW':'未匹配可用', en:'Unmatched allowed', ru:'Несовпавшие доступны' },
-    '未匹配禁用': { 'zh-TW':'未匹配停用', en:'Unmatched blocked', ru:'Несовпавшие запрещены' },
+    '留空 = 不限制': { 'zh-TW':'留空 = 不限制', en:'Blank = unlimited', ru:'Пусто = без лимита' }, '已设置上限': { 'zh-TW':'已設定上限', en:'Cap set', ru:'Лимит задан' },
+    '未匹配：允许调用': { 'zh-TW':'未匹配：允許呼叫', en:'Unmatched: allowed', ru:'Несовпавшие: разрешены' },
+    '未匹配：拒绝调用': { 'zh-TW':'未匹配：拒絕呼叫', en:'Unmatched: blocked', ru:'Несовпавшие: заблокированы' },
     '日 Token': { 'zh-TW':'日 Token', en:'Daily tokens', ru:'Токены за день' }, '周 Token': { 'zh-TW':'週 Token', en:'Weekly tokens', ru:'Токены за неделю' }, '月 Token': { 'zh-TW':'月 Token', en:'Monthly tokens', ru:'Токены за месяц' },
-    '可用': { 'zh-TW':'可用', en:'Available', ru:'Доступно' }, '无限制': { 'zh-TW':'無限制', en:'Unlimited', ru:'Без лимита' },
+    '可用': { 'zh-TW':'可用', en:'Available', ru:'Доступно' }, '无限制': { 'zh-TW':'無限制', en:'Unlimited', ru:'Без лимита' }, '允许调用': { 'zh-TW':'允許呼叫', en:'Allow calls', ru:'Разрешить вызовы' }, '拒绝调用': { 'zh-TW':'拒絕呼叫', en:'Block calls', ru:'Запретить вызовы' },
     '移除': { 'zh-TW':'移除', en:'Remove', ru:'Убрать' },
     '请输入模型 ID 或 glob': { 'zh-TW':'請輸入模型 ID 或 glob', en:'Enter a model ID or glob', ru:'Введите ID модели или glob' },
     '该模型已在 Token 限制列表中': { 'zh-TW':'該模型已在 Token 限制列表中', en:'This model is already in the token limit list', ru:'Эта модель уже в списке лимитов' },
@@ -74,7 +75,7 @@
     '连接信息仅保存于当前浏览器会话。未勾选自定义 API 地址时只连接当前站点。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。未勾選自訂 API 位址時只連線目前網站。', en:'Connection details stay in this browser session only. The page only talks to the current site unless Custom API address is checked.', ru:'Данные подключения хранятся только в этом сеансе. Без галочки страница подключается только к текущему сайту.' },
     '自定义 API 地址': { 'zh-TW':'自訂 API 位址', en:'Custom API address', ru:'Свой адрес API' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
-    '可用模型（多选；不选=全部）': { 'zh-TW':'可用模型（多選；不選=全部）', en:'Allowed models (multi-select; none = all)', ru:'Доступные модели (несколько; пусто = все)' },
+    '可用模型（默认全部；选择后仅限所选）': { 'zh-TW':'可用模型（預設全部；選擇後僅限所選）', en:'Allowed models (all by default; selection restricts access)', ru:'Доступные модели (по умолчанию все; выбор ограничивает доступ)' },
     '正在加载当前代理可用模型…': { 'zh-TW':'正在載入目前代理可用模型…', en:'Loading current proxy models…', ru:'Загрузка моделей прокси…' },
     '凭据设置': { 'zh-TW':'憑證設定', en:'Credential settings', ru:'Настройки ключа' }, '自定义密钥': { 'zh-TW':'自訂密鑰', en:'Custom key', ru:'Свой ключ' },
     '固定前缀无需输入；后缀格式为 <kid>-<secret>。': { 'zh-TW':'固定前綴無需輸入；後綴格式為 <kid>-<secret>。', en:'The prefix is fixed; suffix format is <kid>-<secret>.', ru:'Префикс фиксирован; суффикс: <kid>-<secret>.' },
@@ -113,13 +114,21 @@
     '按日汇总实际费用': { 'zh-TW':'按日彙總實際費用', en:'Actual cost by day', ru:'Фактические расходы по дням' },
     '删除密钥': { 'zh-TW':'刪除密鑰', en:'Delete key', ru:'Удалить ключ' }, '确认删除': { 'zh-TW':'確認刪除', en:'Confirm delete', ru:'Подтвердить удаление' },
     '删除后该密钥将立即失效，历史使用统计、预占和审计记录会保留。': { 'zh-TW':'刪除後該密鑰將立即失效，歷史使用統計、預占和稽核記錄會保留。', en:'The key is revoked immediately. Usage stats, holds, and audit records are kept.', ru:'Ключ сразу отключается. Статистика, резервы и аудит сохраняются.' },
-    '重置已用': { 'zh-TW':'重設已用', en:'Reset used', ru:'Сбросить расход' }, '重置全部已用': { 'zh-TW':'重設全部已用', en:'Reset all used', ru:'Сбросить весь расход' },
+    '重置额度': { 'zh-TW':'重設額度', en:'Reset quota', ru:'Сбросить квоту' }, '重置已选额度': { 'zh-TW':'重設已選額度', en:'Reset selected quotas', ru:'Сбросить выбранные квоты' }, '重置全部额度': { 'zh-TW':'重設全部額度', en:'Reset all quotas', ru:'Сбросить все квоты' },
     '重置已用额度': { 'zh-TW':'重設已用額度', en:'Reset used quota', ru:'Сброс израсходованной квоты' }, '确认重置': { 'zh-TW':'確認重設', en:'Confirm reset', ru:'Подтвердить сброс' },
-    '不会删除用量记录，只把勾选周期的已用清零，限额不变。日/周/月到下一个自然周期后仍按 UTC 日历切换。': { 'zh-TW':'不會刪除用量記錄，只把勾選週期的已用清零，限額不變。日/週/月到下一個自然週期後仍按 UTC 日曆切換。', en:'Usage history is kept. Checked periods start from zero; caps stay the same. Day/week/month return to the UTC calendar at the next boundary.', ru:'История сохраняется. Отмеченные периоды обнуляются, лимиты те же. День/неделя/месяц снова идут по UTC с следующей границы.' },
-    '总额度已用': { 'zh-TW':'總額度已用', en:'Total used', ru:'Общий расход' }, '日额度已用': { 'zh-TW':'日額度已用', en:'Daily used', ru:'Дневной расход' }, '周额度已用': { 'zh-TW':'週額度已用', en:'Weekly used', ru:'Недельный расход' }, '月额度已用': { 'zh-TW':'月額度已用', en:'Monthly used', ru:'Месячный расход' },
+    '范围按日、周、月、总递进；选择后面的周期会自动包含前面的周期。': { 'zh-TW':'範圍依日、週、月、總遞進；選擇後面的週期會自動包含前面的週期。', en:'Periods progress from day to week, month, and total; choosing a later period includes all earlier ones.', ru:'Периоды идут от дня к неделе, месяцу и итогу; выбор последующего включает все предыдущие.' },
+    '重置对象': { 'zh-TW':'重設對象', en:'Reset target', ru:'Объект сброса' }, '已选': { 'zh-TW':'已選', en:'Selected', ru:'Выбрано' }, '全选密钥': { 'zh-TW':'全選密鑰', en:'Select all keys', ru:'Выбрать все ключи' }, '选择密钥': { 'zh-TW':'選擇密鑰', en:'Select key', ru:'Выбрать ключ' }, '选择要重置的最长周期': { 'zh-TW':'選擇要重設的最長週期', en:'Choose the longest period to reset', ru:'Выберите самый длинный период для сброса' },
+    '总额度': { 'zh-TW':'總額度', en:'Total quota', ru:'Общий лимит' }, '日额度': { 'zh-TW':'日額度', en:'Daily quota', ru:'Дневной лимит' }, '周额度': { 'zh-TW':'週額度', en:'Weekly quota', ru:'Недельный лимит' }, '月额度': { 'zh-TW':'月額度', en:'Monthly quota', ru:'Месячный лимит' },
+    '总费用与总 Token 已用从当前重新计量': { 'zh-TW':'總費用與總 Token 已用從目前重新計量', en:'Total cost and token usage restart from now', ru:'Общие расходы и токены начнут считаться с текущего момента' },
+    '当日费用与 Token 已用从当前重新计量': { 'zh-TW':'當日費用與 Token 已用從目前重新計量', en:'Today\'s cost and token usage restart from now', ru:'Расходы и токены за день начнут считаться с текущего момента' },
+    '本周费用与 Token 已用从当前重新计量': { 'zh-TW':'本週費用與 Token 已用從目前重新計量', en:'This week\'s cost and token usage restart from now', ru:'Расходы и токены за неделю начнут считаться с текущего момента' },
+    '本月费用与 Token 已用从当前重新计量': { 'zh-TW':'本月費用與 Token 已用從目前重新計量', en:'This month\'s cost and token usage restart from now', ru:'Расходы и токены за месяц начнут считаться с текущего момента' },
+    '额度和模型 Token 上限不会变化': { 'zh-TW':'額度和模型 Token 上限不會變化', en:'Quota caps and model token caps will not change', ru:'Лимиты квот и токенов моделей не изменятся' },
+    '只会重置所选周期的已用金额与 Token 计数；历史账本保留。': { 'zh-TW':'只會重設所選週期的已用金額與 Token 計數；歷史帳本保留。', en:'Only used cost and token counts for selected periods reset; usage history remains.', ru:'Сбрасываются только расходы и токены выбранных периодов; история сохраняется.' },
+    '日、周、月将在下一个 UTC 日历边界恢复自然周期。': { 'zh-TW':'日、週、月將在下一個 UTC 日曆邊界恢復自然週期。', en:'Day, week, and month return to UTC calendar periods at their next boundary.', ru:'День, неделя и месяц вернутся к календарю UTC на следующей границе.' },
     '请至少选择一项': { 'zh-TW':'請至少選擇一項', en:'Select at least one period', ru:'Выберите хотя бы один период' },
     '即将重置：': { 'zh-TW':'即將重設：', en:'Will reset: ', ru:'Будет сброшено: ' },
-    '全部启用密钥': { 'zh-TW':'全部啟用密鑰', en:'all active keys', ru:'все активные ключи' },
+    '全部启用密钥': { 'zh-TW':'全部啟用密鑰', en:'all active keys', ru:'все активные ключи' }, '全部当前密钥': { 'zh-TW':'全部目前密鑰', en:'all current keys', ru:'все текущие ключи' },
     '把密钥': { 'zh-TW':'把密鑰', en:'keys', ru:'ключа' },
     '已用额度已重置': { 'zh-TW':'已用額度已重設', en:'Used quota reset', ru:'Расход сброшен' },
     '关闭重置确认': { 'zh-TW':'關閉重設確認', en:'Close reset confirmation', ru:'Закрыть подтверждение сброса' },
@@ -162,7 +171,8 @@
     '输出 Token': { 'zh-TW':'輸出 Token', en:'Output tokens', ru:'Выходные токены' },
     '个模型': { 'zh-TW':'個模型', en:'models', ru:'модели' },
     '个密钥': { 'zh-TW':'個密鑰', en:'keys', ru:'ключа' },
-    '可直接勾选多个模型；不选择任何模型表示全部模型可用。': { 'zh-TW':'可直接勾選多個模型；不選擇任何模型表示全部模型可用。', en:'Select multiple models. Selecting none means all models are allowed.', ru:'Можно выбрать несколько моделей; пустой выбор означает все.' },
+    '默认全部模型可用；选择一个或多个模型后，密钥仅能调用所选模型。': { 'zh-TW':'預設全部模型可用；選擇一個或多個模型後，密鑰僅能呼叫所選模型。', en:'All models are allowed by default. Selecting models restricts this key to them.', ru:'По умолчанию доступны все модели. Выбор ограничивает ключ выбранными моделями.' },
+    '全部模型（默认）': { 'zh-TW':'全部模型（預設）', en:'All models (default)', ru:'Все модели (по умолчанию)' }, '恢复默认：全部模型': { 'zh-TW':'恢復預設：全部模型', en:'Restore default: all models', ru:'Вернуть по умолчанию: все модели' },
     '未发现可用模型；请确认宿主管理密钥和上游认证文件。': { 'zh-TW':'未發現可用模型；請確認宿主管理金鑰和上游認證檔。', en:'No models found. Check the host management token and upstream auth files.', ru:'Модели не найдены. Проверьте токен управления и файлы авторизации.' }, '未发现可用模型；请确认宿主管理密钥、上游认证文件或 AI 提供商。': { 'zh-TW':'未發現可用模型；請確認宿主管理金鑰、上游認證檔或 AI 提供商。', en:'No models found. Check the host management token, auth files, or AI providers.', ru:'Модели не найдены. Проверьте токен, файлы авторизации или AI-провайдеров.' },
     '未找到匹配的密钥': { 'zh-TW':'未找到匹配的密鑰', en:'No matching keys', ru:'Ключи не найдены' },
     '未找到匹配的账号': { 'zh-TW':'未找到匹配的帳號', en:'No matching accounts', ru:'Аккаунты не найдены' },
@@ -194,6 +204,9 @@
   const state = {
     overview: null,
     keys: [],
+    keyPage: 1,
+    keyPageSize: 10,
+    keyPagination: null,
     authQuotas: null,
     authQuotaWeeks: {},
     authQuotaRefreshing: {},
@@ -207,13 +220,17 @@
     modelPrices: {},
     modelCatalogError: '',
     availableModels: [],
+    pricingPage: 1,
+    pricingPageSize: 10,
     usagePage: 1,
-    usagePageSize: 50,
+    usagePageSize: 10,
     usageSummary: null,
     usageRecent: null,
     deleteKeyID: '',
     resetSpendID: '',
+    resetSpendIDs: [],
     resetSpendAll: false,
+    selectedKeyIDs: new Set(),
     tokenUnit: 'raw',
     currency: 'USD',
     usdCnyRate: DEFAULT_USD_CNY_RATE,
@@ -956,7 +973,7 @@
   function customControlText(select) {
     if (select.multiple) {
       const chosen = [...select.options].filter(option => option.selected).map(option => option.textContent.trim());
-      return chosen.length ? chosen.join('、') : t('全部可用');
+      return chosen.length ? chosen.join('、') : t('全部模型（默认）');
     }
     return select.selectedOptions[0] ? select.selectedOptions[0].textContent.trim() : t('请选择');
   }
@@ -1603,7 +1620,7 @@
     });
     const stats = $('usageStats');
     if (stats) stats.innerHTML = content;
-    ['usagePagination', 'authQuotaPagination'].forEach(id => {
+    ['keyPagination', 'pricingPagination', 'usagePagination', 'authQuotaPagination'].forEach(id => {
       const pagination = $(id);
       if (pagination) pagination.innerHTML = '';
     });
@@ -1642,6 +1659,8 @@
     state.tabLoadSeq += 1;
     state.overview = null;
     state.keys = [];
+    state.keyPage = 1;
+    state.keyPagination = null;
     state.authQuotas = null;
     state.authQuotaWeeks = {};
     state.authQuotaRefreshing = {};
@@ -1654,12 +1673,15 @@
     state.modelPrices = {};
     state.modelCatalogError = '';
     state.availableModels = [];
+    state.pricingPage = 1;
     state.usagePage = 1;
     state.usageSummary = null;
     state.usageRecent = null;
     state.deleteKeyID = '';
     state.resetSpendID = '';
+    state.resetSpendIDs = [];
     state.resetSpendAll = false;
+    state.selectedKeyIDs.clear();
     closeKeyModal();
     closePriceModal();
     closeDeleteKeyModal();
@@ -2192,7 +2214,17 @@
     requestAnimationFrame(resizeOverviewCharts);
   }
 
-  function renderKeys(keys) {
+  function setKeySearchSource(keys) {
+    const allKeys = [...(keys || [])].sort((left, right) => {
+      if (Boolean(left.revoked_at) !== Boolean(right.revoked_at)) return left.revoked_at ? 1 : -1;
+      return String(right.created_at || '').localeCompare(String(left.created_at || ''));
+    });
+    state.allKeys = allKeys;
+    renderKeySearchOptions('usage');
+    renderKeySearchOptions('overview');
+  }
+
+  function renderKeys(keys, pagination, preserveSearchSource) {
     const allKeys = [...(keys || [])].sort((left, right) => {
       if (Boolean(left.revoked_at) !== Boolean(right.revoked_at)) return left.revoked_at ? 1 : -1;
       return String(right.created_at || '').localeCompare(String(left.created_at || ''));
@@ -2200,17 +2232,30 @@
     // Keep revoked keys available for historical usage filters, but hide them
     // from the active Key management table.
     state.keys = allKeys.filter(key => !key.revoked_at);
-    state.allKeys = allKeys;
-    renderKeySearchOptions('usage');
-    renderKeySearchOptions('overview');
+    if (!preserveSearchSource || !state.allKeys.length) setKeySearchSource(allKeys);
+    const pageData = pagination || {
+      page: state.keyPage,
+      page_size: state.keyPageSize,
+      total: state.keys.length,
+      total_pages: Math.ceil(state.keys.length / state.keyPageSize),
+    };
+    state.keyPagination = pageData;
+    if (pagination) {
+      state.keyPage = Number(pageData.page || 1);
+      state.keyPageSize = Number(pageData.page_size || state.keyPageSize);
+    }
+    const total = Number(pageData.total || 0);
 
     if ($('keysCount')) {
-      $('keysCount').textContent = state.keys.length ? (state.keys.length + ' ' + t('个密钥')) : '暂无密钥';
+      $('keysCount').textContent = total ? (total + ' ' + t('个密钥')) : '暂无密钥';
     }
-    if ($('btnResetAllKeySpend')) $('btnResetAllKeySpend').disabled = !state.keys.length;
+    if ($('btnResetAllKeySpend')) $('btnResetAllKeySpend').disabled = !total;
+    if ($('btnResetSelectedKeySpend')) $('btnResetSelectedKeySpend').disabled = !state.selectedKeyIDs.size;
 
     if (!state.keys.length) {
       $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。</span></div>';
+      syncKeySelectionControls();
+      renderKeyPagination(pageData);
       return;
     }
 
@@ -2219,14 +2264,14 @@
     const tokenLimitLabel = (period) => {
       const tokens = Number(period && period.tokens || 0);
       if (tokens > 0) return formatTokens(tokens);
-      return (period && period.mode) === 'available' ? t('可用') : t('无限制');
+      return t('不限制');
     };
     const modelChips = (models, tokenLimits, unmatchedMode) => {
       const chips = (!models || !models.length)
         ? '<span class="model-chip all">全部模型</span>'
         : models.slice(0, 3).map(m => '<span class="model-chip" title="'+esc(m)+'">'+esc(m)+'</span>').join('') + (models.length > 3 ? '<span class="model-chip">+'+ (models.length - 3) +'</span>' : '');
       const limits = tokenLimits || [];
-      const unmatched = unmatchedMode === 'disabled' ? t('未匹配禁用') : t('未匹配可用');
+      const unmatched = unmatchedMode === 'disabled' ? t('未匹配：拒绝调用') : t('未匹配：允许调用');
       const limitChip = '<span class="token-limit-chip'+(unmatchedMode === 'disabled' ? ' warn' : '')+'" title="'+esc((limits.length ? limits.map(item => item.model+' '+t('日')+' '+tokenLimitLabel(item.daily)+' / '+t('周')+' '+tokenLimitLabel(item.weekly)+' / '+t('月')+' '+tokenLimitLabel(item.monthly)).join('\n')+'\n' : '') + unmatched)+'">'+esc((limits.length ? limits.length + ' ' + t('模型 Token 限制') + ' · ' : '') + unmatched)+'</span>';
       return '<div>' + '<div class="model-chip-row">' + chips + '</div>' + limitChip + '</div>';
     };
@@ -2255,12 +2300,14 @@
         '</div>';
     };
 
-    $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th>标签</th><th>可用模型</th><th>密钥限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
+    $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th class="key-select-column"><label class="key-select" title="'+esc(t('全选密钥'))+'"><input type="checkbox" data-select-all-keys aria-label="'+esc(t('全选密钥'))+'"/><span class="key-select-ui" aria-hidden="true"></span></label></th><th>标签</th><th>可用模型</th><th>密钥限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       state.keys.map(k => {
         const st = k.revoked_at
           ? '<span class="badge bad">已删除</span>'
           : '<label class="key-switch" title="'+esc(k.enabled ? t('启用') : t('禁用'))+'"><input type="checkbox" role="switch" data-enable-key="'+esc(k.id)+'" aria-label="'+esc(t('启用'))+'"'+(k.enabled ? ' checked' : '')+'/><span class="key-switch-ui" aria-hidden="true"></span></label>';
-        return '<tr>' +
+        const selected = state.selectedKeyIDs.has(k.id);
+        return '<tr'+(selected ? ' class="is-selected"' : '')+'>' +
+          '<td class="key-select-cell"><label class="key-select"><input type="checkbox" data-select-key="'+esc(k.id)+'" aria-label="'+esc(k.label || t('选择密钥'))+'"'+(selected ? ' checked' : '')+'/><span class="key-select-ui" aria-hidden="true"></span></label></td>' +
           '<td><div class="key-label"><strong title="'+esc(k.label||'(无标签)')+'">'+esc(k.label||'(无标签)')+'</strong></div></td>' +
            '<td>'+modelChips(k.allowed_models, k.model_token_limits, k.unmatched_models_mode)+'</td>' +
           '<td>'+quotaBlock(k)+'</td>' +
@@ -2269,7 +2316,7 @@
           '<td><div class="row-actions">' +
             '<button class="btn soft sm" data-copy="'+esc(k.id)+'">'+uiIcon('copy')+esc(t('复制密钥'))+'</button>' +
             '<button class="btn primary sm" data-manage="'+esc(k.id)+'">'+uiIcon('gear')+esc(t('管理密钥'))+'</button>' +
-            '<button class="btn soft sm" data-reset-spend="'+esc(k.id)+'">'+uiIcon('refresh')+esc(t('重置已用'))+'</button>' +
+            '<button class="btn soft sm" data-reset-spend="'+esc(k.id)+'">'+uiIcon('refresh')+esc(t('重置额度'))+'</button>' +
             '<button class="btn danger sm" data-delete="'+esc(k.id)+'">'+uiIcon('trash')+esc(t('删除'))+'</button>' +
           '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
@@ -2279,6 +2326,93 @@
     $('keysTable').querySelectorAll('[data-reset-spend]').forEach(btn => btn.addEventListener('click', () => openResetSpendModal(btn.dataset.resetSpend)));
     $('keysTable').querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => openDeleteKeyModal(btn.dataset.delete)));
     $('keysTable').querySelectorAll('[data-enable-key]').forEach(input => input.addEventListener('change', () => toggleKeyEnabled(input.dataset.enableKey, input.checked, input)));
+    $('keysTable').querySelectorAll('[data-select-key]').forEach(input => input.addEventListener('change', () => {
+      if (input.checked) state.selectedKeyIDs.add(input.dataset.selectKey);
+      else state.selectedKeyIDs.delete(input.dataset.selectKey);
+      syncKeySelectionControls();
+    }));
+    const selectAll = $('keysTable').querySelector('[data-select-all-keys]');
+    if (selectAll) selectAll.addEventListener('change', () => {
+      state.keys.forEach(key => {
+        if (selectAll.checked) state.selectedKeyIDs.add(key.id);
+        else state.selectedKeyIDs.delete(key.id);
+      });
+      syncKeySelectionControls();
+    });
+    syncKeySelectionControls();
+    renderKeyPagination(pageData);
+  }
+
+  function selectedManagedKeyIDs() {
+    return [...(state.selectedKeyIDs || new Set())];
+  }
+
+  function syncKeySelectionControls() {
+    const ids = selectedManagedKeyIDs();
+    const selected = new Set(ids);
+    const visibleIDs = new Set((state.keys || []).map(key => key.id));
+    const visibleSelected = ids.filter(id => visibleIDs.has(id));
+    const allSelected = Boolean(state.keys.length) && visibleSelected.length === state.keys.length;
+    const selectAll = $('keysTable').querySelector('[data-select-all-keys]');
+    if (selectAll) {
+      selectAll.checked = allSelected;
+      selectAll.indeterminate = visibleSelected.length > 0 && !allSelected;
+    }
+    $('keysTable').querySelectorAll('[data-select-key]').forEach(input => {
+      const checked = selected.has(input.dataset.selectKey);
+      input.checked = checked;
+      input.closest('tr').classList.toggle('is-selected', checked);
+    });
+    const resetSelected = $('btnResetSelectedKeySpend');
+    if (resetSelected) resetSelected.disabled = !ids.length;
+    const label = $('selectedKeyResetLabel');
+    if (label) label.textContent = t('重置已选额度') + (ids.length ? ' (' + ids.length + ')' : '');
+  }
+
+  function renderKeyPagination(pageData) {
+    const el = $('keyPagination');
+    if (!el) return;
+    const total = Number(pageData && pageData.total || 0);
+    const page = Number(pageData && pageData.page || state.keyPage || 1);
+    const pageSize = Number(pageData && pageData.page_size || state.keyPageSize || 10);
+    const totalPages = Math.max(Number(pageData && pageData.total_pages || 0), 1);
+    const start = total ? (page - 1) * pageSize + 1 : 0;
+    const end = Math.min(page * pageSize, total);
+    el.innerHTML = '<span class="muted"><span>显示</span> '+start+'–'+end+'，<span>共</span> '+total.toLocaleString()+' <span>条</span></span>' +
+      '<label>每页<select id="keyPageSize"><option value="10">10 '+t('条')+'</option><option value="25">25 '+t('条')+'</option><option value="50">50 '+t('条')+'</option><option value="100">100 '+t('条')+'</option></select></label>' +
+      '<button class="btn ghost" id="btnKeyPrev" '+(page <= 1 ? 'disabled' : '')+'>'+uiIcon('chevronL')+esc(t('上一页'))+'</button>' +
+      '<span class="muted"><span>第</span> '+page+' / '+totalPages+' <span>页</span></span>' +
+      '<button class="btn ghost" id="btnKeyNext" '+(page >= totalPages ? 'disabled' : '')+'>'+esc(t('下一页'))+uiIcon('chevronR')+'</button>';
+    $('keyPageSize').value = String(pageSize);
+    initCustomControls(el);
+    refreshCustomControl($('keyPageSize'));
+    $('keyPageSize').addEventListener('change', async event => {
+      try {
+        state.keyPageSize = Number(event.target.value);
+        state.keyPage = 1;
+        await loadKeys();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnKeyPrev').addEventListener('click', async () => {
+      try {
+        state.keyPage = Math.max(1, page - 1);
+        await loadKeys();
+      } catch (e) { flash(e.message, false); }
+    });
+    $('btnKeyNext').addEventListener('click', async () => {
+      try {
+        state.keyPage = Math.min(totalPages, page + 1);
+        await loadKeys();
+      } catch (e) { flash(e.message, false); }
+    });
+  }
+
+  async function loadKeys() {
+    const seq = state.tabLoadSeq;
+    const params = new URLSearchParams({ page: String(state.keyPage), page_size: String(state.keyPageSize), active_only: '1' });
+    const result = await api('GET', 'credit-manager/keys?' + params.toString());
+    if (seq !== state.tabLoadSeq) return;
+    renderKeys(result.items || [], result, true);
   }
 
   async function toggleKeyEnabled(id, enabled, control) {
@@ -2572,7 +2706,7 @@
       '<option value="' + esc(modelID) + '"' + (selected.has(modelID) ? ' selected' : '') + '>' + esc(modelID) + '</option>'
     ).join('');
     $('keyModalModelsHint').textContent = available.length
-      ? '可直接勾选多个模型；不选择任何模型表示全部模型可用。'
+      ? '默认全部模型可用；选择一个或多个模型后，密钥仅能调用所选模型。'
       : '未发现可用模型；请确认宿主管理密钥、上游认证文件或 AI 提供商。';
     setKeyTokenLimitModels(available);
     refreshCustomControl(picker);
@@ -2587,7 +2721,7 @@
     const tokens = Number(period.tokens || 0);
     return {
       tokens: Number.isFinite(tokens) && tokens > 0 ? Math.floor(tokens) : 0,
-      mode: period.mode === 'available' ? 'available' : 'unlimited',
+      mode: 'unlimited',
     };
   }
 
@@ -2605,8 +2739,8 @@
       button.disabled = Boolean(disabled);
     });
     $('keyModalUnmatchedHint').textContent = mode === 'disabled'
-      ? t('仅下方列出的模型可以调用；未匹配的模型会被拒绝。')
-      : t('未列入下方的模型可以调用，且不限制 Token。');
+      ? t('仅下方列出的模型允许调用，其他模型会被拒绝。')
+      : t('不在下方列表的模型允许调用，且不限制 Token。');
   }
 
   function tokenLimitsEnabled() {
@@ -2641,15 +2775,7 @@
   }
 
   function syncTokenLimitPeriod(periodEl) {
-    const input = periodEl.querySelector('input[data-tokens]');
-    const mode = periodEl.dataset.mode === 'available' ? 'available' : 'unlimited';
-    const capped = String(input.value || '').trim() !== '' && Number(input.value) > 0;
-    periodEl.dataset.mode = mode;
-    periodEl.classList.toggle('is-capped', capped);
-    periodEl.querySelectorAll('[data-mode-set]').forEach(button => {
-      button.classList.toggle('active', button.dataset.modeSet === mode);
-      button.disabled = capped || input.disabled;
-    });
+    periodEl.dataset.mode = 'unlimited';
   }
 
   function renderKeyTokenLimits(limits, disabled) {
@@ -2663,11 +2789,7 @@
       const value = tokenLimitPeriodValue(period);
       const capped = value.tokens > 0;
       return '<div class="token-limit-period'+(capped ? ' is-capped' : '')+'" data-period="'+name+'" data-mode="'+value.mode+'"><span>'+esc(t(label))+'</span>' +
-        '<input type="number" min="1" step="1" inputmode="numeric" data-tokens placeholder="'+esc(t('未填则选可用或无限制'))+'" value="'+(capped ? value.tokens : '')+'"'+(disabled ? ' disabled' : '')+'/>' +
-        '<div class="token-limit-mode" role="group">' +
-          '<button type="button" data-mode-set="available"'+(value.mode === 'available' ? ' class="active"' : '')+(disabled || capped ? ' disabled' : '')+'>'+esc(t('可用'))+'</button>' +
-          '<button type="button" data-mode-set="unlimited"'+(value.mode !== 'available' ? ' class="active"' : '')+(disabled || capped ? ' disabled' : '')+'>'+esc(t('无限制'))+'</button>' +
-        '</div></div>';
+        '<input type="number" min="1" step="1" inputmode="numeric" data-tokens placeholder="'+esc(t('留空 = 不限制'))+'" value="'+(capped ? value.tokens : '')+'"'+(disabled ? ' disabled' : '')+'/></div>';
     };
     target.innerHTML = items.map(item => {
       const model = String(item.model || '').trim();
@@ -2675,10 +2797,10 @@
         '<div class="token-limit-head"><span class="token-limit-model" title="'+esc(model)+'">'+esc(model)+'</span>' +
         '<button type="button" class="btn ghost sm" data-remove-token-limit="'+esc(model)+'"'+(disabled ? ' disabled' : '')+'>'+esc(t('移除'))+'</button></div>' +
         '<div class="token-limit-periods">' +
-          periodField('total', '总 Token', item.total) +
           periodField('daily', '日 Token', item.daily) +
           periodField('weekly', '周 Token', item.weekly) +
           periodField('monthly', '月 Token', item.monthly) +
+          periodField('total', '总 Token', item.total) +
         '</div></div>';
     }).join('');
     target.querySelectorAll('.token-limit-period').forEach(syncTokenLimitPeriod);
@@ -2837,6 +2959,7 @@
     $('keyModalMonthlyQuotaUSD').disabled = isRotation;
     $('keyModalMaxConcurrent').disabled = isRotation;
     $('keyModalModels').disabled = isRotation;
+    $('btnKeyModalAllowAllModels').disabled = isRotation;
     $('keyModalTokenLimitModel').disabled = isRotation;
     $('btnAddKeyTokenLimit').disabled = isRotation;
     setUnmatchedModelsMode(key ? key.unmatched_models_mode : 'available', isRotation);
@@ -3680,10 +3803,16 @@
     const models = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort((a, b) => comparePricingModels(a, b, rulesByModel));
     if (!models.length) {
       $('pricingTable').innerHTML = '<p class="hint">尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。</p>';
+      renderPricingPagination(0, rules);
       return;
     }
+    const total = models.length;
+    const totalPages = Math.max(Math.ceil(total / state.pricingPageSize), 1);
+    state.pricingPage = Math.min(Math.max(state.pricingPage, 1), totalPages);
+    const start = (state.pricingPage - 1) * state.pricingPageSize;
+    const pageModels = models.slice(start, start + state.pricingPageSize);
     $('pricingTable').innerHTML = '<div class="table-scroll"><table class="pricing-table"><thead><tr><th>模型</th><th>models.dev 价格</th><th>当前规则</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
-      models.map(modelID => {
+      pageModels.map(modelID => {
         const matched = state.modelPrices[modelID];
         const rule = rulesByModel.get(modelID);
         const winning = winningPricingRule(modelID, rules);
@@ -3720,6 +3849,38 @@
         await reload();
       } catch (e) { flash(e.message, false); }
     }));
+    renderPricingPagination(total, rules);
+  }
+
+  function renderPricingPagination(total, rules) {
+    const el = $('pricingPagination');
+    if (!el) return;
+    const pageSize = state.pricingPageSize;
+    const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+    const page = Math.min(Math.max(state.pricingPage, 1), totalPages);
+    const start = total ? (page - 1) * pageSize + 1 : 0;
+    const end = Math.min(page * pageSize, total);
+    el.innerHTML = '<span class="muted"><span>显示</span> '+start+'–'+end+'，<span>共</span> '+total.toLocaleString()+' <span>条</span></span>' +
+      '<label>每页<select id="pricingPageSize"><option value="10">10 '+t('条')+'</option><option value="25">25 '+t('条')+'</option><option value="50">50 '+t('条')+'</option><option value="100">100 '+t('条')+'</option></select></label>' +
+      '<button class="btn ghost" id="btnPricingPrev" '+(page <= 1 ? 'disabled' : '')+'>'+uiIcon('chevronL')+esc(t('上一页'))+'</button>' +
+      '<span class="muted"><span>第</span> '+page+' / '+totalPages+' <span>页</span></span>' +
+      '<button class="btn ghost" id="btnPricingNext" '+(page >= totalPages ? 'disabled' : '')+'>'+esc(t('下一页'))+uiIcon('chevronR')+'</button>';
+    $('pricingPageSize').value = String(pageSize);
+    initCustomControls(el);
+    refreshCustomControl($('pricingPageSize'));
+    $('pricingPageSize').addEventListener('change', event => {
+      state.pricingPageSize = Number(event.target.value);
+      state.pricingPage = 1;
+      renderPricing(rules);
+    });
+    $('btnPricingPrev').addEventListener('click', () => {
+      state.pricingPage = Math.max(1, page - 1);
+      renderPricing(rules);
+    });
+    $('btnPricingNext').addEventListener('click', () => {
+      state.pricingPage = Math.min(totalPages, page + 1);
+      renderPricing(rules);
+    });
   }
 
   function normKeySum(x) {
@@ -3831,14 +3992,14 @@
   function renderUsagePagination(pageData) {
     const total = Number(pageData.total || 0);
     const page = Number(pageData.page || state.usagePage || 1);
-    const pageSize = Number(pageData.page_size || state.usagePageSize || 50);
+    const pageSize = Number(pageData.page_size || state.usagePageSize || 10);
     const totalPages = Math.max(Number(pageData.total_pages || 0), 1);
     state.usagePage = page;
     state.usagePageSize = pageSize;
     const start = total ? (page - 1) * pageSize + 1 : 0;
     const end = Math.min(page * pageSize, total);
     $('usagePagination').innerHTML = '<span class="muted"><span>显示</span> '+start+'–'+end+'，<span>共</span> '+total.toLocaleString()+' <span>条</span></span>' +
-      '<label>每页<select id="usagePageSize"><option value="25">25 '+t('条')+'</option><option value="50">50 '+t('条')+'</option><option value="100">100 '+t('条')+'</option><option value="200">200 '+t('条')+'</option></select></label>' +
+      '<label>每页<select id="usagePageSize"><option value="10">10 '+t('条')+'</option><option value="25">25 '+t('条')+'</option><option value="50">50 '+t('条')+'</option><option value="100">100 '+t('条')+'</option></select></label>' +
       '<button class="btn ghost" id="btnUsagePrev" '+(page <= 1 ? 'disabled' : '')+'>'+uiIcon('chevronL')+esc(t('上一页'))+'</button>' +
       '<span class="muted"><span>第</span> '+page+' / '+totalPages+' <span>页</span></span>' +
       '<button class="btn ghost" id="btnUsageNext" '+(page >= totalPages ? 'disabled' : '')+'>'+esc(t('下一页'))+uiIcon('chevronR')+'</button>';
@@ -4470,6 +4631,7 @@
     state.tabLoadSeq += 1;
     await loadOverviewBundle();
     await loadUsage();
+    if (state.currentTab === 'keys') await loadKeys();
   }
 
   async function reloadWithModelCatalog() {
@@ -4480,28 +4642,31 @@
     });
   }
 
-  function openResetSpendModal(id, all) {
+  function openResetSpendModal(id, all, ids) {
     state.resetSpendAll = Boolean(all);
     state.resetSpendID = all ? '' : id;
-    const count = (state.keys || []).length;
+    state.resetSpendIDs = all ? [] : [...new Set((ids || []).map(value => String(value || '').trim()).filter(Boolean))];
+    const count = Number(state.keyPagination && state.keyPagination.total || (state.keys || []).length);
     if (all) {
-      $('resetSpendTarget').textContent = t('即将重置：') + t('全部启用密钥') + '（' + count + '）';
+      $('resetSpendTarget').textContent = t('全部当前密钥') + ' · ' + count + ' ' + t('个密钥');
+    } else if (state.resetSpendIDs.length) {
+      $('resetSpendTarget').textContent = t('已选') + ' ' + state.resetSpendIDs.length + ' ' + t('个密钥');
     } else {
       const key = state.keys.find(item => item.id === id);
-      $('resetSpendTarget').textContent = t('即将重置：') + (key && (key.label || key.id) || id);
+      $('resetSpendTarget').textContent = key && (key.label || key.id) || id;
     }
-    $('resetSpendTotal').checked = true;
-    $('resetSpendDaily').checked = false;
-    $('resetSpendWeekly').checked = false;
-    $('resetSpendMonthly').checked = false;
+    ['resetSpendDaily', 'resetSpendWeekly', 'resetSpendMonthly', 'resetSpendTotal'].forEach(controlID => {
+      $(controlID).checked = true;
+    });
     const modal = $('resetSpendModal');
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
-    $('btnConfirmResetSpend').focus();
+    $('resetSpendDaily').focus();
   }
 
   function closeResetSpendModal() {
     state.resetSpendID = '';
+    state.resetSpendIDs = [];
     state.resetSpendAll = false;
     const modal = $('resetSpendModal');
     if (!modal) return;
@@ -4526,14 +4691,27 @@
     }
     const payload = { ...scopes };
     if (state.resetSpendAll) payload.all = true;
+    else if (state.resetSpendIDs.length) payload.ids = state.resetSpendIDs;
     else payload.id = state.resetSpendID;
-    if (!payload.all && !payload.id) return;
+    if (!payload.all && !(payload.ids && payload.ids.length) && !payload.id) return;
     try {
       await api('POST', 'credit-manager/keys/reset-spend', payload);
+      if (state.resetSpendIDs.length) state.selectedKeyIDs.clear();
       closeResetSpendModal();
       await reload();
       flash(t('已用额度已重置'), true);
     } catch (e) { flash(e.message, false); }
+  }
+
+  function syncResetSpendScopeOrder(input) {
+    const controls = ['resetSpendDaily', 'resetSpendWeekly', 'resetSpendMonthly', 'resetSpendTotal'].map($);
+    const index = controls.indexOf(input);
+    if (index < 0) return;
+    controls.forEach((control, controlIndex) => {
+      if ((input.checked && controlIndex <= index) || (!input.checked && controlIndex >= index)) {
+        control.checked = input.checked;
+      }
+    });
   }
 
   function openDeleteKeyModal(id) {
@@ -4556,6 +4734,7 @@
   async function deleteKeyPermanently(id) {
     try {
       await api('POST', 'credit-manager/keys/delete', { id });
+      state.selectedKeyIDs.delete(id);
       closeDeleteKeyModal();
       flash('密钥已删除，历史使用统计已保留', true);
       await reload();
@@ -4768,8 +4947,13 @@
   });
   $('btnOpenCreateKey').addEventListener('click', () => openKeyModal('create'));
   $('btnResetAllKeySpend').addEventListener('click', () => {
-    if (!(state.keys || []).length) return;
+    if (!Number(state.keyPagination && state.keyPagination.total || (state.keys || []).length)) return;
     openResetSpendModal('', true);
+  });
+  $('btnResetSelectedKeySpend').addEventListener('click', () => {
+    const ids = selectedManagedKeyIDs();
+    if (!ids.length) return;
+    openResetSpendModal('', false, ids);
   });
   $('btnResetManagedKeySpend').addEventListener('click', () => {
     const id = $('keyModalId').value;
@@ -4780,6 +4964,9 @@
   $('btnCancelResetSpend').addEventListener('click', closeResetSpendModal);
   $('resetSpendModal').addEventListener('click', event => {
     if (event.target === $('resetSpendModal')) closeResetSpendModal();
+  });
+  document.querySelectorAll('#resetSpendModal [data-reset-period]').forEach(input => {
+    input.addEventListener('change', () => syncResetSpendScopeOrder(input));
   });
   $('btnConfirmResetSpend').addEventListener('click', confirmResetKeySpend);
   $('btnClosePriceModal').addEventListener('click', closePriceModal);
@@ -4804,6 +4991,13 @@
   $('keyModalTokenLimitsEnabled').addEventListener('change', event => {
     setTokenLimitsSectionVisible(event.target.checked, event.target.disabled);
   });
+  $('btnKeyModalAllowAllModels').addEventListener('click', () => {
+    const picker = $('keyModalModels');
+    if (picker.disabled) return;
+    Array.from(picker.options).forEach(option => { option.selected = false; });
+    dispatchControlChange(picker);
+    refreshCustomControl(picker);
+  });
   $('btnAddKeyTokenLimit').addEventListener('click', () => addKeyTokenLimit($('keyModalTokenLimitModel').value));
   $('keyModalTokenLimitModel').addEventListener('focus', openTokenLimitModelSearch);
   $('keyModalTokenLimitModel').addEventListener('input', openTokenLimitModelSearch);
@@ -4826,13 +5020,6 @@
     setUnmatchedModelsMode(button.dataset.unmatchedSet);
   });
   $('keyModalTokenLimits').addEventListener('click', event => {
-    const modeButton = event.target.closest('[data-mode-set]');
-    if (modeButton && !modeButton.disabled) {
-      const period = modeButton.closest('.token-limit-period');
-      period.dataset.mode = modeButton.dataset.modeSet;
-      syncTokenLimitPeriod(period);
-      return;
-    }
     const button = event.target.closest('[data-remove-token-limit]');
     if (!button || button.disabled) return;
     renderKeyTokenLimits(collectModelTokenLimits().filter(item => item.model !== button.dataset.removeTokenLimit), $('keyModalMode').value === 'rotate');

@@ -118,16 +118,23 @@ func rotateKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 
 func listKeys(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
 	callerID := firstQuery(query, "caller_id")
-	limit := queryInt(query, "limit", 200)
-	var (
-		items []store.PluginKey
-		err   error
-	)
-	if callerID == "" {
-		items, err = svc.Store().ListPluginKeys(ctx, limit)
-	} else {
-		items, err = svc.Store().ListPluginKeysByCaller(ctx, callerID, limit)
+	pageSize := queryInt(query, "page_size", queryInt(query, "limit", 10))
+	if pageSize > 100 {
+		pageSize = 100
 	}
+	page := queryInt(query, "page", 1)
+	activeOnly := firstQuery(query, "active_only") == "1"
+	total, err := svc.Store().CountPluginKeys(ctx, callerID, activeOnly)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	totalPages := (total + int64(pageSize) - 1) / int64(pageSize)
+	if totalPages == 0 {
+		page = 1
+	} else if int64(page) > totalPages {
+		page = int(totalPages)
+	}
+	items, err := svc.Store().ListPluginKeysPage(ctx, callerID, activeOnly, pageSize, (page-1)*pageSize)
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
@@ -135,7 +142,13 @@ func listKeys(ctx context.Context, svc *service.Service, query map[string][]stri
 	for _, item := range items {
 		out = append(out, keyView(item))
 	}
-	return jsonOK(map[string]any{"items": out}), nil
+	return jsonOK(map[string]any{
+		"items":       out,
+		"page":        page,
+		"page_size":   pageSize,
+		"total":       total,
+		"total_pages": totalPages,
+	}), nil
 }
 
 func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {

@@ -144,7 +144,7 @@ func TestLookupPageDoesNotPersistKey(t *testing.T) {
 			t.Fatalf("lookup page is missing mobile-safe Key validation: %q", text)
 		}
 	}
-	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch", "data-token-unit=\"qian\" title=\"千 (×1,000)\" data-no-i18n>千", "data-token-unit=\"k\" title=\"k (×1,000)\" data-no-i18n>k", "data-token-unit=\"wan\" title=\"万 (×10,000)\" data-no-i18n>万", "data-token-unit=\"w\" title=\"w (×10,000)\" data-no-i18n>w", "data-token-unit=\"baiwan\" title=\"百万 (×1,000,000)\" data-no-i18n>百万", "data-token-unit=\"m\" title=\"m (×1,000,000)\" data-no-i18n>m", "suffix:'千'", "suffix:'k'", "suffix:'万'", "suffix:'w'", "suffix:'百万'", "suffix:'m'"} {
+	for _, text := range []string{"recentPagination", "recentPageSize", "page_size=", "white-space:nowrap", "filter-panel", "page-summary", "page-meta", "page-nav", ".recent-pagination .custom-control-panel", ".recent-pagination .custom-option", "grid-template-columns:repeat(3,minmax(0,1fr))", "grid-template-columns:repeat(5,minmax(0,1fr))", "tokenUnitSwitch", "currencySwitch", "data-token-unit=\"qian\" title=\"千 (×1,000)\" data-no-i18n>千", "data-token-unit=\"k\" title=\"k (×1,000)\" data-no-i18n>k", "data-token-unit=\"wan\" title=\"万 (×10,000)\" data-no-i18n>万", "data-token-unit=\"w\" title=\"w (×10,000)\" data-no-i18n>w", "data-token-unit=\"baiwan\" title=\"百万 (×1,000,000)\" data-no-i18n>百万", "data-token-unit=\"m\" title=\"m (×1,000,000)\" data-no-i18n>m", "suffix:'千'", "suffix:'k'", "suffix:'万'", "suffix:'w'", "suffix:'百万'", "suffix:'m'"} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("lookup page is missing recent usage pagination or one-line headers: %q", text)
 		}
@@ -553,10 +553,31 @@ func TestConsoleKeySpendResetUI(t *testing.T) {
 	for _, text := range []string{
 		"credit-manager/keys/reset-spend",
 		"function openResetSpendModal",
+		"function syncKeySelectionControls",
+		"payload.ids = state.resetSpendIDs",
+		"data-select-all-keys",
+		"data-select-key",
+		"btnResetSelectedKeySpend",
+		"重置已选额度",
+		"function syncResetSpendScopeOrder",
 		"resetSpendTotal",
-		"重置全部已用",
+		"data-reset-period=\"daily\"",
+		"data-reset-period=\"weekly\"",
+		"data-reset-period=\"monthly\"",
+		"data-reset-period=\"total\"",
+		"重置全部额度",
+		"重置额度",
+		"额度和模型 Token 上限不会变化",
+		"总费用与总 Token 已用从当前重新计量",
 		"data-reset-spend",
 		"btnResetManagedKeySpend",
+		"keyPagination",
+		"pricingPagination",
+		"function loadKeys",
+		"active_only: '1'",
+		"function renderKeyPagination",
+		"function renderPricingPagination",
+		".usage-pagination .custom-control-panel",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console spend reset UI is missing %q", text)
@@ -643,10 +664,12 @@ func TestConsoleModelTokenLimits(t *testing.T) {
 		"function renderKeyTokenLimits",
 		"set_model_token_limits",
 		"model_token_limits",
-		"未匹配模型",
+		"未列入限制的模型",
 		"data-unmatched-set=\"disabled\"",
 		"unmatched_models_mode",
-		"总/日/周/月未填写时选择「可用」或「无限制」",
+		"填写数字才启用对应周期的 Token 上限；留空即不限制。",
+		"全部模型（默认）",
+		"btnKeyModalAllowAllModels",
 		"总 Token",
 	} {
 		if !strings.Contains(page, text) {

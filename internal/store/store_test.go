@@ -1172,6 +1172,68 @@ func TestResetPluginKeySpendAllSkipsRevoked(t *testing.T) {
 	}
 }
 
+func TestListPluginKeysPageCountsAndSkipsRevoked(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	keys := []PluginKey{
+		newTestKey(t, ctx, st, PluginKeySpec{Kid: "page-key-one", Principal: "credit-manager:page-key-one", CallerScope: "credit-manager:page-key-one"}),
+		newTestKey(t, ctx, st, PluginKeySpec{Kid: "page-key-two", Principal: "credit-manager:page-key-two", CallerScope: "credit-manager:page-key-two"}),
+		newTestKey(t, ctx, st, PluginKeySpec{Kid: "page-key-three", Principal: "credit-manager:page-key-three", CallerScope: "credit-manager:page-key-three"}),
+	}
+
+	total, err := st.CountPluginKeys(ctx, "", false)
+	if err != nil || total != 3 {
+		t.Fatalf("all key count = %d, %v", total, err)
+	}
+	firstPage, err := st.ListPluginKeysPage(ctx, "", false, 2, 0)
+	if err != nil || len(firstPage) != 2 {
+		t.Fatalf("first page = %#v, %v", firstPage, err)
+	}
+	secondPage, err := st.ListPluginKeysPage(ctx, "", false, 2, 2)
+	if err != nil || len(secondPage) != 1 {
+		t.Fatalf("second page = %#v, %v", secondPage, err)
+	}
+	if firstPage[0].ID == secondPage[0].ID || firstPage[1].ID == secondPage[0].ID {
+		t.Fatalf("pages overlap: first=%#v second=%#v", firstPage, secondPage)
+	}
+	if err := st.RevokePluginKey(ctx, keys[1].ID); err != nil {
+		t.Fatal(err)
+	}
+	activeTotal, err := st.CountPluginKeys(ctx, "", true)
+	if err != nil || activeTotal != 2 {
+		t.Fatalf("active key count = %d, %v", activeTotal, err)
+	}
+	active, err := st.ListPluginKeysPage(ctx, "", true, 10, 0)
+	if err != nil || len(active) != 2 {
+		t.Fatalf("active page = %#v, %v", active, err)
+	}
+	for _, key := range active {
+		if key.ID == keys[1].ID {
+			t.Fatalf("revoked key %s appeared in active page", key.ID)
+		}
+	}
+}
+
+func TestResetPluginKeySpendSelectedKeys(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	first := newTestKey(t, ctx, st, PluginKeySpec{Kid: "selected-reset-one", Principal: "credit-manager:selected-reset-one", CallerScope: "credit-manager:selected-reset-one"})
+	second := newTestKey(t, ctx, st, PluginKeySpec{Kid: "selected-reset-two", Principal: "credit-manager:selected-reset-two", CallerScope: "credit-manager:selected-reset-two"})
+
+	reset, err := st.ResetPluginKeySpend(ctx, []string{first.ID, second.ID, first.ID}, false, SpendResetScopes{Daily: true})
+	if err != nil || reset != 2 {
+		t.Fatalf("reset selected = %d, %v", reset, err)
+	}
+	for _, id := range []string{first.ID, second.ID} {
+		key, err := st.GetPluginKey(ctx, id)
+		if err != nil || key.DailySpendResetAt == nil {
+			t.Fatalf("selected key %s daily reset = %#v, err=%v", id, key.DailySpendResetAt, err)
+		}
+	}
+}
+
 func TestResetPluginKeySpendRequiresScopeAndID(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)
@@ -1270,6 +1332,42 @@ func TestListModelTokenUsageRespectsTotalReset(t *testing.T) {
 	}
 	if got[0].TotalUsed != 0 {
 		t.Fatalf("total used = %d, want 0 after reset", got[0].TotalUsed)
+	}
+}
+
+func TestListModelTokenUsageRespectsWeeklyAndMonthlyReset(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		scope SpendResetScopes
+		used  func(ModelTokenUsage) int64
+	}{
+		{name: "weekly", scope: SpendResetScopes{Weekly: true}, used: func(usage ModelTokenUsage) int64 { return usage.WeeklyUsed }},
+		{name: "monthly", scope: SpendResetScopes{Monthly: true}, used: func(usage ModelTokenUsage) int64 { return usage.MonthlyUsed }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			st := newTestStore(t)
+			defer st.Close()
+			key := newTestKey(t, ctx, st, PluginKeySpec{})
+			now := time.Now().UTC()
+			if _, err := st.db.ExecContext(ctx, `PRAGMA foreign_keys = OFF`); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := st.db.ExecContext(ctx, `INSERT INTO usage_ledger(id, reservation_id, caller_id, plugin_key_id, model, input_tokens, output_tokens, reasoning_tokens, cached_tokens, cache_read_tokens, cache_creation_tokens, cost_micro_usd, source, created_at_unix_ms) VALUES (?, ?, ?, ?, 'test-model', 40, 0, 0, 0, 0, 0, 1, 'usage', ?)`, "u-"+test.name+"-reset", "r-"+test.name+"-reset", key.CallerID, key.ID, now.UnixMilli()); err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(2 * time.Millisecond)
+			if _, err := st.ResetPluginKeySpend(ctx, []string{key.ID}, false, test.scope); err != nil {
+				t.Fatal(err)
+			}
+			got, err := st.ListModelTokenUsage(ctx, key.ID, []ModelTokenLimit{{Model: "test-model"}}, time.Now().UTC().UnixMilli())
+			if err != nil || len(got) != 1 {
+				t.Fatalf("usage=%#v err=%v", got, err)
+			}
+			if selected := test.used(got[0]); selected != 0 {
+				t.Fatalf("%s used = %d, want 0 after reset", test.name, selected)
+			}
+		})
 	}
 }
 
