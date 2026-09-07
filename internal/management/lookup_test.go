@@ -535,6 +535,30 @@ func TestAuthQuotaConcurrencyRoute(t *testing.T) {
 	}
 }
 
+func TestConsoleAuthQuotaBatchUsesCustomConfirmation(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`id="authQuotaBatchModal"`,
+		`id="authQuotaBatchTarget"`,
+		`id="authQuotaBatchValue"`,
+		`id="btnConfirmAuthQuotaBatch"`,
+		"function openAuthQuotaBatchModal",
+		"async function confirmAuthQuotaConcurrencyBatch",
+		"openAuthQuotaBatchModal(scope, payload, count);",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console auth quota batch confirmation is missing %q", text)
+		}
+	}
+	start := strings.Index(page, "async function saveAuthQuotaConcurrencyBatch")
+	end := strings.Index(page, "async function refreshAuthQuota")
+	if start < 0 || end < 0 || start >= end {
+		t.Fatal("auth quota batch save function is missing")
+	}
+	if strings.Contains(page[start:end], "confirm(") {
+		t.Fatal("auth quota batch save still uses a browser confirmation")
+	}
+}
 
 func TestKeySpendResetRoute(t *testing.T) {
 	var found bool

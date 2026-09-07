@@ -948,6 +948,23 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .auth-quota-filter select, .auth-quota-filter input { min-width:0; width:100%; padding:8px 10px; }
 .auth-quota-toolbar .auth-quota-filter { width:168px; }
 .auth-quota-toolbar .auth-quota-filter select, .auth-quota-toolbar .auth-quota-filter input { width:100%; min-height:38px; }
+.auth-quota-batch-modal { display:flex; flex-direction:column; width:min(460px, 100%); max-height:min(520px, calc(100dvh - 24px)); overflow:hidden; }
+.auth-quota-batch-modal .modal-header { flex:0 0 auto; padding:18px 20px 12px; border-bottom:0; }
+.auth-quota-batch-modal .modal-header .hint { margin-top:5px; }
+.auth-quota-batch-body { display:grid; flex:1 1 auto; gap:14px; padding:0 20px 18px; }
+.auth-quota-batch-preview { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+.auth-quota-batch-preview > div { display:grid; gap:5px; min-width:0; padding:12px; border:1px solid color-mix(in srgb, var(--accent) 23%, var(--line)); border-radius:12px; background:linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--panel)), var(--panel)); }
+.auth-quota-batch-preview span { color:var(--muted); font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.auth-quota-batch-preview strong { min-width:0; color:var(--text); font-size:.9rem; font-weight:700; line-height:1.35; overflow-wrap:anywhere; }
+.auth-quota-batch-confirm-note { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; border:1px solid var(--line); border-radius:11px; background:var(--panel-2); }
+.auth-quota-batch-confirm-icon { display:grid; place-items:center; flex:0 0 auto; width:22px; height:22px; border-radius:50%; background:color-mix(in srgb, var(--accent) 14%, transparent); color:#087d5a; }
+.auth-quota-batch-confirm-icon svg { width:14px; height:14px; }
+.auth-quota-batch-confirm-note p { display:grid; gap:2px; margin:0; }
+.auth-quota-batch-confirm-note strong { color:var(--text); font-size:.77rem; font-weight:700; }
+.auth-quota-batch-confirm-note span:last-child { color:var(--muted); font-size:.71rem; line-height:1.48; }
+.auth-quota-batch-footer { display:flex; flex:0 0 auto; justify-content:flex-end; padding:11px 20px 14px; border-top:1px solid var(--line); background:color-mix(in srgb, var(--panel-2) 56%, var(--panel)); }
+.auth-quota-batch-footer .modal-actions { margin:0; }
+html[data-palette="dark"] .auth-quota-batch-confirm-icon { background:rgba(126,224,189,.14); color:#7fe0bd; }
 .list-search { position:relative; display:block; flex:0 1 288px; width:288px; min-width:220px; height:38px; min-height:38px; margin:0; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); transition:border-color .16s ease, background .16s ease, box-shadow .16s ease; }
 .list-search::before { content:""; position:absolute; z-index:1; top:50%; left:12px; width:16px; height:16px; margin-top:-8px; pointer-events:none; opacity:.58; background:center / 16px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='7' cy='7' r='4.15' stroke='%235f6a61' stroke-width='1.5'/%3E%3Cpath d='m10.05 10.05 3.1 3.1' stroke='%235f6a61' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); transition:opacity .16s ease; }
 .list-search input, .list-search input:hover, .list-search input:focus { display:block; width:100%; height:36px; min-height:36px; padding:8px 41px 8px 37px; border:0; border-radius:9px; background:transparent; box-shadow:none; }
@@ -1140,6 +1157,7 @@ html[data-palette="dark"] .key-select input:indeterminate + .key-select-ui::afte
   .table-swipe-hint { display:block; margin:9px 2px 0; color:var(--muted); font-size:.72rem; }
   .auth-quota-toolbar { width:100%; justify-content:flex-start; align-items:flex-end; gap:14px; }
   .auth-quota-toolbar-filters { flex:1 1 auto; min-width:0; }
+  .auth-quota-batch-modal .modal-header, .auth-quota-batch-modal .auth-quota-batch-body, .auth-quota-batch-modal .auth-quota-batch-footer { padding-left:16px; padding-right:16px; }
   .keys-card .section-heading, .pricing-layout .section-heading { align-items:flex-start; flex-wrap:wrap; }
   .section-heading .list-search { flex:1 1 100%; width:100%; max-width:none; }
   .pricing-list-tools { width:100%; justify-content:flex-start; }

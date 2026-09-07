@@ -192,6 +192,18 @@
     '小时': { 'zh-TW':'小時', en:'hours', ru:'часов' }, '自然日': { 'zh-TW':'自然日', en:'days', ru:'дней' }, '自然月': { 'zh-TW':'自然月', en:'months', ru:'месяцев' },
     '请求次数': { 'zh-TW':'請求次數', en:'Requests', ru:'Запросы' },
     '指定密钥': { 'zh-TW':'指定密鑰', en:'Selected key', ru:'Выбранный ключ' },
+    '确认批量并发': { 'zh-TW':'確認批量併發', en:'Confirm batch concurrency', ru:'Подтвердить пакетную параллельность' },
+    '此操作会覆盖目标认证的最大并发设置。': { 'zh-TW':'此操作會覆蓋目標認證的最大併發設定。', en:'This will replace the maximum concurrency setting for the target auths.', ru:'Это заменит настройку максимальной параллельности для выбранных авторизаций.' },
+    '关闭批量并发确认': { 'zh-TW':'關閉批量併發確認', en:'Close batch concurrency confirmation', ru:'Закрыть подтверждение пакетной параллельности' },
+    '应用范围': { 'zh-TW':'套用範圍', en:'Apply to', ru:'Область применения' },
+    '目标并发': { 'zh-TW':'目標併發', en:'Target concurrency', ru:'Целевая параллельность' },
+    '将覆盖现有设置': { 'zh-TW':'將覆蓋現有設定', en:'Existing settings will be replaced', ru:'Текущие настройки будут заменены' },
+    '确认后立即更新目标认证；0 或留空表示不限制。': { 'zh-TW':'確認後立即更新目標認證；0 或留空表示不限制。', en:'Confirm to update the target auths now; 0 or blank means unlimited.', ru:'Подтвердите, чтобы сразу обновить выбранные авторизации; 0 или пусто — без ограничений.' },
+    '确认应用': { 'zh-TW':'確認套用', en:'Confirm apply', ru:'Подтвердить применение' },
+    '本页': { 'zh-TW':'本頁', en:'This page', ru:'Эта страница' },
+    '当前筛选': { 'zh-TW':'目前篩選', en:'Current filters', ru:'Текущие фильтры' },
+    '个认证': { 'zh-TW':'個認證', en:'auths', ru:'авторизаций' },
+
   };
   const textSources = new WeakMap();
   const attributeSources = new WeakMap();
@@ -220,6 +232,8 @@
     authQuotaPage: 1,
     authQuotaPageSize: 12,
     authQuotaPageRefreshing: false,
+    authQuotaBatchPayload: null,
+    authQuotaBatchSaving: false,
     allKeys: [],
     usedAuths: [],
     modelPrices: {},
@@ -1695,6 +1709,7 @@
     closePriceModal();
     closeDeleteKeyModal();
     closeResetSpendModal();
+    closeAuthQuotaBatchModal();
     resetDataBoundFilters();
     renderDisconnectedOverview();
     renderDisconnectedTabStates();
@@ -4534,20 +4549,60 @@
       }
     } else {
       const total = Number(authQuotaValue(state.authQuotas, 'total') || 0);
-      const label = maxConcurrent > 0 ? String(maxConcurrent) : '不限制';
-      if (!confirm('将把当前筛选的 '+total+' 个认证并发设为 '+label+'？')) return;
+      if (!total) {
+        flash('没有可更新的认证', false);
+        return;
+      }
     }
+    const count = scope === 'page' ? payload.items.length : Number(authQuotaValue(state.authQuotas, 'total') || 0);
+    openAuthQuotaBatchModal(scope, payload, count);
+  }
+  function openAuthQuotaBatchModal(scope, payload, count) {
+    state.authQuotaBatchPayload = payload;
+    const modal = $('authQuotaBatchModal');
+    $('authQuotaBatchTarget').textContent = t(scope === 'page' ? '本页' : '当前筛选') + ' · ' + count + ' ' + t('个认证');
+    $('authQuotaBatchValue').textContent = payload.max_concurrent_requests > 0 ? String(payload.max_concurrent_requests) : t('不限制');
+    $('btnConfirmAuthQuotaBatch').disabled = false;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    $('btnConfirmAuthQuotaBatch').focus();
+  }
+  function closeAuthQuotaBatchModal(force) {
+    if (state.authQuotaBatchSaving && !force) return;
+    state.authQuotaBatchPayload = null;
+    const modal = $('authQuotaBatchModal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  async function confirmAuthQuotaConcurrencyBatch() {
+    const payload = state.authQuotaBatchPayload;
+    if (!payload || state.authQuotaBatchSaving) return;
+    state.authQuotaBatchSaving = true;
     const pageBtn = $('btnAuthQuotaBatchPage');
     const filterBtn = $('btnAuthQuotaBatchFilter');
+    const confirmBtn = $('btnConfirmAuthQuotaBatch');
+    const cancelBtn = $('btnCancelAuthQuotaBatch');
+    const closeBtn = $('btnCloseAuthQuotaBatchModal');
     if (pageBtn) pageBtn.disabled = true;
     if (filterBtn) filterBtn.disabled = true;
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (closeBtn) closeBtn.disabled = true;
     try {
       const result = await api('POST', 'credit-manager/auth-quotas/concurrency/batch', payload);
       await loadAuthQuotas();
+      closeAuthQuotaBatchModal(true);
       flash('已更新 '+(Number(authQuotaValue(result, 'updated') || 0))+' 个认证的并发', true);
+    } catch (e) {
+      flash(e.message, false);
     } finally {
+      state.authQuotaBatchSaving = false;
       if (pageBtn) pageBtn.disabled = false;
       if (filterBtn) filterBtn.disabled = false;
+      if (confirmBtn) confirmBtn.disabled = false;
+      if (cancelBtn) cancelBtn.disabled = false;
+      if (closeBtn) closeBtn.disabled = false;
     }
   }
   async function refreshAuthQuota(itemKey, provider, authID, authIndex, options) {
@@ -4813,6 +4868,7 @@
       closePriceModal();
       closeDeleteKeyModal();
       closeResetSpendModal();
+      closeAuthQuotaBatchModal();
     }
   });
   $('customApiBase').addEventListener('change', () => {
@@ -5027,6 +5083,12 @@
     input.addEventListener('change', () => syncResetSpendScopeOrder(input));
   });
   $('btnConfirmResetSpend').addEventListener('click', confirmResetKeySpend);
+  $('btnCloseAuthQuotaBatchModal').addEventListener('click', closeAuthQuotaBatchModal);
+  $('btnCancelAuthQuotaBatch').addEventListener('click', closeAuthQuotaBatchModal);
+  $('authQuotaBatchModal').addEventListener('click', event => {
+    if (event.target === $('authQuotaBatchModal')) closeAuthQuotaBatchModal();
+  });
+  $('btnConfirmAuthQuotaBatch').addEventListener('click', confirmAuthQuotaConcurrencyBatch);
   $('btnClosePriceModal').addEventListener('click', closePriceModal);
   $('btnCancelPriceModal').addEventListener('click', closePriceModal);
   $('priceModal').addEventListener('click', event => {
