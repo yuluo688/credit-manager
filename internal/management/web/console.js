@@ -139,7 +139,12 @@
     '关闭密钥弹窗': { 'zh-TW':'關閉密鑰彈窗', en:'Close key dialog', ru:'Закрыть диалог ключа' }, '关闭价格规则弹窗': { 'zh-TW':'關閉價格規則彈窗', en:'Close pricing dialog', ru:'Закрыть диалог цен' },
     '关闭删除确认': { 'zh-TW':'關閉刪除確認', en:'Close delete confirmation', ru:'Закрыть подтверждение удаления' }, '关闭连接设置': { 'zh-TW':'關閉連線設定', en:'Close connection settings', ru:'Закрыть настройки подключения' },
     '开始时间': { 'zh-TW':'開始時間', en:'Start time', ru:'Начало' }, '结束时间': { 'zh-TW':'結束時間', en:'End time', ru:'Конец' },
-    '搜索密钥标签或 ID': { 'zh-TW':'搜尋密鑰標籤或 ID', en:'Search key label or ID', ru:'Поиск метки или ID ключа' },
+    '搜索密钥标签': { 'zh-TW':'搜尋密鑰標籤', en:'Search key label', ru:'Поиск метки ключа' },
+    '搜索': { 'zh-TW':'搜尋', en:'Search', ru:'Поиск' },
+    '搜索标签': { 'zh-TW':'搜尋標籤', en:'Search label', ru:'Поиск метки' },
+    '搜索模型 ID': { 'zh-TW':'搜尋模型 ID', en:'Search model ID', ru:'Поиск ID модели' },
+    '清除搜索': { 'zh-TW':'清除搜尋', en:'Clear search', ru:'Очистить поиск' },
+    '未找到匹配的模型': { 'zh-TW':'找不到相符的模型', en:'No matching models found', ru:'Подходящие модели не найдены' },
     '模型占比指标': { 'zh-TW':'模型佔比指標', en:'Model share metric', ru:'Метрика доли моделей' },
     '美元': { 'zh-TW':'美元', en:'US dollar', ru:'Доллар США' }, '费用显示货币': { 'zh-TW':'費用顯示貨幣', en:'Cost currency', ru:'Валюта стоимости' },
     '输入密钥后缀': { 'zh-TW':'輸入密鑰後綴', en:'Enter key suffix', ru:'Введите суффикс ключа' },
@@ -187,7 +192,6 @@
     '小时': { 'zh-TW':'小時', en:'hours', ru:'часов' }, '自然日': { 'zh-TW':'自然日', en:'days', ru:'дней' }, '自然月': { 'zh-TW':'自然月', en:'months', ru:'месяцев' },
     '请求次数': { 'zh-TW':'請求次數', en:'Requests', ru:'Запросы' },
     '指定密钥': { 'zh-TW':'指定密鑰', en:'Selected key', ru:'Выбранный ключ' },
-
   };
   const textSources = new WeakMap();
   const attributeSources = new WeakMap();
@@ -206,6 +210,7 @@
     keys: [],
     keyPage: 1,
     keyPageSize: 10,
+    keySearch: '',
     keyPagination: null,
     authQuotas: null,
     authQuotaWeeks: {},
@@ -222,6 +227,7 @@
     availableModels: [],
     pricingPage: 1,
     pricingPageSize: 10,
+    pricingSearch: '',
     usagePage: 1,
     usagePageSize: 10,
     usageSummary: null,
@@ -1636,7 +1642,7 @@
   }
 
   function resetDataBoundFilters() {
-    ['overviewKeyFilter', 'overviewAuthFilter', 'usageKeyFilter', 'usageAuthFilter', 'authQuotaNameFilter', 'authQuotaBatchConcurrency'].forEach(id => {
+    ['overviewKeyFilter', 'overviewAuthFilter', 'usageKeyFilter', 'usageAuthFilter', 'keyNameFilter', 'pricingModelFilter', 'authQuotaNameFilter', 'authQuotaBatchConcurrency'].forEach(id => {
       const el = $(id);
       if (el) {
         el.value = '';
@@ -1653,6 +1659,7 @@
     closeKeySearch('usage');
     closeAuthSearch('overview');
     closeAuthSearch('usage');
+    syncListSearchClearButtons();
   }
 
   function clearLoadedSession() {
@@ -1660,6 +1667,7 @@
     state.overview = null;
     state.keys = [];
     state.keyPage = 1;
+    state.keySearch = '';
     state.keyPagination = null;
     state.authQuotas = null;
     state.authQuotaWeeks = {};
@@ -1674,6 +1682,7 @@
     state.modelCatalogError = '';
     state.availableModels = [];
     state.pricingPage = 1;
+    state.pricingSearch = '';
     state.usagePage = 1;
     state.usageSummary = null;
     state.usageRecent = null;
@@ -2247,13 +2256,14 @@
     const total = Number(pageData.total || 0);
 
     if ($('keysCount')) {
-      $('keysCount').textContent = total ? (total + ' ' + t('个密钥')) : '暂无密钥';
+      $('keysCount').textContent = total + ' ' + t('个密钥');
     }
     if ($('btnResetAllKeySpend')) $('btnResetAllKeySpend').disabled = !total;
     if ($('btnResetSelectedKeySpend')) $('btnResetSelectedKeySpend').disabled = !state.selectedKeyIDs.size;
 
     if (!state.keys.length) {
-      $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。</span></div>';
+      const emptyText = state.keySearch.trim() ? t('未找到匹配的密钥') : t('还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。');
+      $('keysTable').innerHTML = '<div class="keys-empty empty-state"><span class="empty-icon" aria-hidden="true">'+uiIcon('key')+'</span><span>'+esc(emptyText)+'</span></div>';
       syncKeySelectionControls();
       renderKeyPagination(pageData);
       return;
@@ -2410,6 +2420,8 @@
   async function loadKeys() {
     const seq = state.tabLoadSeq;
     const params = new URLSearchParams({ page: String(state.keyPage), page_size: String(state.keyPageSize), active_only: '1' });
+    const query = state.keySearch.trim();
+    if (query) params.set('q', query);
     const result = await api('GET', 'credit-manager/keys?' + params.toString());
     if (seq !== state.tabLoadSeq) return;
     renderKeys(result.items || [], result, true);
@@ -3615,12 +3627,13 @@
       refreshCustomControl(picker);
       const tokenCount = Object.values(prices).filter(item => item.tokenPriced).length;
       const imageCount = Object.values(prices).filter(item => item.imageGen && !item.tokenPriced).length;
-      $('modelCatalogCount').textContent = models.length + ' 个模型 · ' + tokenCount + ' 个 Token 价 · ' + imageCount + ' 个出图';
-      const syncText = catalogError ? '价格目录暂不可用，未自动同步' : ('新增 ' + sync.saved + '，保留 ' + sync.skipped + (sync.failed.length ? '，失败 ' + sync.failed.length : ''));
+      $('modelCatalogCount').textContent = models.length + ' ' + t('个模型');
+      const coverageText = tokenCount + ' 个 Token 价' + (imageCount ? ' · ' + imageCount + ' 个出图模型' : '');
+      const syncText = '新增 ' + sync.saved + ' 条，保留 ' + sync.skipped + ' 条规则' + (sync.failed.length ? '，失败 ' + sync.failed.length + ' 条' : '');
       const ambiguousText = ambiguous.length ? '；' + ambiguous.length + ' 个未自动匹配' : '';
       status.textContent = catalogError
-        ? ('已加载 ' + models.length + ' 个代理模型。' + syncText + '（' + catalogError + '）。仍可手动设置价格，稍后可重试同步。')
-        : ('已加载 ' + models.length + ' 个模型，Token 价 ' + tokenCount + '，出图 ' + imageCount + '；' + syncText + ambiguousText + '。出图模型不会按 Token 价自动保存。');
+        ? (coverageText + '；价格目录暂不可用，仍可手动设置价格。')
+        : (coverageText + '；' + syncText + ambiguousText + '。');
       renderPricing((state.overview && state.overview.pricing) || []);
       if (sync.failed.length) throw new Error('部分 models.dev 价格未保存：' + sync.failed.join('；'));
     } finally {
@@ -3800,17 +3813,20 @@
   function renderPricing(items) {
     const rules = items || [];
     const rulesByModel = pricingRuleIndex(rules);
-    const models = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort((a, b) => comparePricingModels(a, b, rulesByModel));
-    if (!models.length) {
-      $('pricingTable').innerHTML = '<p class="hint">尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。</p>';
+    const allModels = [...new Set([...(state.availableModels || []), ...rulesByModel.keys()])].sort((a, b) => comparePricingModels(a, b, rulesByModel));
+    const query = state.pricingSearch.trim().toLocaleLowerCase();
+    const filteredModels = query ? allModels.filter(modelID => String(modelID).toLocaleLowerCase().includes(query)) : allModels;
+    if (!filteredModels.length) {
+      const emptyText = allModels.length ? t('未找到匹配的模型') : t('尚未加载模型目录。点击“加载全部模型”后将同步当前代理模型和 models.dev 价格。');
+      $('pricingTable').innerHTML = '<p class="hint">'+esc(emptyText)+'</p>';
       renderPricingPagination(0, rules);
       return;
     }
-    const total = models.length;
+    const total = filteredModels.length;
     const totalPages = Math.max(Math.ceil(total / state.pricingPageSize), 1);
     state.pricingPage = Math.min(Math.max(state.pricingPage, 1), totalPages);
     const start = (state.pricingPage - 1) * state.pricingPageSize;
-    const pageModels = models.slice(start, start + state.pricingPageSize);
+    const pageModels = filteredModels.slice(start, start + state.pricingPageSize);
     $('pricingTable').innerHTML = '<div class="table-scroll"><table class="pricing-table"><thead><tr><th>模型</th><th>models.dev 价格</th><th>当前规则</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       pageModels.map(modelID => {
         const matched = state.modelPrices[modelID];
@@ -4819,6 +4835,8 @@
     } catch (e) { flash(e.message, false); }
   });
   $('btnClearToken').addEventListener('click', () => {
+    window.clearTimeout(keySearchTimer);
+    window.clearTimeout(pricingSearchTimer);
     window.clearTimeout(authQuotaSearchTimer);
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(TOKEN_ORIGIN_KEY);
@@ -4828,7 +4846,47 @@
     clearLoadedSession();
     flash('已清除本地管理密钥与 API 根地址', true);
   });
+  let keySearchTimer = 0;
+  let pricingSearchTimer = 0;
   let authQuotaSearchTimer = 0;
+  function syncListSearchClearButton(inputID) {
+    const input = $(inputID);
+    const button = document.querySelector('[data-clear-search="'+inputID+'"]');
+    if (button) button.hidden = !input || !input.value;
+  }
+  function syncListSearchClearButtons() {
+    syncListSearchClearButton('keyNameFilter');
+    syncListSearchClearButton('pricingModelFilter');
+  }
+  function queueKeyNameSearch() {
+    state.tabLoadSeq += 1;
+    state.keySearch = $('keyNameFilter').value || '';
+    syncListSearchClearButton('keyNameFilter');
+    state.keyPage = 1;
+    window.clearTimeout(keySearchTimer);
+    keySearchTimer = window.setTimeout(() => {
+      loadKeys().catch(e => flash(e.message, false));
+    }, 300);
+  }
+  function queuePricingModelSearch() {
+    state.pricingSearch = $('pricingModelFilter').value || '';
+    syncListSearchClearButton('pricingModelFilter');
+    state.pricingPage = 1;
+    window.clearTimeout(pricingSearchTimer);
+    pricingSearchTimer = window.setTimeout(() => {
+      renderPricing((state.overview && state.overview.pricing) || []);
+    }, 300);
+  }
+  $('keyNameFilter').addEventListener('input', queueKeyNameSearch);
+  $('pricingModelFilter').addEventListener('input', queuePricingModelSearch);
+  document.querySelectorAll('[data-clear-search]').forEach(button => button.addEventListener('click', () => {
+    const input = $(button.dataset.clearSearch);
+    if (!input || !input.value) return;
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles:true }));
+    input.focus();
+  }));
+  syncListSearchClearButtons();
   $('authQuotaProviderFilter').addEventListener('change', () => {
     state.tabLoadSeq += 1;
     state.authQuotaProvider = $('authQuotaProviderFilter').value || '';

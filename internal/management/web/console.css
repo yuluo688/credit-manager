@@ -948,6 +948,31 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .auth-quota-filter select, .auth-quota-filter input { min-width:0; width:100%; padding:8px 10px; }
 .auth-quota-toolbar .auth-quota-filter { width:168px; }
 .auth-quota-toolbar .auth-quota-filter select, .auth-quota-toolbar .auth-quota-filter input { width:100%; min-height:38px; }
+.list-search { position:relative; display:block; flex:0 1 288px; width:288px; min-width:220px; height:38px; min-height:38px; margin:0; border:1px solid var(--line); border-radius:10px; background:var(--panel-2); transition:border-color .16s ease, background .16s ease, box-shadow .16s ease; }
+.list-search::before { content:""; position:absolute; z-index:1; top:50%; left:12px; width:16px; height:16px; margin-top:-8px; pointer-events:none; opacity:.58; background:center / 16px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Ccircle cx='7' cy='7' r='4.15' stroke='%235f6a61' stroke-width='1.5'/%3E%3Cpath d='m10.05 10.05 3.1 3.1' stroke='%235f6a61' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); transition:opacity .16s ease; }
+.list-search input, .list-search input:hover, .list-search input:focus { display:block; width:100%; height:36px; min-height:36px; padding:8px 41px 8px 37px; border:0; border-radius:9px; background:transparent; box-shadow:none; }
+.list-search:hover { border-color:color-mix(in srgb, var(--accent) 32%, var(--line)); background:var(--panel); }
+.list-search:hover::before, .list-search:focus-within::before { opacity:.9; }
+.list-search:focus-within { border-color:color-mix(in srgb, var(--accent) 58%, var(--line)); background:var(--panel); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
+.list-search-clear { position:absolute; z-index:2; top:50%; right:5px; display:grid; place-items:center; width:28px; height:28px; margin-top:-14px; padding:0; border:0; border-radius:7px; background:transparent; color:var(--muted); box-shadow:none; }
+.list-search-clear svg { width:14px; height:14px; }
+.list-search-clear:hover { border:0; background:color-mix(in srgb, var(--accent) 12%, transparent); color:var(--accent); box-shadow:none; }
+.list-search-clear:focus-visible { outline:2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset:1px; }
+.list-header { align-items:center; }
+.list-heading { flex:1 1 auto; min-width:0; }
+.list-heading-title { display:flex; align-items:center; gap:9px; min-width:0; }
+.list-heading-title .panel-title { flex:0 1 auto; min-width:0; }
+.list-count { display:inline-flex; flex:0 0 auto; align-items:center; min-height:21px; padding:3px 7px; border:1px solid var(--line); border-radius:999px; background:var(--panel-2); color:var(--muted); font-size:.7rem; font-weight:650; font-variant-numeric:tabular-nums; letter-spacing:0; line-height:1; white-space:nowrap; }
+.list-heading .hint { max-width:76ch; margin:5px 0 0 30px; font-size:.75rem; }
+.pricing-list-tools { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 1 auto; flex-wrap:wrap; min-width:0; }
+.pricing-list-tools .list-search { flex-basis:248px; width:248px; }
+.pricing-list-tools .list-search, .pricing-list-tools > .btn { box-sizing:border-box; height:38px; min-height:38px; }
+.pricing-list-tools .list-search input, .pricing-list-tools .list-search input:hover, .pricing-list-tools .list-search input:focus { height:36px; min-height:36px; }
+.pricing-list-tools > .btn { white-space:nowrap; }
+html[data-palette="dark"] .list-search { border-color:#48423b; background:#25221f; }
+html[data-palette="dark"] .list-search:hover, html[data-palette="dark"] .list-search:focus-within { border-color:#5d896f; background:#2b2824; }
+html[data-palette="dark"] .list-search input, html[data-palette="dark"] .list-search input:hover, html[data-palette="dark"] .list-search input:focus { background:transparent; }
+html[data-palette="dark"] .list-search::before { filter:brightness(0) invert(1); }
 .btn.sm { padding:5px 10px; font-size:.78rem; border-radius:7px; line-height:1.25; }
 .btn.soft { background:var(--accent-soft); border-color:#c8eddd; color:#087d5a; }
 .btn.soft:hover { background:#d7f3e7; border-color:#b4e5d2; }
@@ -955,10 +980,14 @@ html[data-palette="dark"] .overview-guide { background:linear-gradient(145deg, #
 .btn:disabled { opacity:.55; cursor:not-allowed; box-shadow:none; }
 .btn:active { transform:scale(.97); }
 .keys-card { padding:0; overflow:hidden; }
-.keys-card .section-heading { padding:16px 18px 0; margin-bottom:0; }
-.keys-card #keysTable { padding:12px 14px 16px; }
+.keys-card .section-heading { padding:14px 18px; margin-bottom:0; border-bottom:1px solid var(--line); background:var(--panel); }
+.pricing-list-header .list-heading { flex-basis:420px; }
+.keys-card #keysTable { padding:10px 14px 16px; }
 .keys-card #keyPagination { margin:0 14px 16px; }
-.pricing-layout #pricingPagination { margin:14px 0 0; }
+.pricing-layout .list-card { width:100%; padding:0; overflow:hidden; }
+.pricing-layout .pricing-list-header { padding:14px 18px; margin-bottom:0; border-bottom:1px solid var(--line); background:var(--panel); }
+.pricing-layout #pricingTable { padding:10px 14px 0; }
+.pricing-layout #pricingPagination { margin:14px 14px 16px; }
 .keys-table { width:100%; min-width:1224px; table-layout:fixed; }
 .keys-table th:nth-child(1), .keys-table td:nth-child(1) { width:42px; min-width:42px; max-width:42px; padding-left:10px; padding-right:10px; }
 .keys-table th:nth-child(2) { width:8rem; }
@@ -1111,6 +1140,11 @@ html[data-palette="dark"] .key-select input:indeterminate + .key-select-ui::afte
   .table-swipe-hint { display:block; margin:9px 2px 0; color:var(--muted); font-size:.72rem; }
   .auth-quota-toolbar { width:100%; justify-content:flex-start; align-items:flex-end; gap:14px; }
   .auth-quota-toolbar-filters { flex:1 1 auto; min-width:0; }
+  .keys-card .section-heading, .pricing-layout .section-heading { align-items:flex-start; flex-wrap:wrap; }
+  .section-heading .list-search { flex:1 1 100%; width:100%; max-width:none; }
+  .pricing-list-tools { width:100%; justify-content:flex-start; }
+  .pricing-list-tools .list-search { flex:1 1 220px; width:auto; }
+  .pricing-list-tools .actions { justify-content:flex-start; }
   .keys-card #keysTable { padding:10px 10px 12px; }
   .keys-card .table-scroll { overflow:visible; border:0; background:transparent; }
   .keys-table { min-width:0; width:100%; table-layout:auto; }

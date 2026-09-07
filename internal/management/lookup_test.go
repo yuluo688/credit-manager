@@ -535,6 +535,7 @@ func TestAuthQuotaConcurrencyRoute(t *testing.T) {
 	}
 }
 
+
 func TestKeySpendResetRoute(t *testing.T) {
 	var found bool
 	for _, route := range Routes() {
@@ -600,6 +601,47 @@ func TestConsoleKeyFilterShowsLabelOnly(t *testing.T) {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console key filter display is missing %q", text)
 		}
+	}
+}
+
+func TestConsoleManagementListSearch(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		`id="keyNameFilter" type="text"`,
+		`placeholder="搜索标签"`,
+		`data-clear-search="keyNameFilter"`,
+		`class="list-count" id="keysCount"`,
+		`id="pricingModelFilter" type="text"`,
+		`placeholder="搜索模型 ID"`,
+		`data-clear-search="pricingModelFilter"`,
+		`class="list-count" id="modelCatalogCount"`,
+		"keySearch: ''",
+		"pricingSearch: ''",
+		"params.set('q', query);",
+		"$('modelCatalogCount').textContent = models.length + ' ' + t('个模型');",
+		"function syncListSearchClearButton(inputID)",
+		"function queueKeyNameSearch()",
+		"function queuePricingModelSearch()",
+		"state.keyPage = 1;",
+		"state.pricingPage = 1;",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console management list search is missing %q", text)
+		}
+	}
+	start := strings.Index(page, "function renderPricing(items)")
+	if start < 0 {
+		t.Fatal("pricing renderer is missing")
+	}
+	end := strings.Index(page[start:], "function renderPricingPagination")
+	if end < 0 {
+		t.Fatal("pricing renderer could not be bounded")
+	}
+	pricing := page[start : start+end]
+	filterAt := strings.Index(pricing, "const filteredModels =")
+	sliceAt := strings.Index(pricing, "const pageModels = filteredModels.slice")
+	if filterAt < 0 || sliceAt < 0 || filterAt > sliceAt {
+		t.Fatal("pricing search is not applied before pagination")
 	}
 }
 
