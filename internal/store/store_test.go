@@ -1182,15 +1182,15 @@ func TestListPluginKeysPageCountsAndSkipsRevoked(t *testing.T) {
 		newTestKey(t, ctx, st, PluginKeySpec{Kid: "page-key-three", Principal: "credit-manager:page-key-three", CallerScope: "credit-manager:page-key-three"}),
 	}
 
-	total, err := st.CountPluginKeys(ctx, "", false)
+	total, err := st.CountPluginKeys(ctx, "", false, "")
 	if err != nil || total != 3 {
 		t.Fatalf("all key count = %d, %v", total, err)
 	}
-	firstPage, err := st.ListPluginKeysPage(ctx, "", false, 2, 0)
+	firstPage, err := st.ListPluginKeysPage(ctx, "", false, "", 2, 0)
 	if err != nil || len(firstPage) != 2 {
 		t.Fatalf("first page = %#v, %v", firstPage, err)
 	}
-	secondPage, err := st.ListPluginKeysPage(ctx, "", false, 2, 2)
+	secondPage, err := st.ListPluginKeysPage(ctx, "", false, "", 2, 2)
 	if err != nil || len(secondPage) != 1 {
 		t.Fatalf("second page = %#v, %v", secondPage, err)
 	}
@@ -1200,11 +1200,11 @@ func TestListPluginKeysPageCountsAndSkipsRevoked(t *testing.T) {
 	if err := st.RevokePluginKey(ctx, keys[1].ID); err != nil {
 		t.Fatal(err)
 	}
-	activeTotal, err := st.CountPluginKeys(ctx, "", true)
+	activeTotal, err := st.CountPluginKeys(ctx, "", true, "")
 	if err != nil || activeTotal != 2 {
 		t.Fatalf("active key count = %d, %v", activeTotal, err)
 	}
-	active, err := st.ListPluginKeysPage(ctx, "", true, 10, 0)
+	active, err := st.ListPluginKeysPage(ctx, "", true, "", 10, 0)
 	if err != nil || len(active) != 2 {
 		t.Fatalf("active page = %#v, %v", active, err)
 	}
@@ -1212,6 +1212,41 @@ func TestListPluginKeysPageCountsAndSkipsRevoked(t *testing.T) {
 		if key.ID == keys[1].ID {
 			t.Fatalf("revoked key %s appeared in active page", key.ID)
 		}
+	}
+}
+
+func TestListPluginKeysPageSearchesLabelOnly(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	keys := []PluginKey{
+		newTestKey(t, ctx, st, PluginKeySpec{ID: "search-key-alpha", Kid: "search-alpha", Label: "Alpha production"}),
+		newTestKey(t, ctx, st, PluginKeySpec{ID: "search-key-beta", Kid: "search-beta", Label: "Alpha staging"}),
+		newTestKey(t, ctx, st, PluginKeySpec{ID: "search-key-retired", Kid: "search-retired", Label: "Alpha retired"}),
+	}
+	if err := st.RevokePluginKey(ctx, keys[2].ID); err != nil {
+		t.Fatal(err)
+	}
+
+	total, err := st.CountPluginKeys(ctx, "", true, "ALPHA")
+	if err != nil || total != 2 {
+		t.Fatalf("active alpha count = %d, %v", total, err)
+	}
+	firstPage, err := st.ListPluginKeysPage(ctx, "", true, "alpha", 1, 0)
+	if err != nil || len(firstPage) != 1 {
+		t.Fatalf("first alpha page = %#v, %v", firstPage, err)
+	}
+	secondPage, err := st.ListPluginKeysPage(ctx, "", true, "alpha", 1, 1)
+	if err != nil || len(secondPage) != 1 {
+		t.Fatalf("second alpha page = %#v, %v", secondPage, err)
+	}
+	if firstPage[0].ID == secondPage[0].ID {
+		t.Fatalf("search pages overlap: first=%#v second=%#v", firstPage, secondPage)
+	}
+
+	total, err = st.CountPluginKeys(ctx, "", true, "search-key-beta")
+	if err != nil || total != 0 {
+		t.Fatalf("id-only search count = %d, %v", total, err)
 	}
 }
 

@@ -130,3 +130,70 @@ func TestPutPricingPersistsSpecialTiers(t *testing.T) {
 		t.Fatalf("explicit empty tiers should clear: %#v err=%v", rule, err)
 	}
 }
+
+func TestListKeysSearchesLabelsAndClampsPagination(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := service.Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = svc.Close() })
+
+	alphaOne, _, err := svc.MintKey(ctx, service.BootstrapCallerID, "Alpha one", 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	alphaTwo, _, err := svc.MintKey(ctx, service.BootstrapCallerID, "Alpha two", 0, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := svc.MintKey(ctx, service.BootstrapCallerID, "Other", 0, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	resp, err := listKeys(ctx, svc, map[string][]string{
+		"active_only": {"1"},
+		"page":        {"5"},
+		"page_size":   {"1"},
+		"q":           {"ALPHA"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d body=%s", resp.StatusCode, resp.Body)
+	}
+	var result struct {
+		Items []struct {
+			ID string `json:"id"`
+		} `json:"items"`
+		Page  int   `json:"page"`
+		Total int64 `json:"total"`
+	}
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Total != 2 || result.Page != 2 || len(result.Items) != 1 {
+		t.Fatalf("alpha result = %#v", result)
+	}
+	if result.Items[0].ID != alphaOne.ID && result.Items[0].ID != alphaTwo.ID {
+		t.Fatalf("alpha item = %#v", result.Items[0])
+	}
+
+	resp, err = listKeys(ctx, svc, map[string][]string{"active_only": {"1"}, "q": {alphaOne.ID}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(resp.Body, &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Total != 0 || len(result.Items) != 0 {
+		t.Fatalf("id-only result = %#v", result)
+	}
+}

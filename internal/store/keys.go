@@ -266,15 +266,19 @@ func (s *Store) ListPluginKeys(ctx context.Context, limit int) ([]PluginKey, err
 	return out, rows.Err()
 }
 
-func pluginKeyListFilter(callerID string, activeOnly bool) (string, []any) {
-	clauses := make([]string, 0, 2)
-	args := make([]any, 0, 1)
+func pluginKeyListFilter(callerID string, activeOnly bool, search string) (string, []any) {
+	clauses := make([]string, 0, 3)
+	args := make([]any, 0, 3)
 	if callerID = strings.TrimSpace(callerID); callerID != "" {
 		clauses = append(clauses, "caller_id = ?")
 		args = append(args, callerID)
 	}
 	if activeOnly {
 		clauses = append(clauses, "revoked_at_unix_ms IS NULL")
+	}
+	if search = strings.ToLower(strings.TrimSpace(search)); search != "" {
+		clauses = append(clauses, "INSTR(LOWER(label), ?) > 0")
+		args = append(args, search)
 	}
 	if len(clauses) == 0 {
 		return "", args
@@ -283,8 +287,8 @@ func pluginKeyListFilter(callerID string, activeOnly bool) (string, []any) {
 }
 
 // CountPluginKeys returns the number of plugin keys matching a management list filter.
-func (s *Store) CountPluginKeys(ctx context.Context, callerID string, activeOnly bool) (int64, error) {
-	where, args := pluginKeyListFilter(callerID, activeOnly)
+func (s *Store) CountPluginKeys(ctx context.Context, callerID string, activeOnly bool, search string) (int64, error) {
+	where, args := pluginKeyListFilter(callerID, activeOnly, search)
 	var total int64
 	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM plugin_keys"+where, args...).Scan(&total); err != nil {
 		return 0, err
@@ -293,14 +297,14 @@ func (s *Store) CountPluginKeys(ctx context.Context, callerID string, activeOnly
 }
 
 // ListPluginKeysPage lists a stable slice of plugin keys for management pagination.
-func (s *Store) ListPluginKeysPage(ctx context.Context, callerID string, activeOnly bool, limit, offset int) ([]PluginKey, error) {
+func (s *Store) ListPluginKeysPage(ctx context.Context, callerID string, activeOnly bool, search string, limit, offset int) ([]PluginKey, error) {
 	if limit <= 0 {
 		limit = 10
 	}
 	if offset < 0 {
 		offset = 0
 	}
-	where, args := pluginKeyListFilter(callerID, activeOnly)
+	where, args := pluginKeyListFilter(callerID, activeOnly, search)
 	args = append(args, limit, offset)
 	rows, err := s.db.QueryContext(ctx, pluginKeySelect+where+` ORDER BY created_at_unix_ms DESC, id DESC LIMIT ? OFFSET ?`, args...)
 	if err != nil {

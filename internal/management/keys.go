@@ -118,13 +118,14 @@ func rotateKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 
 func listKeys(ctx context.Context, svc *service.Service, query map[string][]string) (pluginapi.ManagementResponse, error) {
 	callerID := firstQuery(query, "caller_id")
+	search := firstQuery(query, "q")
 	pageSize := queryInt(query, "page_size", queryInt(query, "limit", 10))
 	if pageSize > 100 {
 		pageSize = 100
 	}
 	page := queryInt(query, "page", 1)
 	activeOnly := firstQuery(query, "active_only") == "1"
-	total, err := svc.Store().CountPluginKeys(ctx, callerID, activeOnly)
+	total, err := svc.Store().CountPluginKeys(ctx, callerID, activeOnly, search)
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
@@ -134,7 +135,7 @@ func listKeys(ctx context.Context, svc *service.Service, query map[string][]stri
 	} else if int64(page) > totalPages {
 		page = int(totalPages)
 	}
-	items, err := svc.Store().ListPluginKeysPage(ctx, callerID, activeOnly, pageSize, (page-1)*pageSize)
+	items, err := svc.Store().ListPluginKeysPage(ctx, callerID, activeOnly, search, pageSize, (page-1)*pageSize)
 	if err != nil {
 		return jsonErr(http.StatusInternalServerError, err.Error()), nil
 	}
