@@ -15,7 +15,7 @@ import (
 
 const (
 	authQuotaRequestTimeout     = 15 * time.Second
-	authQuotaWeeklyHistoryLimit = 8
+	authQuotaWindowHistoryLimit = 8
 	AuthQuotaDefaultPageSize    = 12
 	AuthQuotaMaxPageSize        = 24
 	authQuotaAPIKeySentinel     = "hidden:api_key"
@@ -112,6 +112,7 @@ type AuthQuotaWindow struct {
 	DurationSeconds            *int64               `json:"duration_seconds,omitempty"`
 	CycleStartAt               *time.Time           `json:"cycle_start_at,omitempty"`
 	CycleStartSource           string               `json:"cycle_start_source,omitempty"`
+	Partial                    bool                 `json:"partial,omitempty"`
 	LocalAttributionStatus     string               `json:"local_attribution_status"`
 	LocalUsage                 *AuthQuotaLocalUsage `json:"local_usage,omitempty"`
 	AverageTokensPerRequest    *float64             `json:"average_tokens_per_request,omitempty"`
@@ -473,12 +474,67 @@ func snapshotWindowsCurrent(raw string) bool {
 		return false
 	}
 	now := time.Now().UTC()
+	tracked := make(map[string]AuthQuotaWindow)
+	hasCurrent := false
 	for _, window := range snapshot.Windows {
-		if window.ResetsAt == nil || window.ResetsAt.After(now) {
-			return true
+		if quotaWindowTracksCycle(window) {
+			id := windowBaselineID(&window)
+			if previous, ok := tracked[id]; !ok || quotaWindowNewer(window, previous, now) {
+				tracked[id] = window
+			}
+			continue
+		}
+		if quotaWindowCurrent(window, now) {
+			hasCurrent = true
 		}
 	}
-	return false
+	if len(tracked) == 0 {
+		return hasCurrent
+	}
+	longest := time.Duration(0)
+	for _, window := range tracked {
+		if length := quotaWindowCycleLength(window); length > longest {
+			longest = length
+		}
+	}
+	// Only the longest quota-window family drives freshness. This avoids a
+	// daily or five-hour companion window masking an expired main quota cycle,
+	// while an expired daily window does not stale a valid weekly one.
+	for _, window := range tracked {
+		if longest > 0 && quotaWindowCycleLength(window)*10 < longest*9 {
+			continue
+		}
+		if !quotaWindowCurrent(window, now) {
+			return false
+		}
+	}
+	return true
+}
+
+func quotaWindowNewer(candidate, previous AuthQuotaWindow, now time.Time) bool {
+	candidateCurrent := quotaWindowCurrent(candidate, now)
+	previousCurrent := quotaWindowCurrent(previous, now)
+	if candidateCurrent != previousCurrent {
+		return candidateCurrent
+	}
+	if candidate.ResetsAt == nil {
+		return false
+	}
+	if previous.ResetsAt == nil {
+		return true
+	}
+	return candidate.ResetsAt.After(*previous.ResetsAt)
+}
+
+func quotaWindowCurrent(window AuthQuotaWindow, now time.Time) bool {
+	if window.ResetsAt == nil {
+		return true
+	}
+	if !window.ResetsAt.After(now) {
+		return false
+	}
+	start, _, known := quotaWindowBounds(window)
+	return !known || !start.After(now)
 }
 func (s *Service) fromSnapshot(ctx context.Context, item AuthQuotaOverviewItem, x store.AuthQuotaSnapshot, status string) AuthQuotaOverviewItem {
 	var snap quotaSnapshot
@@ -497,6 +553,7 @@ func (s *Service) fromSnapshot(ctx context.Context, item AuthQuotaOverviewItem, 
 		item.LastErrorAt = x.LastErrorAt
 		return item
 	}
+	snap.Windows = addIncompleteQuotaWindows(snap.Windows, time.Now().UTC())
 	item.Status = status
 	item.Plan = snap.Plan
 	item.ResetCredits = snap.ResetCredits
@@ -526,6 +583,9 @@ func (s *Service) forecast(ctx context.Context, item AuthQuotaOverviewItem) Auth
 	now := time.Now().UTC()
 	for i := range item.Windows {
 		w := &item.Windows[i]
+		if w.Partial {
+			continue
+		}
 		if w.ResetsAt == nil {
 			w.LocalAttributionStatus = "unavailable"
 			continue
@@ -590,6 +650,7 @@ func mergeHistoricalQuotaWindows(prev, next quotaSnapshot) quotaSnapshot {
 	for i := range next.Windows {
 		current[windowHistoryKey(&next.Windows[i])] = struct{}{}
 	}
+	now := time.Now().UTC()
 	type hist struct {
 		window AuthQuotaWindow
 		reset  int64
@@ -597,7 +658,13 @@ func mergeHistoricalQuotaWindows(prev, next quotaSnapshot) quotaSnapshot {
 	}
 	extra := make([]hist, 0, len(prev.Windows))
 	for _, window := range prev.Windows {
-		if !quotaWindowIsWeekly(window) {
+		if !quotaWindowTracksCycle(window) {
+			continue
+		}
+		if !quotaWindowBaselinePresent(window, next.Windows) {
+			continue
+		}
+		if !quotaWindowEnded(window, now) {
 			continue
 		}
 		key := windowHistoryKey(&window)
@@ -623,15 +690,159 @@ func mergeHistoricalQuotaWindows(prev, next quotaSnapshot) quotaSnapshot {
 		extra = append(extra, hist{cleared, reset, cycle})
 	}
 	sort.Slice(extra, func(i, j int) bool { return extra[i].reset > extra[j].reset })
-	keptCycles := make(map[string]struct{}, authQuotaWeeklyHistoryLimit)
+	keptCycles := make(map[string]map[string]struct{})
+	kept := make([]AuthQuotaWindow, 0, len(extra))
 	for _, item := range extra {
-		if _, ok := keptCycles[item.cycle]; !ok {
-			if len(keptCycles) >= authQuotaWeeklyHistoryLimit {
+		// A new upstream window supersedes an overlapping inferred range. Keep
+		// only distinct, completed quota windows so old predictions cannot make
+		// the period selector or timeline overlap after a provider reset.
+		if quotaWindowOverlapsAny(item.window, next.Windows) || quotaWindowOverlapsAny(item.window, kept) {
+			continue
+		}
+		if !item.window.Partial {
+			baseline := windowBaselineID(&item.window)
+			cycles := keptCycles[baseline]
+			if cycles == nil {
+				cycles = make(map[string]struct{}, authQuotaWindowHistoryLimit)
+				keptCycles[baseline] = cycles
+			}
+			if _, ok := cycles[item.cycle]; !ok {
+				if len(cycles) >= authQuotaWindowHistoryLimit {
+					continue
+				}
+				cycles[item.cycle] = struct{}{}
+			}
+		}
+		kept = append(kept, item.window)
+	}
+	next.Windows = addIncompleteQuotaWindows(append(next.Windows, kept...), now)
+	return next
+}
+
+const authQuotaIncompleteWindowMinGap = time.Minute
+
+func addIncompleteQuotaWindows(windows []AuthQuotaWindow, now time.Time) []AuthQuotaWindow {
+	existing := make(map[string]struct{}, len(windows))
+	for _, window := range windows {
+		existing[windowHistoryKey(&window)] = struct{}{}
+	}
+	snapshot := quotaSnapshot{Windows: windows}
+	for _, window := range incompleteQuotaWindows(snapshot, snapshot, now) {
+		key := windowHistoryKey(&window)
+		if _, ok := existing[key]; ok {
+			continue
+		}
+		existing[key] = struct{}{}
+		windows = append(windows, window)
+	}
+	return windows
+}
+
+func incompleteQuotaWindows(prev, next quotaSnapshot, now time.Time) []AuthQuotaWindow {
+	ended := make(map[string]AuthQuotaWindow)
+	for _, window := range prev.Windows {
+		if window.Partial || !quotaWindowTracksCycle(window) || !quotaWindowEnded(window, now) {
+			continue
+		}
+		id := windowBaselineID(&window)
+		if previous, ok := ended[id]; !ok || quotaWindowNewer(window, previous, now) {
+			ended[id] = window
+		}
+	}
+	partial := make([]AuthQuotaWindow, 0)
+	for id, previous := range ended {
+		if previous.ResetsAt == nil {
+			continue
+		}
+		var following AuthQuotaWindow
+		var followingStart time.Time
+		for _, candidate := range next.Windows {
+			if candidate.Partial || !quotaWindowTracksCycle(candidate) || windowBaselineID(&candidate) != id {
 				continue
 			}
-			keptCycles[item.cycle] = struct{}{}
+			start, _, known := quotaWindowBounds(candidate)
+			if !known || !start.After(previous.ResetsAt.UTC().Add(authQuotaIncompleteWindowMinGap)) {
+				continue
+			}
+			if followingStart.IsZero() || start.Before(followingStart) {
+				following = candidate
+				followingStart = start
+			}
 		}
-		next.Windows = append(next.Windows, item.window)
+		if followingStart.IsZero() {
+			continue
+		}
+		window := following
+		end := followingStart.UTC()
+		gapStart := previous.ResetsAt.UTC()
+		duration := int64(end.Sub(gapStart).Seconds())
+		window.CycleStartAt = &gapStart
+		window.ResetsAt = &end
+		window.DurationSeconds = &duration
+		window.Partial = true
+		window.Used = nil
+		window.Remaining = nil
+		window.UsedRatio = nil
+		window.RemainingRatio = nil
+		window.Limit = nil
+		window.LocalUsage = nil
+		window.LocalAttributionStatus = ""
+		window.PredictionAvailable = false
+		window.AverageTokensPerRequest = nil
+		window.EstimatedRemainingRequests = nil
+		window.BaselineUsed = nil
+		window.ObservedUsed = nil
+		partial = append(partial, window)
 	}
-	return next
+	return partial
+}
+
+func quotaWindowEnded(window AuthQuotaWindow, now time.Time) bool {
+	return window.ResetsAt != nil && !window.ResetsAt.After(now)
+}
+
+func quotaWindowOverlapsAny(window AuthQuotaWindow, candidates []AuthQuotaWindow) bool {
+	for _, candidate := range candidates {
+		if quotaWindowsOverlap(window, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func quotaWindowBaselinePresent(window AuthQuotaWindow, candidates []AuthQuotaWindow) bool {
+	baseline := windowBaselineID(&window)
+	for _, candidate := range candidates {
+		if windowBaselineID(&candidate) == baseline {
+			return true
+		}
+	}
+	return false
+}
+
+func quotaWindowsOverlap(left, right AuthQuotaWindow) bool {
+	if windowBaselineID(&left) != windowBaselineID(&right) {
+		return false
+	}
+	leftStart, leftEnd, leftKnown := quotaWindowBounds(left)
+	rightStart, rightEnd, rightKnown := quotaWindowBounds(right)
+	return leftKnown && rightKnown && leftStart.Before(rightEnd) && rightStart.Before(leftEnd)
+}
+
+func quotaWindowBounds(window AuthQuotaWindow) (start, end time.Time, known bool) {
+	if window.ResetsAt == nil {
+		return time.Time{}, time.Time{}, false
+	}
+	end = window.ResetsAt.UTC()
+	if window.CycleStartAt != nil {
+		start = window.CycleStartAt.UTC()
+		if start.Before(end) {
+			return start, end, true
+		}
+	}
+	if window.DurationSeconds == nil || *window.DurationSeconds <= 0 {
+		return time.Time{}, time.Time{}, false
+	}
+	start = end.Add(-time.Duration(*window.DurationSeconds) * time.Second)
+	return start, end, true
 }

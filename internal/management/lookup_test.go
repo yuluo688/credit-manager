@@ -428,8 +428,8 @@ func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "可在卡片内切换该账号的其他额度周", "auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
-		"auth-quota-week-select", "额度周", "authQuotaIsWeekly", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "短周期同样显示", "auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
+		"auth-quota-period-picker", "auth-quota-period-trigger", "auth-quota-period-menu", "auth-quota-period-option", "closeAuthQuotaPeriodMenus", "配额窗口", "authQuotaIsWeekly", "authQuotaIsCycleWindow", "function authQuotaPrimaryCycleWindows", "latestByBaseline", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "const companions", "displayedCycles", "selectedPrimaryCycles", "authQuotaIsPartial(window)", "function authQuotaIsPartial", "return '不完整'", "authQuotaIsWeekly(window) || /quota|window/i.test(text)", "timeless", "function authQuotaWindowStartMs", "reset - duration * 1000", "authQuotaWindowCurrent", "6 * 60 * 60 * 1000", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新",
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
 		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用到本页", "应用到筛选", "btnAuthQuotaBatchPage", "data-provider",
@@ -445,10 +445,59 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 			t.Fatalf("console auth quota view still exposes removed field %q", removed)
 		}
 	}
+	if strings.Contains(page, "label.includes('周') || label.includes('週')") {
+		t.Fatal("generic Chinese cycle labels are still misclassified as weekly")
+	}
+	for _, text := range []string{"label.includes('额度周')", "label.includes('額度週')", "label === '周'", "label === '週'"} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console does not recognize a weekly quota label without duration: %q", text)
+		}
+	}
+	for _, removed := range []string{"auth-quota-cycle-selects", "data-auth-baseline", "selectedAuthQuotaWeeks", "authQuotaWeekGroups"} {
+		if strings.Contains(page, removed) {
+			t.Fatalf("console still renders a separate selector for each quota pool: %q", removed)
+		}
+	}
+	if strings.Contains(page, "auth-quota-week-select") {
+		t.Fatal("console still uses the native quota period select")
+	}
 	lookup := string(lookupPage().Body)
 	for _, forbidden := range []string{"auth-quotas", "认证额度", "刷新本页", "authQuotaPagination", "auth-quota-plan"} {
 		if strings.Contains(lookup, forbidden) {
 			t.Fatalf("public lookup page exposes auth quota UI: %q", forbidden)
+		}
+	}
+}
+
+func TestConsoleAuthQuotaShowsCurrentShorterCycles(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"function authQuotaPrimaryCycleWindows(windows, now)",
+		"const companions = allCycles.filter",
+		"const displayedCycles = selectedCycles.some",
+		"return fiveHour.concat(companions, displayedCycles)",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console does not render current shorter quota cycles: %q", text)
+		}
+	}
+}
+
+func TestConsoleAuthQuotaUsesStyledPeriodMenu(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"role=\"listbox\"", "role=\"option\"", "aria-expanded",
+		"auth-quota-period-option.is-partial::before",
+		"@keyframes auth-quota-period-menu-in",
+		".auth-quota-card:has(.auth-quota-period-picker.is-open)",
+		"max-height:260px", "overscroll-behavior:contain",
+		"function setAuthQuotaPeriodMenu", "function focusAuthQuotaPeriodTrigger",
+		"event.key === 'ArrowDown'", "event.key === 'Home'",
+		"document.addEventListener('keydown'",
+		"event.key === 'Escape'",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console period menu is missing %q", text)
 		}
 	}
 }
@@ -511,6 +560,25 @@ func TestConsoleAuthQuotaRefreshReconcilesCurrentPage(t *testing.T) {
 	}
 	if !strings.Contains(page, "{ silent: true, reconcile: false }") {
 		t.Fatal("bulk auth quota refresh does not defer page reconciliation")
+	}
+}
+
+func TestConsoleAuthQuotaResetRebindsCurrentPeriod(t *testing.T) {
+	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
+	for _, text := range []string{
+		"authQuotaCurrentWeeks: {}",
+		"function selectedAuthQuotaWeek",
+		"const current = weeks.filter(week => week.current)",
+		"const currentKeys = current.map(week => week.key)",
+		"const storedCurrent = state.authQuotaCurrentWeeks[itemKey]",
+		"previousCurrent.includes(state.authQuotaWeeks[itemKey])",
+		"!currentKeys.includes(state.authQuotaWeeks[itemKey])",
+		"state.authQuotaCurrentWeeks[itemKey] = currentKeys",
+		"state.authQuotaCurrentWeeks = {}",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console does not rebind the current quota week after reset: %q", text)
+		}
 	}
 }
 

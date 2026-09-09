@@ -67,6 +67,10 @@
     '同步': { 'zh-TW':'同步', en:'Synced', ru:'Синхр.' }, '最新': { 'zh-TW':'最新', en:'Fresh', ru:'Актуально' }, '缓存过期': { 'zh-TW':'快取過期', en:'Stale', ru:'Устарело' }, '不可用': { 'zh-TW':'不可用', en:'Unavailable', ru:'Недоступно' },
     '未命名认证': { 'zh-TW':'未命名認證', en:'Unnamed auth', ru:'Без имени' }, '未知提供商': { 'zh-TW':'未知供應商', en:'Unknown provider', ru:'Неизвестный провайдер' },
     '该额度周暂无窗口': { 'zh-TW':'該額度週暫無窗口', en:'No windows in this quota week', ru:'Нет окон на этой неделе' }, '暂无额度周': { 'zh-TW':'暫無額度週', en:'No quota weeks', ru:'Нет недель квоты' },
+    '配额窗口': { 'zh-TW':'配額窗口', en:'Quota window', ru:'Окно квоты' }, '该配额窗口暂无窗口': { 'zh-TW':'該配額窗口暫無窗口', en:'No windows in this quota window', ru:'Нет окон в этом окне квоты' }, '暂无配额窗口': { 'zh-TW':'暫無配額窗口', en:'No quota windows', ru:'Нет окон квоты' },
+    '多个独立配额窗口的费用不可合并': { 'zh-TW':'多個獨立配額窗口的費用不可合併', en:'Costs from independent quota windows cannot be combined', ru:'Стоимость независимых окон квоты нельзя объединить' },
+    '不完整': { 'zh-TW':'不完整', en:'Incomplete', ru:'Неполный' },
+    '每个认证同时显示 5 小时窗口和当前配额窗口；短周期同样显示，可在卡片内切换历史周期，并设置最大并发。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前配額窗口；短週期同樣顯示，可在卡片內切換歷史週期，並設定最大併發。', en:'Each auth shows its 5-hour window and current quota window. Shorter cycles are also shown; switch history and set concurrency inside the card.', ru:'У каждой авторизации видно 5-часовое и текущее окно квоты. Более короткие циклы также показаны; в карточке можно сменить историю и задать параллельность.' },
     '当前': { 'zh-TW':'目前', en:'Current', ru:'Текущая' }, '显示': { 'zh-TW':'顯示', en:'Showing', ru:'Показано' }, '共': { 'zh-TW':'共', en:'of', ru:'из' }, '第': { 'zh-TW':'第', en:'Page', ru:'Стр.' }, '页': { 'zh-TW':'頁', en:'', ru:'' },
     '重置时间': { 'zh-TW':'重設時間', en:'Resets', ru:'Сброс' }, '请选择': { 'zh-TW':'請選擇', en:'Select', ru:'Выберите' }, '全部可用': { 'zh-TW':'全部可用', en:'All available', ru:'Все доступны' },
     '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
@@ -226,6 +230,7 @@
     keyPagination: null,
     authQuotas: null,
     authQuotaWeeks: {},
+    authQuotaCurrentWeeks: {},
     authQuotaRefreshing: {},
     authQuotaProvider: '',
     authQuotaName: '',
@@ -1685,6 +1690,7 @@
     state.keyPagination = null;
     state.authQuotas = null;
     state.authQuotaWeeks = {};
+    state.authQuotaCurrentWeeks = {};
     state.authQuotaRefreshing = {};
     state.authQuotaProvider = '';
     state.authQuotaName = '';
@@ -4153,8 +4159,9 @@
     const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
     const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
     const duration = Number(authQuotaValue(window, 'duration_seconds'));
+    const quotaWeekLabel = (label.includes('额度周') && !label.includes('额度周期')) || (label.includes('額度週') && !label.includes('額度週期')) || label === '周' || label === '週';
     if (authQuotaIsExcluded(window)) return false;
-    if (id.includes('weekly') || id.includes('seven_day') || id.includes('7d') || id.includes('secondary') || id === 'summary' || label.includes('week') || label.includes('secondary') || label.includes('summary') || label.includes('周') || label.includes('週')) return true;
+    if (id.includes('weekly') || id.includes('seven_day') || id.includes('7d') || id.includes('secondary') || id === 'summary' || label.includes('week') || label.includes('secondary') || label.includes('summary') || label.includes('周限') || label.includes('週限') || label.includes('周额') || label.includes('週額') || label.includes('每周') || label.includes('每週') || quotaWeekLabel) return true;
     if (Number.isFinite(duration) && duration >= 500000 && duration <= 700000) return true;
     const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
     const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
@@ -4165,16 +4172,63 @@
     return false;
   }
 
+  function authQuotaCycleDurationMs(window) {
+    const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (Number.isFinite(start) && Number.isFinite(reset) && reset > start) return reset - start;
+    const duration = Number(authQuotaValue(window, 'duration_seconds'));
+    return Number.isFinite(duration) && duration > 0 ? duration * 1000 : NaN;
+  }
+
+  function authQuotaCycleLengthMs(window) {
+    const duration = authQuotaCycleDurationMs(window);
+    if (Number.isFinite(duration)) return duration;
+    return authQuotaIsWeekly(window) ? 7 * 24 * 60 * 60 * 1000 : 0;
+  }
+
+  function authQuotaWindowIdentity(window) {
+    const id = String(authQuotaValue(window, 'id') || '');
+    if (id) return id;
+    const scope = String(authQuotaValue(window, 'scope') || '') + '|' + String(authQuotaValue(window, 'scope_id') || '');
+    return scope;
+  }
+
+  function authQuotaWindowStartMs(window, reset) {
+    const explicit = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
+    if (Number.isFinite(explicit) && explicit < reset) return explicit;
+    const duration = Number(authQuotaValue(window, 'duration_seconds'));
+    return Number.isFinite(reset) && Number.isFinite(duration) && duration > 0 ? reset - duration * 1000 : NaN;
+  }
+
+  function authQuotaWindowCurrent(window, now) {
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (!Number.isFinite(reset)) return true;
+    if (now >= reset) return false;
+    const start = authQuotaWindowStartMs(window, reset);
+    return !Number.isFinite(start) || start <= now;
+  }
+
+  function authQuotaIsPartial(window) {
+    return authQuotaValue(window, 'partial') === true;
+  }
+
+  function authQuotaIsCycleWindow(window) {
+    if (authQuotaIsExcluded(window)) return false;
+    if (authQuotaIsPartial(window)) return true;
+    if (authQuotaIsWeekly(window)) return true;
+    return authQuotaCycleLengthMs(window) > 6 * 60 * 60 * 1000;
+  }
+
   function authQuotaIsExcluded(window) {
     const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
     const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
     const mode = String(authQuotaValue(window, 'mode') || '').toLowerCase();
     const unit = String(authQuotaValue(window, 'unit') || '').toLowerCase();
-    return id.includes('on-demand') || id.includes('ondemand') || id.includes('monthly') || label.includes('on demand') || label.includes('按需') || label.includes('month') || label.includes('月额') || mode === 'balance' || mode === 'fixed' || unit === 'currency';
+    return id.includes('on-demand') || id.includes('ondemand') || id.includes('monthly') || label.includes('on demand') || label.includes('按需') || label.includes('month') || label.includes('月额') || label.includes('月額') || mode === 'balance' || mode === 'fixed' || unit === 'currency';
   }
 
   function authQuotaIsFiveHour(window) {
-    if (authQuotaIsExcluded(window) || authQuotaIsWeekly(window)) return false;
+    if (authQuotaIsExcluded(window) || authQuotaIsCycleWindow(window)) return false;
     const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
     const label = String(authQuotaValue(window, 'label') || '').toLowerCase();
     const duration = Number(authQuotaValue(window, 'duration_seconds'));
@@ -4189,9 +4243,30 @@
     return false;
   }
 
+  function authQuotaPrimaryCycleWindows(windows, now) {
+    const cycles = (Array.isArray(windows) ? windows : []).filter(authQuotaIsCycleWindow);
+    if (cycles.length < 2) return cycles;
+    const timestamp = Number.isFinite(now) ? now : Date.now();
+    const latestByBaseline = {};
+    cycles.forEach(window => {
+      const baseline = authQuotaWindowIdentity(window);
+      const candidate = { window, current: authQuotaWindowCurrent(window, timestamp), reset: authQuotaTimeMs(authQuotaValue(window, 'resets_at')) };
+      const previous = latestByBaseline[baseline];
+      const candidateReset = Number.isFinite(candidate.reset) ? candidate.reset : -Infinity;
+      const previousReset = previous && Number.isFinite(previous.reset) ? previous.reset : -Infinity;
+      if (!previous || (candidate.current && !previous.current) || (candidate.current === previous.current && ((candidateReset > -Infinity && previousReset === -Infinity) || candidateReset > previousReset))) latestByBaseline[baseline] = candidate;
+    });
+    const references = Object.values(latestByBaseline);
+    const longest = Math.max(0, ...references.map(reference => authQuotaCycleLengthMs(reference.window)));
+    if (!longest) return cycles;
+    const primary = new Set(references.filter(reference => authQuotaCycleLengthMs(reference.window) * 10 >= longest * 9).map(reference => authQuotaWindowIdentity(reference.window)));
+    return cycles.filter(window => primary.has(authQuotaWindowIdentity(window)) || authQuotaIsPartial(window));
+  }
+
   function authQuotaPeriodLabel(window) {
+    if (authQuotaIsPartial(window)) return '不完整';
     if (authQuotaIsFiveHour(window)) return '5 小时';
-    if (authQuotaIsWeekly(window)) return '周额度';
+    if (authQuotaIsCycleWindow(window)) return '配额窗口';
     return '';
   }
 
@@ -4199,17 +4274,22 @@
     const period = authQuotaPeriodLabel(window);
     if (!period) return '';
     const text = String(label || '');
-    if (period === '周额度' && /周|週|week/i.test(text)) return '';
+    if (period === '配额窗口' && (authQuotaIsWeekly(window) || /quota|window/i.test(text) || text.includes('配额窗口') || text.includes('配額窗口'))) return '';
     if (period === '5 小时' && /小时|hour|5h|五小时|five/i.test(text)) return '';
-    return period;
+    return t(period);
   }
 
-  function authQuotaDisplayWindows(windows, selected) {
+  function authQuotaDisplayWindows(windows, selected, cycleWindows, now) {
     const list = Array.isArray(windows) ? windows : [];
-    const weekly = list.filter(authQuotaIsWeekly);
+    const timestamp = Number.isFinite(now) ? now : Date.now();
+    const allCycles = list.filter(authQuotaIsCycleWindow);
+    const cycles = Array.isArray(cycleWindows) ? cycleWindows : authQuotaPrimaryCycleWindows(list, timestamp);
+    const primary = new Set(cycles);
     const fiveHour = list.filter(authQuotaIsFiveHour);
-    const selectedWeekly = weekly.filter(window => authQuotaWeekKey(window) === selected);
-    if (fiveHour.length || weekly.length) return fiveHour.concat(selectedWeekly);
+    const companions = allCycles.filter(window => !primary.has(window) && authQuotaWindowCurrent(window, timestamp));
+    const selectedCycles = cycles.filter(window => authQuotaWeekKey(window) === selected);
+    const displayedCycles = selectedCycles.some(window => authQuotaWindowCurrent(window, timestamp)) ? cycles.filter(window => authQuotaWindowCurrent(window, timestamp)) : selectedCycles;
+    if (fiveHour.length || companions.length || cycles.length) return fiveHour.concat(companions, displayedCycles);
     const rest = list.filter(window => !authQuotaIsExcluded(window));
     return rest.length ? rest : list;
   }
@@ -4220,7 +4300,7 @@
     if (Number.isFinite(start) && Number.isFinite(reset)) return start + ':' + reset;
     if (Number.isFinite(reset)) return 'reset:' + reset;
     if (Number.isFinite(start)) return 'start:' + start;
-    return '';
+    return 'timeless';
   }
 
   function authQuotaShortTime(value) {
@@ -4237,21 +4317,22 @@
   function authQuotaWeekLabel(window, now) {
     const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
     const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
-    const current = (Number.isFinite(start) && Number.isFinite(reset) && start <= now && now < reset) || (!Number.isFinite(start) && Number.isFinite(reset) && now < reset);
-    return (current ? t('当前') + ' · ' : '') + authQuotaShortTime(authQuotaValue(window, 'cycle_start_at')) + ' → ' + authQuotaShortTime(authQuotaValue(window, 'resets_at'));
+    if (!Number.isFinite(reset)) return t('当前');
+    const current = authQuotaWindowCurrent(window, now);
+    const prefix = current ? t('当前') + ' · ' : '';
+    return prefix + authQuotaShortTime(authQuotaValue(window, 'cycle_start_at')) + ' → ' + authQuotaShortTime(authQuotaValue(window, 'resets_at'));
   }
 
-  function collectAuthQuotaWeeks(windows, now) {
+  function collectAuthQuotaWeeks(cycleWindows, now) {
     const weeks = [];
     const seen = new Set();
-    (Array.isArray(windows) ? windows : []).forEach(window => {
-      if (!authQuotaIsWeekly(window)) return;
+    (Array.isArray(cycleWindows) ? cycleWindows : []).forEach(window => {
       const key = authQuotaWeekKey(window);
       if (!key || seen.has(key)) return;
       seen.add(key);
       const start = authQuotaTimeMs(authQuotaValue(window, 'cycle_start_at'));
       const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
-      weeks.push({ key, start, reset, label: authQuotaWeekLabel(window, now), current: (Number.isFinite(start) && Number.isFinite(reset) && start <= now && now < reset) || (!Number.isFinite(start) && Number.isFinite(reset) && now < reset) });
+      weeks.push({ key, start, reset, label: authQuotaWeekLabel(window, now), current: authQuotaWindowCurrent(window, now), partial: authQuotaIsPartial(window) });
     });
     weeks.sort((a, b) => (Number.isFinite(b.reset) ? b.reset : Number.isFinite(b.start) ? b.start : 0) - (Number.isFinite(a.reset) ? a.reset : Number.isFinite(a.start) ? a.start : 0));
     return weeks;
@@ -4264,10 +4345,18 @@
   function selectedAuthQuotaWeek(itemKey, weeks) {
     if (!weeks.length) {
       delete state.authQuotaWeeks[itemKey];
+      delete state.authQuotaCurrentWeeks[itemKey];
       return '';
     }
-    const current = weeks.find(week => week.current);
-    if (!weeks.some(week => week.key === state.authQuotaWeeks[itemKey])) state.authQuotaWeeks[itemKey] = (current && current.key) || weeks[0].key;
+    const current = weeks.filter(week => week.current);
+    const currentKeys = current.map(week => week.key);
+    const storedCurrent = state.authQuotaCurrentWeeks[itemKey];
+    const previousCurrent = Array.isArray(storedCurrent) ? storedCurrent : (storedCurrent ? [storedCurrent] : []);
+    // Follow the new official period only when this card was showing the old
+    // current period. An explicitly selected history period remains selected.
+    if (previousCurrent.includes(state.authQuotaWeeks[itemKey]) && !currentKeys.includes(state.authQuotaWeeks[itemKey])) state.authQuotaWeeks[itemKey] = currentKeys[0] || weeks[0].key;
+    state.authQuotaCurrentWeeks[itemKey] = currentKeys;
+    if (!weeks.some(week => week.key === state.authQuotaWeeks[itemKey])) state.authQuotaWeeks[itemKey] = currentKeys[0] || weeks[0].key;
     return state.authQuotaWeeks[itemKey];
   }
 
@@ -4436,12 +4525,13 @@
     $('authQuotaList').innerHTML = items.map(item => {
       const itemKey = authQuotaItemKey(item);
       const windows = authQuotaValue(item, 'windows');
-      const weeks = collectAuthQuotaWeeks(windows, now);
+      const cycleWindows = authQuotaPrimaryCycleWindows(windows, now);
+      const weeks = collectAuthQuotaWeeks(cycleWindows, now);
       const selected = selectedAuthQuotaWeek(itemKey, weeks);
       const status = authQuotaValue(item, 'status');
       const badge = authQuotaBadge(status);
       const error = authQuotaValue(item, 'error') ?? authQuotaValue(item, 'last_error');
-      const visible = authQuotaDisplayWindows(windows, selected);
+      const visible = authQuotaDisplayWindows(windows, selected, cycleWindows, now);
       const cards = visible.length ? visible.map(window => {
         const ratio = authQuotaRatio(window);
         const label = authQuotaText(authQuotaValue(window, 'label'));
@@ -4452,12 +4542,13 @@
           '<div class="auth-quota-window-head"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+(period ? '<span class="auth-quota-period">'+esc(period)+'</span>' : '')+'</div><span class="auth-quota-window-reset" title="'+esc(t('重置时间')+' '+authQuotaTime(authQuotaValue(window, 'resets_at')))+'">'+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</span><span class="auth-quota-window-pct">'+esc(progress)+'</span></div>'+
           '<div class="auth-quota-bar '+progressClass+'" style="--quota-progress:'+ratio.percent+'%" role="progressbar" aria-valuemin="0" aria-valuemax="100"'+(ratio.known ? ' aria-valuenow="'+ratio.percent+'"' : '')+' aria-label="'+esc(label)+' '+progress+'"></div>'+
           '</section>';
-      }).join('') : '<div class="empty-state">该额度周暂无窗口</div>';
-      const weeklyForCost = (Array.isArray(windows) ? windows : []).filter(window => authQuotaIsWeekly(window) && authQuotaWeekKey(window) === selected);
-      const costs = authQuotaCostForecast(weeklyForCost.length ? weeklyForCost : visible);
+      }).join('') : '<div class="empty-state">'+esc(t('该配额窗口暂无窗口'))+'</div>';
+      const selectedPrimaryCycles = cycleWindows.filter(window => authQuotaWeekKey(window) === selected);
+      const costs = authQuotaCostForecast(selectedPrimaryCycles.length ? selectedPrimaryCycles : visible);
+      const selectedWeek = weeks.find(week => week.key === selected) || weeks[0];
       const weekSelect = weeks.length
-        ? '<label class="auth-quota-filter auth-quota-week"><select class="auth-quota-week-select" data-auth-id="'+esc(itemKey)+'" title="额度周">'+weeks.map(week => '<option value="'+esc(week.key)+'"'+(week.key === selected ? ' selected' : '')+'>'+esc(week.label)+'</option>').join('')+'</select></label>'
-        : '<label class="auth-quota-filter auth-quota-week is-disabled"><select disabled title="额度周"><option>暂无额度周</option></select></label>';
+        ? '<div class="auth-quota-period-picker"><button type="button" class="auth-quota-period-trigger" data-auth-id="'+esc(itemKey)+'" aria-haspopup="listbox" aria-expanded="false" title="'+esc(t('配额窗口'))+'"><span class="auth-quota-period-value">'+esc(selectedWeek.label)+'</span><span class="auth-quota-period-chevron" aria-hidden="true"></span></button><div class="auth-quota-period-menu" role="listbox" aria-label="'+esc(t('配额窗口'))+'">'+weeks.map(week => '<button type="button" class="auth-quota-period-option'+(week.key === selected ? ' is-selected' : '')+(week.partial ? ' is-partial' : '')+'" data-auth-id="'+esc(itemKey)+'" data-auth-period="'+esc(week.key)+'" role="option" aria-selected="'+String(week.key === selected)+'"><span class="auth-quota-period-option-value">'+esc(week.label)+'</span><span class="auth-quota-period-option-mark" aria-hidden="true"></span></button>').join('')+'</div></div>'
+        : '<div class="auth-quota-period-picker is-disabled"><button type="button" class="auth-quota-period-trigger" disabled title="'+esc(t('配额窗口'))+'"><span class="auth-quota-period-value">'+esc(t('暂无配额窗口'))+'</span><span class="auth-quota-period-chevron" aria-hidden="true"></span></button></div>';
       const refreshing = !!state.authQuotaRefreshing[itemKey];
       const maxConcurrent = Math.max(0, Number(authQuotaValue(item, 'max_concurrent_requests') || 0) || 0);
       const activeRequests = Math.max(0, Number(authQuotaValue(item, 'active_requests') || 0) || 0);
@@ -4968,19 +5059,49 @@
     saveAuthQuotaConcurrencyBatch('filter').catch(e => flash(e.message, false));
   });
   $('authQuotaList').addEventListener('change', event => {
-    const select = event.target.closest('.auth-quota-week-select');
-    if (select) {
-      const authID = select.getAttribute('data-auth-id') || '';
-      if (!authID) return;
-      state.authQuotaWeeks[authID] = select.value || '';
-      renderAuthQuotas();
-      return;
-    }
     const input = event.target.closest('.auth-quota-concurrency-input');
     if (!input) return;
     saveAuthQuotaConcurrency(input).catch(e => flash(e.message, false));
   });
+  function closeAuthQuotaPeriodMenus(except) {
+    document.querySelectorAll('.auth-quota-period-picker.is-open').forEach(picker => {
+      if (picker === except) return;
+      setAuthQuotaPeriodMenu(picker, false);
+    });
+  }
+  function setAuthQuotaPeriodMenu(picker, open, focusOption) {
+    if (!picker) return;
+    picker.classList.toggle('is-open', open);
+    const trigger = picker.querySelector('.auth-quota-period-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', String(open));
+    if (open && focusOption) {
+      requestAnimationFrame(() => (picker.querySelector('.auth-quota-period-option.is-selected') || picker.querySelector('.auth-quota-period-option'))?.focus());
+    }
+  }
+  function focusAuthQuotaPeriodTrigger(authID) {
+    requestAnimationFrame(() => {
+      const trigger = [...document.querySelectorAll('.auth-quota-period-trigger')].find(item => item.getAttribute('data-auth-id') === authID);
+      if (trigger) trigger.focus();
+    });
+  }
   $('authQuotaList').addEventListener('click', async event => {
+    const option = event.target.closest('.auth-quota-period-option');
+    if (option) {
+      const authID = option.getAttribute('data-auth-id') || '';
+      if (!authID) return;
+      state.authQuotaWeeks[authID] = option.getAttribute('data-auth-period') || '';
+      renderAuthQuotas();
+      focusAuthQuotaPeriodTrigger(authID);
+      return;
+    }
+    const trigger = event.target.closest('.auth-quota-period-trigger');
+    if (trigger && !trigger.disabled) {
+      const picker = trigger.closest('.auth-quota-period-picker');
+      const open = picker.classList.contains('is-open');
+      closeAuthQuotaPeriodMenus(picker);
+      setAuthQuotaPeriodMenu(picker, !open);
+      return;
+    }
     const button = event.target.closest('.auth-quota-reload');
     if (!button) return;
     try {
@@ -4991,6 +5112,46 @@
         button.getAttribute('data-auth-index') || ''
       );
     } catch (e) { flash(e.message, false); }
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.auth-quota-period-picker')) closeAuthQuotaPeriodMenus();
+  });
+  document.addEventListener('keydown', event => {
+    const picker = event.target.closest('.auth-quota-period-picker');
+    if (!picker) return;
+    const trigger = event.target.closest('.auth-quota-period-trigger');
+    const option = event.target.closest('.auth-quota-period-option');
+    const options = [...picker.querySelectorAll('.auth-quota-period-option')];
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setAuthQuotaPeriodMenu(picker, false);
+      picker.querySelector('.auth-quota-period-trigger')?.focus();
+      return;
+    }
+    if (trigger && ['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      closeAuthQuotaPeriodMenus(picker);
+      setAuthQuotaPeriodMenu(picker, true, false);
+      const target = event.key === 'ArrowUp' || event.key === 'End' ? options.at(-1) : options[0];
+      if (target) target.focus();
+      return;
+    }
+    if (!option) return;
+    const index = options.indexOf(option);
+    let target = null;
+    if (event.key === 'ArrowDown') target = options[Math.min(index + 1, options.length - 1)];
+    if (event.key === 'ArrowUp') target = options[Math.max(index - 1, 0)];
+    if (event.key === 'Home') target = options[0];
+    if (event.key === 'End') target = options.at(-1);
+    if (target) {
+      event.preventDefault();
+      target.focus();
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      option.click();
+    }
   });
 
   $('btnRefresh').addEventListener('click', async () => {

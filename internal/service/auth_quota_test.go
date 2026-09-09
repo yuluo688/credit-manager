@@ -251,13 +251,14 @@ func TestAuthQuotaRequestHonorsCanceledContext(t *testing.T) {
 
 func TestAuthQuotaOverviewDoesNotFetchUpstream(t *testing.T) {
 	s := quotaService(t)
+	reset := time.Now().UTC().Add(time.Hour).Unix()
 	src := &fakeQuotaSource{
 		files: []AuthQuotaFile{
 			{ID: "auth-a", AuthIndex: "idx-a", Provider: "codex"},
 			{ID: "auth-b", AuthIndex: "idx-b", Provider: "codex"},
 		},
 		auth:      quotaJSON("codex"),
-		responses: map[string]string{"chatgpt.com": `{"rate_limit":{"primary_window":{"used_percent":10,"reset_at":4102444800}}}`},
+		responses: map[string]string{"chatgpt.com": `{"rate_limit":{"primary_window":{"used_percent":10,"reset_at":` + itoa(reset) + `}}}`},
 	}
 	s.SetAuthQuotaSource(src)
 	listed, err := s.AuthQuotaOverview(context.Background(), "", AuthQuotaFilter{})
@@ -321,6 +322,308 @@ func TestMergeHistoricalQuotaWindowsKeepsPreviousWeek(t *testing.T) {
 	}
 	if weekly != 2 || fiveHour != 1 || oldUsed == nil || *oldUsed != 80 {
 		t.Fatalf("windows=%#v", got.Windows)
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsKeepsShorterCycle(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(4 * 24 * 60 * 60)
+	oldStart := now.Add(-7 * 24 * time.Hour)
+	oldReset := oldStart.Add(time.Duration(duration) * time.Second)
+	newStart := oldReset
+	newReset := newStart.Add(time.Duration(duration) * time.Second)
+	used := 50.0
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "rolling-period", Label: "滚动周期", Mode: "rolling", DurationSeconds: &duration, CycleStartAt: &oldStart, ResetsAt: &oldReset, Used: &used}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "rolling-period", Label: "滚动周期", Mode: "rolling", DurationSeconds: &duration, CycleStartAt: &newStart, ResetsAt: &newReset, Used: &used}}}
+	if quotaWindowIsWeekly(prev.Windows[0]) {
+		t.Fatal("shorter cycle must exercise generic cycle tracking")
+	}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	if len(got.Windows) != 2 {
+		t.Fatalf("shorter completed cycle was not retained: %#v", got.Windows)
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsRecordsIncompleteGap(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(7 * 24 * 60 * 60)
+	oldReset := now.Add(-2 * time.Hour)
+	oldStart := oldReset.Add(-time.Duration(duration) * time.Second)
+	newStart := now.Add(-30 * time.Minute)
+	newReset := newStart.Add(time.Duration(duration) * time.Second)
+	used := 50.0
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &oldStart, ResetsAt: &oldReset, Used: &used}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &newStart, ResetsAt: &newReset, Used: &used}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	partial := 0
+	for _, window := range got.Windows {
+		if !window.Partial {
+			continue
+		}
+		partial++
+		if window.CycleStartAt == nil || window.ResetsAt == nil || !window.CycleStartAt.Equal(oldReset) || !window.ResetsAt.Equal(newStart) || window.Used != nil {
+			t.Fatalf("incomplete gap was not preserved correctly: %#v", window)
+		}
+	}
+	if partial != 1 {
+		t.Fatalf("incomplete gap count=%d windows=%#v", partial, got.Windows)
+	}
+	got = mergeHistoricalQuotaWindows(got, next)
+	partial = 0
+	for _, window := range got.Windows {
+		if window.Partial {
+			partial++
+		}
+	}
+	if partial != 1 {
+		t.Fatalf("incomplete gap was duplicated: %#v", got.Windows)
+	}
+}
+
+func TestAddIncompleteQuotaWindowsFillsCachedSnapshotGap(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(7 * 24 * 60 * 60)
+	oldReset := now.Add(-2 * time.Hour)
+	oldStart := oldReset.Add(-time.Duration(duration) * time.Second)
+	newStart := now.Add(-30 * time.Minute)
+	newReset := newStart.Add(time.Duration(duration) * time.Second)
+	windows := addIncompleteQuotaWindows([]AuthQuotaWindow{
+		{ID: "weekly", DurationSeconds: &duration, CycleStartAt: &oldStart, ResetsAt: &oldReset},
+		{ID: "weekly", DurationSeconds: &duration, CycleStartAt: &newStart, ResetsAt: &newReset},
+	}, now)
+	if len(windows) != 3 || !windows[2].Partial {
+		t.Fatalf("cached snapshot gap was not added: %#v", windows)
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsRecordsGapBeforeFuturePeriod(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(7 * 24 * 60 * 60)
+	oldReset := now.Add(-2 * time.Hour)
+	oldStart := oldReset.Add(-time.Duration(duration) * time.Second)
+	newStart := now.Add(30 * time.Minute)
+	newReset := newStart.Add(time.Duration(duration) * time.Second)
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", DurationSeconds: &duration, CycleStartAt: &oldStart, ResetsAt: &oldReset}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", DurationSeconds: &duration, CycleStartAt: &newStart, ResetsAt: &newReset}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	for _, window := range got.Windows {
+		if window.Partial && window.CycleStartAt != nil && window.ResetsAt != nil && window.CycleStartAt.Equal(oldReset) && window.ResetsAt.Equal(newStart) {
+			return
+		}
+	}
+	t.Fatalf("gap before future period was not recorded: %#v", got.Windows)
+}
+
+func TestMergeHistoricalQuotaWindowsDropsAbsentWindowFamily(t *testing.T) {
+	now := time.Now().UTC()
+	week := int64(7 * 24 * 60 * 60)
+	short := int64(5 * 60 * 60)
+	oldStart := now.Add(-8 * 24 * time.Hour)
+	oldReset := now.Add(-time.Hour)
+	shortStart := now.Add(-time.Hour)
+	shortReset := now.Add(time.Hour)
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", DurationSeconds: &week, CycleStartAt: &oldStart, ResetsAt: &oldReset}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "five_hour", DurationSeconds: &short, CycleStartAt: &shortStart, ResetsAt: &shortReset}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	if len(got.Windows) != 1 || got.Windows[0].ID != "five_hour" {
+		t.Fatalf("history for an absent window family was retained: %#v", got.Windows)
+	}
+	raw, err := json.Marshal(got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("a live replacement snapshot must not remain stale from absent history")
+	}
+}
+
+func TestQuotaWindowTracksCycleExcludesMonthlyBalance(t *testing.T) {
+	duration := int64(30 * 24 * 60 * 60)
+	for _, window := range []AuthQuotaWindow{
+		{ID: "monthly", Mode: "rolling", Unit: "requests", DurationSeconds: &duration},
+		{ID: "credits", Mode: "balance", Unit: "requests", DurationSeconds: &duration},
+	} {
+		if quotaWindowTracksCycle(window) {
+			t.Fatalf("excluded window was tracked as a cycle: %#v", window)
+		}
+	}
+}
+
+func TestQuotaWindowIsWeeklyRecognizesQuotaWeekLabelWithoutDuration(t *testing.T) {
+	for _, label := range []string{"额度周", "額度週", "周", "週"} {
+		if !quotaWindowIsWeekly(AuthQuotaWindow{Label: label}) {
+			t.Fatalf("weekly quota label was not recognized: %q", label)
+		}
+	}
+	if quotaWindowIsWeekly(AuthQuotaWindow{Label: "滚动周期"}) {
+		t.Fatal("generic cycle label must not be forced into the weekly path")
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsDropsOverlappingWindows(t *testing.T) {
+	oldStart := time.Now().UTC().Add(-12 * 24 * time.Hour)
+	oldReset := oldStart.Add(7 * 24 * time.Hour)
+	newStart := oldStart.Add(3 * 24 * time.Hour)
+	newReset := newStart.Add(7 * 24 * time.Hour)
+	duration := int64(604800)
+	used := 50.0
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, ResetsAt: &oldReset, Used: &used}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, ResetsAt: &newReset, Used: &used}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	if len(got.Windows) != 1 || !got.Windows[0].ResetsAt.Equal(newReset) {
+		t.Fatalf("overlapping windows must be superseded: %#v", got.Windows)
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsPrunesLegacyOverlaps(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(604800)
+	used := 50.0
+	oldestStart := now.Add(-20 * 24 * time.Hour)
+	oldestReset := oldestStart.Add(7 * 24 * time.Hour)
+	overlappingStart := oldestStart.Add(3 * 24 * time.Hour)
+	overlappingReset := overlappingStart.Add(7 * 24 * time.Hour)
+	previousStart := overlappingReset
+	previousReset := previousStart.Add(7 * 24 * time.Hour)
+	currentStart := previousReset
+	currentReset := currentStart.Add(7 * 24 * time.Hour)
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &previousStart, ResetsAt: &previousReset, Used: &used},
+		{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &overlappingStart, ResetsAt: &overlappingReset, Used: &used},
+		{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &oldestStart, ResetsAt: &oldestReset, Used: &used},
+	}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &currentStart, ResetsAt: &currentReset, Used: &used}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	if len(got.Windows) != 3 {
+		t.Fatalf("legacy overlap was not pruned: %#v", got.Windows)
+	}
+	for _, window := range got.Windows {
+		if window.ResetsAt != nil && window.ResetsAt.Equal(oldestReset) {
+			t.Fatalf("oldest overlapping window was retained: %#v", got.Windows)
+		}
+	}
+}
+
+func TestMergeHistoricalQuotaWindowsDoesNotArchiveUnfinishedWeek(t *testing.T) {
+	oldStart := time.Now().UTC().Add(-3 * 24 * time.Hour)
+	oldReset := oldStart.Add(7 * 24 * time.Hour)
+	newStart := oldReset
+	newReset := newStart.Add(7 * 24 * time.Hour)
+	duration := int64(604800)
+	used := 50.0
+	prev := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &oldStart, ResetsAt: &oldReset, Used: &used}}}
+	next := quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "weekly", Label: "周限额", DurationSeconds: &duration, CycleStartAt: &newStart, ResetsAt: &newReset, Used: &used}}}
+	got := mergeHistoricalQuotaWindows(prev, next)
+	if len(got.Windows) != 1 || !got.Windows[0].ResetsAt.Equal(newReset) {
+		t.Fatalf("unfinished window must not become history: %#v", got.Windows)
+	}
+}
+
+func TestSnapshotWindowsCurrentRequiresOpenTrackedCycle(t *testing.T) {
+	now := time.Now().UTC()
+	cycleDuration := int64(4 * 24 * 60 * 60)
+	shortDuration := int64(18000)
+	cycleStart := now.Add(-5 * 24 * time.Hour)
+	shortStart := now.Add(-time.Hour)
+	expiredCycle := now.Add(-24 * time.Hour)
+	openShort := now.Add(time.Hour)
+	raw, err := json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "four-day", Mode: "rolling", DurationSeconds: &cycleDuration, CycleStartAt: &cycleStart, ResetsAt: &expiredCycle},
+		{ID: "five_hour", DurationSeconds: &shortDuration, CycleStartAt: &shortStart, ResetsAt: &openShort},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("an open short window must not hide an expired tracked cycle")
+	}
+	currentCycleStart := now.Add(-time.Hour)
+	currentCycleReset := now.Add(4 * 24 * time.Hour)
+	raw, err = json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "four-day", Mode: "rolling", DurationSeconds: &cycleDuration, CycleStartAt: &currentCycleStart, ResetsAt: &currentCycleReset},
+		{ID: "five_hour", DurationSeconds: &shortDuration, CycleStartAt: &shortStart, ResetsAt: &openShort},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("an active tracked cycle must keep the snapshot fresh")
+	}
+	futureCycleStart := now.Add(time.Hour)
+	futureCycleReset := futureCycleStart.Add(4 * 24 * time.Hour)
+	raw, err = json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{{ID: "four-day", Mode: "rolling", DurationSeconds: &cycleDuration, CycleStartAt: &futureCycleStart, ResetsAt: &futureCycleReset}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("a tracked cycle that has not started must not keep the snapshot fresh")
+	}
+}
+
+func TestSnapshotWindowsCurrentRequiresCurrentPrimaryCycle(t *testing.T) {
+	now := time.Now().UTC()
+	week := int64(7 * 24 * 60 * 60)
+	fourDays := int64(4 * 24 * 60 * 60)
+	weeklyStart := now.Add(-8 * 24 * time.Hour)
+	weeklyReset := now.Add(-time.Hour)
+	shorterStart := now.Add(-time.Hour)
+	shorterReset := now.Add(3 * 24 * time.Hour)
+	raw, err := json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", DurationSeconds: &week, CycleStartAt: &weeklyStart, ResetsAt: &weeklyReset},
+		{ID: "four-day", Mode: "rolling", DurationSeconds: &fourDays, CycleStartAt: &shorterStart, ResetsAt: &shorterReset},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("an active shorter cycle must not hide an expired primary cycle")
+	}
+	weeklyStart = now.Add(-time.Hour)
+	weeklyReset = now.Add(6 * 24 * time.Hour)
+	raw, err = json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", DurationSeconds: &week, CycleStartAt: &weeklyStart, ResetsAt: &weeklyReset},
+		{ID: "four-day", Mode: "rolling", DurationSeconds: &fourDays, CycleStartAt: &shorterStart, ResetsAt: &shorterReset},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("all active tracked cycles must keep the snapshot fresh")
+	}
+}
+
+func TestQuotaWindowNewerPrefersCurrentWindow(t *testing.T) {
+	now := time.Now().UTC()
+	reset := now.Add(time.Hour)
+	dated := AuthQuotaWindow{ResetsAt: &reset}
+	timeless := AuthQuotaWindow{}
+	if !quotaWindowNewer(dated, timeless, now) {
+		t.Fatal("dated window must replace a timeless duplicate")
+	}
+	if quotaWindowNewer(timeless, dated, now) {
+		t.Fatal("timeless window must not replace a dated window")
+	}
+	expired := now.Add(-time.Hour)
+	ended := AuthQuotaWindow{ResetsAt: &expired}
+	if !quotaWindowNewer(timeless, ended, now) {
+		t.Fatal("timeless current window must replace ended history")
+	}
+}
+
+func TestSnapshotWindowsCurrentPrefersTimelessWindowOverEndedHistory(t *testing.T) {
+	now := time.Now().UTC()
+	duration := int64(604800)
+	endedStart := now.Add(-8 * 24 * time.Hour)
+	endedReset := now.Add(-time.Hour)
+	raw, err := json.Marshal(quotaSnapshot{Windows: []AuthQuotaWindow{
+		{ID: "weekly", DurationSeconds: &duration, CycleStartAt: &endedStart, ResetsAt: &endedReset},
+		{ID: "weekly", DurationSeconds: &duration},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !snapshotWindowsCurrent(string(raw)) {
+		t.Fatal("timeless current window must keep the snapshot fresh over ended history")
 	}
 }
 
@@ -580,6 +883,16 @@ func TestAuthQuotaForecastIncludesFullLocalUsage(t *testing.T) {
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
 	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 36 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 || window.ObservedUsed == nil || *window.ObservedUsed != 25 {
 		t.Fatalf("window=%#v", window)
+	}
+}
+
+func TestAuthQuotaForecastSkipsIncompleteWindow(t *testing.T) {
+	s := quotaService(t)
+	reset := time.Now().UTC().Add(time.Hour)
+	duration := int64(3600)
+	got := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Partial: true, Scope: "account", ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
+	if got.LocalUsage != nil || got.LocalAttributionStatus != "" || got.PredictionAvailable {
+		t.Fatalf("incomplete window must not be forecast: %#v", got)
 	}
 }
 

@@ -252,7 +252,10 @@ func quotaWindowIsWeekly(window AuthQuotaWindow) bool {
 	if strings.Contains(id, "weekly") || strings.Contains(id, "seven_day") || strings.Contains(id, "7d") || strings.Contains(id, "secondary") || id == "summary" {
 		return true
 	}
-	if strings.Contains(label, "week") || strings.Contains(label, "secondary") || strings.Contains(label, "周") || strings.Contains(label, "週") {
+	if strings.Contains(label, "week") || strings.Contains(label, "secondary") || strings.Contains(label, "周限") || strings.Contains(label, "週限") || strings.Contains(label, "周额") || strings.Contains(label, "週額") || strings.Contains(label, "每周") || strings.Contains(label, "每週") {
+		return true
+	}
+	if strings.Contains(label, "额度周") && !strings.Contains(label, "额度周期") || strings.Contains(label, "額度週") && !strings.Contains(label, "額度週期") || label == "周" || label == "週" {
 		return true
 	}
 	if window.DurationSeconds != nil && *window.DurationSeconds >= 500000 && *window.DurationSeconds <= 700000 {
@@ -265,6 +268,55 @@ func quotaWindowIsWeekly(window AuthQuotaWindow) bool {
 		}
 	}
 	return false
+}
+
+const authQuotaTrackedCycleMinDuration = 6 * time.Hour
+
+func quotaWindowTracksCycle(window AuthQuotaWindow) bool {
+	if window.Partial {
+		return true
+	}
+	if quotaWindowExcludedFromCycle(window) {
+		return false
+	}
+	if quotaWindowIsWeekly(window) {
+		return true
+	}
+	if duration, ok := quotaWindowPeriodDuration(window); ok {
+		return duration > authQuotaTrackedCycleMinDuration
+	}
+	return false
+}
+
+func quotaWindowExcludedFromCycle(window AuthQuotaWindow) bool {
+	mode := strings.ToLower(strings.TrimSpace(window.Mode))
+	unit := strings.ToLower(strings.TrimSpace(window.Unit))
+	id := strings.ToLower(strings.TrimSpace(window.ID))
+	label := strings.ToLower(strings.TrimSpace(window.Label))
+	return strings.Contains(id, "on-demand") || strings.Contains(id, "ondemand") || strings.Contains(id, "monthly") || strings.Contains(label, "on demand") || strings.Contains(label, "按需") || strings.Contains(label, "month") || strings.Contains(label, "月额") || strings.Contains(label, "月額") || mode == "balance" || mode == "fixed" || unit == "currency"
+}
+
+func quotaWindowPeriodDuration(window AuthQuotaWindow) (time.Duration, bool) {
+	if window.CycleStartAt != nil && window.ResetsAt != nil {
+		duration := window.ResetsAt.Sub(*window.CycleStartAt)
+		if duration > 0 {
+			return duration, true
+		}
+	}
+	if window.DurationSeconds != nil && *window.DurationSeconds > 0 {
+		return time.Duration(*window.DurationSeconds) * time.Second, true
+	}
+	return 0, false
+}
+
+func quotaWindowCycleLength(window AuthQuotaWindow) time.Duration {
+	if duration, ok := quotaWindowPeriodDuration(window); ok {
+		return duration
+	}
+	if quotaWindowIsWeekly(window) {
+		return 7 * 24 * time.Hour
+	}
+	return 0
 }
 
 const authQuotaMinObservedRatio = 0.005
