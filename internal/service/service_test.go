@@ -151,7 +151,7 @@ func TestApplyHostUsageDoesNotDoubleCountOpenAICache(t *testing.T) {
 	}
 }
 
-func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
+func TestSettleFromUsageBackfillsLateHostCallbackWithoutBlocking(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
@@ -159,7 +159,6 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 	cfg.DataDir = dir
 	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
 	cfg.Keys.ActivePepperID = "active"
-	cfg.Settlement.HostUsageWait = 400 * time.Millisecond
 	svc, err := Open(ctx, cfg)
 	if err != nil {
 		t.Fatalf("open service: %v", err)
@@ -172,7 +171,12 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("put pricing: %v", err)
 	}
-	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "test", 10_000_000, nil)
+	key, _, err := svc.MintKeyWithPolicy(ctx, MintKeyRequest{
+		CallerID:              BootstrapCallerID,
+		Label:                 "test",
+		QuotaMicroUSD:         10_000_000,
+		MaxConcurrentRequests: 1,
+	})
 	if err != nil {
 		t.Fatalf("mint key: %v", err)
 	}
@@ -185,12 +189,47 @@ func TestSettleFromUsageWaitsForHostCallback(t *testing.T) {
 		t.Fatalf("reserve: %v", err)
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	backfilled := make(chan error, 1)
 	go func() {
-		time.Sleep(40 * time.Millisecond)
-		svc.ObserveHostUsageWithExecutor(time.Now(), store.AuthIdentity{AuthID: "auth-x", Provider: "xai", Label: "ops"}, money.TokenUsage{Input: 9, Output: 3}, "XAIExecutor", "grok-4.6")
+		time.Sleep(600 * time.Millisecond)
+		usage := money.TokenUsage{Input: 9, Output: 3}
+		auth := store.AuthIdentity{AuthID: "auth-x", Provider: "xai", Label: "ops"}
+		ledgerID, ok := svc.ObserveHostUsageWithExecutor(time.Now(), auth, usage, "XAIExecutor", "grok-4.6")
+		if !ok || ledgerID == "" {
+			backfilled <- errors.New("late host usage was not linked to the fallback ledger")
+			return
+		}
+		if err := svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth); err != nil {
+			backfilled <- err
+			return
+		}
+		if err := svc.Store().UpdateUsageExecutor(context.Background(), ledgerID, "XAIExecutor"); err != nil {
+			backfilled <- err
+			return
+		}
+		backfilled <- svc.ApplyHostUsageRecord(context.Background(), ledgerID, usage, "")
 	}()
+	started := time.Now()
 	if err := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, "openai", store.UsageMetrics{}); err != nil {
 		t.Fatalf("settle: %v", err)
+	}
+	if elapsed := time.Since(started); elapsed >= 250*time.Millisecond {
+		t.Fatalf("settlement blocked for %s while waiting for host usage", elapsed)
+	}
+	second, err := svc.Reserve(ctx, key, plan, "after-fallback")
+	if err != nil {
+		t.Fatalf("reserve after fallback: %v", err)
+	}
+	if err := svc.Release(ctx, second.ID, "test"); err != nil {
+		t.Fatalf("release second reservation: %v", err)
+	}
+	select {
+	case err := <-backfilled:
+		if err != nil {
+			t.Fatalf("backfill: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for late host usage backfill")
 	}
 	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 1})
 	if err != nil || len(entries) != 1 {

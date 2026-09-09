@@ -62,8 +62,8 @@ type StreamConfig struct {
 // SettlementConfig controls post-upstream accounting when usage is incomplete.
 type SettlementConfig struct {
 	MissingUsage MissingUsagePolicy `yaml:"missing_usage" json:"missing_usage"`
-	// HostUsageWait is how long SettleFromUsage waits for usage.handle before
-	// reserved_fallback. Zero disables the wait.
+	// HostUsageWait is retained for configuration compatibility. Fallback
+	// settlement no longer waits; usage.handle reprices the settled ledger row.
 	HostUsageWait time.Duration `yaml:"host_usage_wait" json:"host_usage_wait"`
 }
 

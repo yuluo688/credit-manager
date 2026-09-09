@@ -147,6 +147,30 @@ func TestWaitForHostUsageReceivesLateCallback(t *testing.T) {
 	}
 }
 
+func TestWaitForHostUsageStopsAfterCaptureIsApplied(t *testing.T) {
+	svc := &Service{}
+	svc.TrackAuthCapture("res-applied", "grok-4.6")
+	_ = svc.AuthForSettlement("res-applied", "ledger-applied")
+
+	done := make(chan bool, 1)
+	go func() {
+		_, ok := svc.WaitForHostUsage(context.Background(), "res-applied", time.Second)
+		done <- ok
+	}()
+	time.Sleep(20 * time.Millisecond)
+	if _, ok := svc.ObserveHostUsage(time.Now(), store.AuthIdentity{AuthID: "a", Provider: "xai"}, money.TokenUsage{Input: 2, Output: 1}, "grok-4.6"); !ok {
+		t.Fatal("expected host usage to match pending capture")
+	}
+	select {
+	case got := <-done:
+		if got {
+			t.Fatal("wait should stop after the applied capture is removed")
+		}
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("wait did not stop after the applied capture was removed")
+	}
+}
+
 func TestObserveHostUsageMatchesReportedTotalOnly(t *testing.T) {
 	svc := &Service{authPending: map[string]*pendingAuthCapture{}}
 	svc.TrackAuthCapture("res-glm", "glm-5.3-flash")

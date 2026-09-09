@@ -78,6 +78,43 @@ func TestAdmitAuthEnforcesConcurrencyLimit(t *testing.T) {
 	}
 }
 
+func TestFinishAuthCaptureReleasesConcurrencyLimit(t *testing.T) {
+	s := quotaService(t)
+	if err := s.Store().UpsertAuthConcurrencyLimit(context.Background(), "claude", "auth-1", 1); err != nil {
+		t.Fatal(err)
+	}
+	s.TrackAuthCapture("res-finished", "claude-sonnet")
+	s.TrackAuthCapture("res-active", "claude-sonnet")
+	auth := store.AuthIdentity{AuthID: "auth-1", Provider: "claude"}
+	if err := s.AdmitAuth(context.Background(), "res-finished", auth); err != nil {
+		t.Fatalf("first admit: %v", err)
+	}
+	s.FinishAuthCapture("res-finished")
+	if err := s.AdmitAuth(context.Background(), "res-active", auth); err != nil {
+		t.Fatalf("admit after execution complete: %v", err)
+	}
+}
+
+func TestPickAuthSkipsFinishedCapture(t *testing.T) {
+	s := quotaService(t)
+	if err := s.Store().UpsertAuthConcurrencyLimit(context.Background(), "claude", "auth-1", 2); err != nil {
+		t.Fatal(err)
+	}
+	s.TrackAuthCapture("res-finished", "claude-sonnet")
+	s.FinishAuthCapture("res-finished")
+	s.TrackAuthCapture("res-active", "claude-sonnet")
+	if _, handled, err := s.PickAuth(context.Background(), []AuthPickCandidate{{ID: "auth-1", Provider: "claude"}}); err != nil || !handled {
+		t.Fatalf("pick = (%t, %v)", handled, err)
+	}
+	s.authMu.Lock()
+	finished := s.authPending["res-finished"]
+	active := s.authPending["res-active"]
+	s.authMu.Unlock()
+	if finished == nil || finished.hasAuth || active == nil || !active.hasAuth {
+		t.Fatalf("auth bindings = finished:%#v active:%#v", finished, active)
+	}
+}
+
 func TestPickAuthSkipsBusyAndFallsBackWhenUnlimited(t *testing.T) {
 	s := quotaService(t)
 	candidates := []AuthPickCandidate{{ID: "a", Provider: "codex"}, {ID: "b", Provider: "codex"}}

@@ -19,6 +19,7 @@ type pendingAuthCapture struct {
 	reservationID string
 	models        []string
 	startedAt     time.Time
+	active        bool
 	ledgerID      string
 	auth          store.AuthIdentity
 	hasAuth       bool
@@ -46,6 +47,7 @@ func (s *Service) TrackAuthCapture(reservationID string, models ...string) {
 		reservationID: reservationID,
 		models:        cleaned,
 		startedAt:     time.Now(),
+		active:        true,
 	}
 }
 
@@ -237,7 +239,11 @@ func (s *Service) WaitForHostUsage(ctx context.Context, reservationID string, ti
 
 	for {
 		s.pruneAuthPendingLocked(time.Now())
-		if pending := s.authPending[reservationID]; pending != nil && pending.hasUsage {
+		pending := s.authPending[reservationID]
+		if pending == nil {
+			return money.TokenUsage{}, false
+		}
+		if pending.hasUsage {
 			return pending.usage, true
 		}
 		if timedOut || ctx.Err() != nil {
@@ -298,7 +304,8 @@ func pendingMatchesModels(pending *pendingAuthCapture, modelSet map[string]struc
 }
 
 // AuthForSettlement returns any already-captured auth for the reservation and
-// keeps the pending entry open when auth is still missing so a later usage.handle can fill it.
+// keeps the pending entry open while either auth or usage is still missing so a
+// later usage.handle can backfill the settled ledger row.
 func (s *Service) AuthForSettlement(reservationID, ledgerID string) store.AuthIdentity {
 	if s == nil {
 		return store.AuthIdentity{}
@@ -330,6 +337,23 @@ func (s *Service) AuthForSettlement(reservationID, ledgerID string) store.AuthId
 		pending.ledgerID = ledgerID
 	}
 	return store.AuthIdentity{}
+}
+
+// FinishAuthCapture releases the auth concurrency slot once upstream execution
+// ends, while retaining the capture for a later usage callback.
+func (s *Service) FinishAuthCapture(reservationID string) {
+	if s == nil {
+		return
+	}
+	reservationID = strings.TrimSpace(reservationID)
+	if reservationID == "" {
+		return
+	}
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	if pending := s.authPending[reservationID]; pending != nil {
+		pending.active = false
+	}
 }
 
 // CancelAuthCapture drops a pending capture when the reservation is released without settle.

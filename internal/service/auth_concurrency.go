@@ -229,7 +229,7 @@ func (s *Service) bindOldestUnattributedLocked(auth store.AuthIdentity) {
 	}
 	var oldest *pendingAuthCapture
 	for _, pending := range s.authPending {
-		if pending == nil || pending.hasAuth {
+		if pending == nil || !pending.active || pending.hasAuth {
 			continue
 		}
 		if oldest == nil || pending.startedAt.Before(oldest.startedAt) {
@@ -264,7 +264,7 @@ func (s *Service) activeAuthRequestsLocked(provider, authID, exceptReservation s
 	exceptReservation = strings.TrimSpace(exceptReservation)
 	var n int64
 	for id, pending := range s.authPending {
-		if pending == nil || !pending.hasAuth || id == exceptReservation {
+		if pending == nil || !pending.active || !pending.hasAuth || id == exceptReservation {
 			continue
 		}
 		pendingProvider, pendingID := authLimitIdentity(pending.auth)

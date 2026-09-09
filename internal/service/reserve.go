@@ -151,17 +151,13 @@ func (s *Service) TouchReservation(ctx context.Context, reservationID string) er
 }
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
+	s.FinishAuthCapture(reservation.ID)
 	metrics = overlayParsedServiceTier(metrics, parsed)
 	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
 		return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)
 	}
 	if parsed.Found {
 		return s.settleResolvedUsage(ctx, reservation, plan, parsed.Usage, parsed.Source, fmt.Sprintf("format=%s source=%s", format, parsed.Source), metrics)
-	}
-	if s.cfg.Settlement.MissingUsage != config.MissingUsageRelease && s.cfg.Settlement.HostUsageWait > 0 {
-		if hostUsage, ok := s.WaitForHostUsage(ctx, reservation.ID, s.cfg.Settlement.HostUsageWait); ok {
-			return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)
-		}
 	}
 	switch s.cfg.Settlement.MissingUsage {
 	case config.MissingUsageRelease:
@@ -172,35 +168,31 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 		if plan.Price.IsPerImage() {
 			return s.settleResolvedUsage(ctx, reservation, plan, money.TokenUsage{Images: plan.ImageCount}, "per_image", "missing_usage_settle_per_image", metrics)
 		}
-		// Do not bill max_tokens / body-length estimates as actual spend.
-		// Keep a ledger row so a later usage.handle can reprice from official tokens.
-		return s.settleWithAuth(ctx, store.Settlement{
-			ReservationID:         reservation.ID,
-			Model:                 plan.Model,
-			PricingRuleID:         plan.PricingRuleID,
-			Usage:                 money.TokenUsage{},
-			CostMicroUSD:          0,
-			EstimatedCostMicroUSD: reservation.HeldMicroUSD,
-			Source:                "reserved_fallback",
-			Metrics:               metrics,
-			SettlementSummary:     "missing_usage_pending_host",
-		})
+		return s.settleMissingUsage(ctx, reservation, plan, metrics)
 	}
 }
 
 func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, usage money.TokenUsage, source, summary string, metrics store.UsageMetrics) error {
+	settlement, err := s.resolvedUsageSettlement(reservation, plan, usage, source, summary, metrics)
+	if err != nil {
+		return err
+	}
+	return s.settleWithAuth(ctx, settlement)
+}
+
+func (s *Service) resolvedUsageSettlement(reservation store.Reservation, plan ReservePlan, usage money.TokenUsage, source, summary string, metrics store.UsageMetrics) (store.Settlement, error) {
 	if plan.Price.IsPerImage() && usage.Images <= 0 {
 		usage.Images = plan.ImageCount
 	}
 	cost, err := money.CostFor(usage, plan.priceFor(usage, metricsServiceTier(metrics)), plan.Model, "")
 	if err != nil {
-		return err
+		return store.Settlement{}, err
 	}
 	if plan.AllowUnpriced {
 		cost = 0
 	}
 	metrics.TokensPerSecond = tokensPerSecond(usage.Output, metrics.GenerationDuration)
-	return s.settleWithAuth(ctx, store.Settlement{
+	return store.Settlement{
 		ReservationID:         reservation.ID,
 		Model:                 plan.Model,
 		PricingRuleID:         plan.PricingRuleID,
@@ -210,7 +202,64 @@ func (s *Service) settleResolvedUsage(ctx context.Context, reservation store.Res
 		Source:                source,
 		Metrics:               metrics,
 		SettlementSummary:     summary,
-	})
+	}, nil
+}
+
+// settleMissingUsage finalizes the quota hold immediately so accounting delays
+// never consume request concurrency. The host callback can still reprice the
+// fallback ledger row after the response has returned.
+func (s *Service) settleMissingUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, metrics store.UsageMetrics) error {
+	ledgerID := store.NewID()
+	settlement := store.Settlement{
+		LedgerID:              ledgerID,
+		ReservationID:         reservation.ID,
+		Model:                 plan.Model,
+		PricingRuleID:         plan.PricingRuleID,
+		Usage:                 money.TokenUsage{},
+		CostMicroUSD:          0,
+		EstimatedCostMicroUSD: reservation.HeldMicroUSD,
+		Source:                "reserved_fallback",
+		Metrics:               metrics,
+		SettlementSummary:     "missing_usage_pending_host",
+	}
+
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	s.ensureAuthPendingLocked()
+	s.pruneAuthPendingLocked(time.Now())
+	pending := s.authPending[reservation.ID]
+	if pending != nil {
+		if pending.hasUsage {
+			resolved, err := s.resolvedUsageSettlement(reservation, plan, pending.usage, "host_usage", "host_usage_callback", metrics)
+			if err != nil {
+				return err
+			}
+			settlement = resolved
+			settlement.LedgerID = ledgerID
+		}
+		if settlement.ExecutorType == "" {
+			settlement.ExecutorType = pending.executorType
+		}
+		if pending.hasAuth {
+			settlement.Auth = pending.auth
+		}
+		previousLedgerID := pending.ledgerID
+		// Keep usage.handle from seeing this ID until the ledger row exists.
+		pending.ledgerID = ledgerID
+		_, err := s.store.Settle(ctx, settlement)
+		if err != nil {
+			pending.ledgerID = previousLedgerID
+			return err
+		}
+		if pending.hasUsage && pending.hasAuth {
+			delete(s.authPending, reservation.ID)
+		}
+	} else {
+		if _, err := s.store.Settle(ctx, settlement); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Service) ApplyHostUsage(ctx context.Context, ledgerID string, usage money.TokenUsage) error {

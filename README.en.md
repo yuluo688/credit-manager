@@ -269,7 +269,7 @@ Host inline fields override the external file. A nested `config_file` in that ex
 | `limits.default_output_reserve` | `4096` | Output reservation when `max_tokens` is absent |
 | `pricing.unknown_policy` | `allow` | Behavior for unmatched rules: `allow`, `deny`, or `default` |
 | `settlement.missing_usage` | `settle_reserved` | Settlement behavior when usage is missing |
-| `settlement.host_usage_wait` | `4s` | Time to await a host usage callback; the sample config overrides it to `1500ms` |
+| `settlement.host_usage_wait` | `4s` | Deprecated compatibility setting; host usage callbacks directly reprice settled fallback rows without waiting |
 | `stream.stale_reservation_timeout` | `2h` | Release threshold for in-flight reservations without a heartbeat |
 
 ### Protect pepper material

@@ -269,7 +269,7 @@ export CREDIT_MANAGER_CONFIG_FILE=/path/to/credit-manager.yaml
 | `limits.default_output_reserve` | `4096` | 未提供 `max_tokens` 时的输出预占 |
 | `pricing.unknown_policy` | `allow` | 未匹配价格规则时的策略：`allow`、`deny`、`default` |
 | `settlement.missing_usage` | `settle_reserved` | 缺 usage 时的结算策略 |
-| `settlement.host_usage_wait` | `4s` | 等待宿主 usage 回调的时长；示例配置覆盖为 `1500ms` |
+| `settlement.host_usage_wait` | `4s` | 兼容保留项；不再等待，宿主 usage 回调会直接补记已结算账本 |
 | `stream.stale_reservation_timeout` | `2h` | 无心跳在途预占的自动释放阈值 |
 
 ### Pepper 保护

@@ -42,7 +42,7 @@ func pluginRegistration(schemaVersion uint32) registration {
 				{Name: "limits.default_output_reserve", Type: pluginapi.ConfigFieldTypeInteger, Description: "Default output token reserve when body omits max_tokens."},
 				{Name: "pricing.unknown_policy", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"deny", "allow", "default"}, Description: "Behavior when no price rule matches."},
 				{Name: "settlement.missing_usage", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"settle_reserved", "release"}, Description: "Settlement when upstream returns no usage."},
-				{Name: "settlement.host_usage_wait", Type: pluginapi.ConfigFieldTypeString, Description: "How long to wait for usage.handle before reserved_fallback, e.g. 1500ms. 0 disables."},
+				{Name: "settlement.host_usage_wait", Type: pluginapi.ConfigFieldTypeString, Description: "Deprecated compatibility setting. usage.handle now reprices settled fallback rows without blocking."},
 			},
 		},
 		Capabilities: registrationCapability{
