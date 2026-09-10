@@ -434,7 +434,7 @@ func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
 		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用到本页", "应用到筛选", "btnAuthQuotaBatchPage", "data-provider",
 		"auth-codex-fill", "M6.469 8.776L16.512 23", "function authQuotaProviderIcon",
-		"align-items:stretch", "flex-direction:column", "height:100%", "auth-quota-account-row", "t('已用')+' '+ratio.percent+'%'",
+		"align-items:stretch", "flex-direction:column", "height:100%", "auth-quota-account-row", "function authQuotaRemainingLabel", "额度可用", "后刷新",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console auth quota view is missing %q", text)
@@ -473,9 +473,14 @@ func TestConsoleAuthQuotaShowsCurrentShorterCycles(t *testing.T) {
 	page := strings.ReplaceAll(string(consolePage().Body), "\r\n", "\n")
 	for _, text := range []string{
 		"function authQuotaPrimaryCycleWindows(windows, now)",
-		"const companions = allCycles.filter",
-		"const displayedCycles = selectedCycles.some",
-		"return fiveHour.concat(companions, displayedCycles)",
+		"function authQuotaLatestByIdentity",
+		"function authQuotaGroupedWindows",
+		"function authQuotaProviderKind",
+		"function authQuotaResetRelative",
+		"auth-quota-group",
+		"allCycles.filter(window => !primary.has(window)",
+		"const viewingCurrent = !selected || selectedCycles.some",
+		"fiveHour.concat(companions, displayedCycles)",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console does not render current shorter quota cycles: %q", text)

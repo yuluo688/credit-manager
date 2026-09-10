@@ -56,7 +56,7 @@
     '移除': { 'zh-TW':'移除', en:'Remove', ru:'Убрать' },
     '请输入模型 ID 或 glob': { 'zh-TW':'請輸入模型 ID 或 glob', en:'Enter a model ID or glob', ru:'Введите ID модели или glob' },
     '该模型已在 Token 限制列表中': { 'zh-TW':'該模型已在 Token 限制列表中', en:'This model is already in the token limit list', ru:'Эта модель уже в списке лимитов' },
-     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周，并设置最大并发。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週，並設定最大併發。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks and set max concurrency inside the card.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; в карточке можно сменить неделю и задать параллельность.' },      '最大并发': { 'zh-TW':'最大併發', en:'Max concurrent', ru:'Макс. параллельность' }, '在途': { 'zh-TW':'在途', en:'In flight', ru:'В полёте' }, '当前并发量': { 'zh-TW':'目前併發量', en:'Current concurrency', ru:'Текущая параллельность' },     '条': { 'zh-TW':'條', en:'items', ru:'шт.' }, '并发': { 'zh-TW':'併發', en:'Concurrency', ru:'Параллельность' }, '批量并发': { 'zh-TW':'批量併發', en:'Batch concurrency', ru:'Пакетная параллельность' }, '应用到本页': { 'zh-TW':'套用到本頁', en:'Apply to page', ru:'К странице' }, '应用到筛选': { 'zh-TW':'套用到篩選', en:'Apply to filters', ru:'К фильтру' }, '没有可更新的认证': { 'zh-TW':'沒有可更新的認證', en:'No auths to update', ru:'Нет авторизаций для обновления' }, '认证并发已更新': { 'zh-TW':'認證併發已更新', en:'Auth concurrency updated', ru:'Параллельность авторизации обновлена' }, '最大并发请求数，0 或不填为不限制': { 'zh-TW':'最大併發請求數，0 或不填為不限制', en:'Max concurrent requests; 0 or empty = unlimited', ru:'Макс. параллельных запросов; 0 или пусто — без лимита' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' },     '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Прогноз доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' }, '重新加载': { 'zh-TW':'重新載入', en:'Reload', ru:'Обновить' }, '加载中': { 'zh-TW':'載入中', en:'Loading', ru:'Загрузка' }, '未同步': { 'zh-TW':'未同步', en:'Not synced', ru:'Не синхронизировано' }, '认证额度已刷新': { 'zh-TW':'認證額度已刷新', en:'Auth quota refreshed', ru:'Квота авторизации обновлена' }, '认证额度已从缓存刷新': { 'zh-TW':'認證額度已從快取刷新', en:'Auth quotas reloaded from cache', ru:'Квоты авторизации загружены из кэша' }, '订阅类型': { 'zh-TW':'訂閱類型', en:'Subscription', ru:'Подписка' }, '刷新本页': { 'zh-TW':'重新整理本頁', en:'Refresh page', ru:'Обновить страницу' }, '本页认证额度已刷新': { 'zh-TW':'本頁認證額度已刷新', en:'This page of auth quotas refreshed', ru:'Квоты на странице обновлены' }, '当前没有可用的认证额度数据': { 'zh-TW':'目前沒有可用的認證額度資料', en:'No auth quota data available', ru:'Нет данных о квотах авторизации' }, '没有符合筛选条件的认证额度': { 'zh-TW':'沒有符合篩選條件的認證額度', en:'No auth quotas match the filters', ru:'Нет квот, подходящих под фильтры' }, '每页': { 'zh-TW':'每頁', en:'Per page', ru:'На странице' }, '上一页': { 'zh-TW':'上一頁', en:'Previous', ru:'Назад' }, '下一页': { 'zh-TW':'下一頁', en:'Next', ru:'Вперёд' },
+     '认证额度': { 'zh-TW':'認證額度', en:'Auth quotas', ru:'Квоты авторизации' }, '每个认证同时显示 5 小时窗口和当前额度周，可在卡片内切换该账号的其他额度周，并设置最大并发。': { 'zh-TW':'每個認證同時顯示 5 小時窗口與目前額度週，可在卡片內切換該帳號的其他額度週，並設定最大併發。', en:'Each auth shows its 5-hour window and current quota week. Switch weeks and set max concurrency inside the card.', ru:'У каждой авторизации видно 5-часовое окно и текущую неделю квоты; в карточке можно сменить неделю и задать параллельность.' },      '最大并发': { 'zh-TW':'最大併發', en:'Max concurrent', ru:'Макс. параллельность' }, '在途': { 'zh-TW':'在途', en:'In flight', ru:'В полёте' }, '当前并发量': { 'zh-TW':'目前併發量', en:'Current concurrency', ru:'Текущая параллельность' },     '条': { 'zh-TW':'條', en:'items', ru:'шт.' }, '并发': { 'zh-TW':'併發', en:'Concurrency', ru:'Параллельность' }, '批量并发': { 'zh-TW':'批量併發', en:'Batch concurrency', ru:'Пакетная параллельность' }, '应用到本页': { 'zh-TW':'套用到本頁', en:'Apply to page', ru:'К странице' }, '应用到筛选': { 'zh-TW':'套用到篩選', en:'Apply to filters', ru:'К фильтру' }, '没有可更新的认证': { 'zh-TW':'沒有可更新的認證', en:'No auths to update', ru:'Нет авторизаций для обновления' }, '认证并发已更新': { 'zh-TW':'認證併發已更新', en:'Auth concurrency updated', ru:'Параллельность авторизации обновлена' }, '最大并发请求数，0 或不填为不限制': { 'zh-TW':'最大併發請求數，0 或不填為不限制', en:'Max concurrent requests; 0 or empty = unlimited', ru:'Макс. параллельных запросов; 0 или пусто — без лимита' }, '额度周': { 'zh-TW':'額度週', en:'Quota week', ru:'Неделя квоты' }, '5 小时': { 'zh-TW':'5 小時', en:'5 hours', ru:'5 часов' }, '5 小时限额': { 'zh-TW':'5 小時限額', en:'5-hour limit', ru:'Лимит 5 часов' }, '周限额': { 'zh-TW':'週限額', en:'Weekly limit', ru:'Недельный лимит' }, '7 天限额': { 'zh-TW':'7 天限額', en:'7-day limit', ru:'Лимит 7 дней' }, '7 天 OAuth 应用': { 'zh-TW':'7 天 OAuth 應用', en:'7-day OAuth apps', ru:'OAuth 7 дней' }, '7 天 Opus': { 'zh-TW':'7 天 Opus', en:'7-day Opus', ru:'Opus 7 дней' }, '7 天 Sonnet': { 'zh-TW':'7 天 Sonnet', en:'7-day Sonnet', ru:'Sonnet 7 дней' }, '7 天 Cowork': { 'zh-TW':'7 天 Cowork', en:'7-day Cowork', ru:'Cowork 7 дней' }, '额外用量': { 'zh-TW':'額外用量', en:'Extra usage', ru:'Доп. расход' }, '代码审查 5 小时限额': { 'zh-TW':'程式碼審查 5 小時限額', en:'Code review 5-hour limit', ru:'Code review 5 ч' }, '代码审查周限额': { 'zh-TW':'程式碼審查週限額', en:'Code review weekly limit', ru:'Code review неделя' }, '按量付费': { 'zh-TW':'按量付費', en:'Pay as you go', ru:'По факту' }, '后': { 'zh-TW':'後', en:' later', ru:' спустя' }, 'Gemini 模型': { 'zh-TW':'Gemini 模型', en:'Gemini models', ru:'Модели Gemini' }, 'Claude 和 GPT 模型': { 'zh-TW':'Claude 與 GPT 模型', en:'Claude and GPT models', ru:'Claude и GPT' }, '额度可用': { 'zh-TW':'額度可用', en:'Quota available', ru:'Квота доступна' }, '后刷新': { 'zh-TW':'後刷新', en:'until refresh', ru:'до обновления' }, '可刷新': { 'zh-TW':'可刷新', en:'Refresh available', ru:'Можно обновить' }, '分钟': { 'zh-TW':'分鐘', en:'min', ru:'мин' }, '小于 1 分钟': { 'zh-TW':'小於 1 分鐘', en:'< 1 min', ru:'< 1 мин' }, '周额度': { 'zh-TW':'週額度', en:'Weekly', ru:'Неделя' }, '当前费用': { 'zh-TW':'目前費用', en:'Used cost', ru:'Текущие расходы' }, '预估剩余': { 'zh-TW':'預估剩餘', en:'Est. remaining', ru:'Ост. расходы' },     '预计可用': { 'zh-TW':'預計可用', en:'Est. available', ru:'Прогноз доступно' }, '平台': { 'zh-TW':'平台', en:'Platform', ru:'Платформа' }, '全部平台': { 'zh-TW':'全部平台', en:'All platforms', ru:'Все платформы' }, '名称': { 'zh-TW':'名稱', en:'Name', ru:'Имя' }, '搜索账号或名称': { 'zh-TW':'搜尋帳號或名稱', en:'Search account or name', ru:'Поиск аккаунта или имени' }, '重新加载': { 'zh-TW':'重新載入', en:'Reload', ru:'Обновить' }, '加载中': { 'zh-TW':'載入中', en:'Loading', ru:'Загрузка' }, '未同步': { 'zh-TW':'未同步', en:'Not synced', ru:'Не синхронизировано' }, '认证额度已刷新': { 'zh-TW':'認證額度已刷新', en:'Auth quota refreshed', ru:'Квота авторизации обновлена' }, '认证额度已从缓存刷新': { 'zh-TW':'認證額度已從快取刷新', en:'Auth quotas reloaded from cache', ru:'Квоты авторизации загружены из кэша' }, '订阅类型': { 'zh-TW':'訂閱類型', en:'Subscription', ru:'Подписка' }, '刷新本页': { 'zh-TW':'重新整理本頁', en:'Refresh page', ru:'Обновить страницу' }, '本页认证额度已刷新': { 'zh-TW':'本頁認證額度已刷新', en:'This page of auth quotas refreshed', ru:'Квоты на странице обновлены' }, '当前没有可用的认证额度数据': { 'zh-TW':'目前沒有可用的認證額度資料', en:'No auth quota data available', ru:'Нет данных о квотах авторизации' }, '没有符合筛选条件的认证额度': { 'zh-TW':'沒有符合篩選條件的認證額度', en:'No auth quotas match the filters', ru:'Нет квот, подходящих под фильтры' }, '每页': { 'zh-TW':'每頁', en:'Per page', ru:'На странице' }, '上一页': { 'zh-TW':'上一頁', en:'Previous', ru:'Назад' }, '下一页': { 'zh-TW':'下一頁', en:'Next', ru:'Вперёд' },
     'CPA 额度管理': { 'zh-TW':'CPA 額度管理', en:'CPA Credit Manager', ru:'Менеджер лимитов CPA' }, '选择日期和时间': { 'zh-TW':'選擇日期和時間', en:'Select date and time', ru:'Выберите дату и время' }, '上个月': { 'zh-TW':'上個月', en:'Previous month', ru:'Предыдущий месяц' }, '下个月': { 'zh-TW':'下個月', en:'Next month', ru:'Следующий месяц' }, '减少小时': { 'zh-TW':'減少小時', en:'Decrease hours', ru:'Уменьшить часы' }, '减少分钟': { 'zh-TW':'減少分鐘', en:'Decrease minutes', ru:'Уменьшить минуты' }, '增加小时': { 'zh-TW':'增加小時', en:'Increase hours', ru:'Увеличить часы' }, '增加分钟': { 'zh-TW':'增加分鐘', en:'Increase minutes', ru:'Увеличить минуты' }, '时间': { 'zh-TW':'時間', en:'Time', ru:'Время' }, '清除': { 'zh-TW':'清除', en:'Clear', ru:'Очистить' }, '此刻': { 'zh-TW':'此刻', en:'Now', ru:'Сейчас' },
     'Token 显示单位': { 'zh-TW':'Token 顯示單位', en:'Token display unit', ru:'Единица отображения токенов' }, '原始数量': { 'zh-TW':'原始數量', en:'Raw count', ru:'Исходное количество' },
     '千 (×1,000)': { 'zh-TW':'千 (×1,000)', en:'Thousand (×1,000)', ru:'Тысячи (×1,000)' }, 'k (×1,000)': { 'zh-TW':'k (×1,000)', en:'k (×1,000)', ru:'k (×1,000)' }, '万 (×10,000)': { 'zh-TW':'萬 (×10,000)', en:'10 thousand (×10,000)', ru:'Десятки тысяч (×10,000)' }, 'w (×10,000)': { 'zh-TW':'w (×10,000)', en:'w (×10,000)', ru:'w (×10,000)' }, '百万 (×1,000,000)': { 'zh-TW':'百萬 (×1,000,000)', en:'Million (×1,000,000)', ru:'Миллионы (×1,000,000)' }, 'm (×1,000,000)': { 'zh-TW':'m (×1,000,000)', en:'m (×1,000,000)', ru:'m (×1,000,000)' },
@@ -4268,10 +4268,11 @@
     const used = Number(authQuotaValue(window, 'used_ratio'));
     const remaining = Number(authQuotaValue(window, 'remaining_ratio'));
     const known = Number.isFinite(used) || Number.isFinite(remaining);
-    const ratio = Number.isFinite(used) ? used : (Number.isFinite(remaining) ? 1 - remaining : 0);
-    const percent = Math.round(Math.max(0, Math.min(100, ratio * 100)));
-    const tone = percent >= 90 ? 'danger' : (percent >= 70 ? 'warn' : '');
-    return { known, percent, tone };
+    const remainingRatio = Number.isFinite(remaining) ? remaining : (Number.isFinite(used) ? 1 - used : 0);
+    const remainingPercent = Math.round(Math.max(0, Math.min(100, remainingRatio * 100)));
+    const usedPercent = Math.round(Math.max(0, Math.min(100, (1 - remainingRatio) * 100)));
+    const tone = remainingPercent >= 70 ? '' : (remainingPercent >= 30 ? 'warn' : 'danger');
+    return { known, percent: usedPercent, remainingPercent, tone };
   }
 
   function authQuotaTimeMs(value) {
@@ -4403,19 +4404,200 @@
     return t(period);
   }
 
-  function authQuotaDisplayWindows(windows, selected, cycleWindows, now) {
+  function authQuotaLatestByIdentity(windows, now) {
+    const latest = {};
+    (Array.isArray(windows) ? windows : []).forEach(window => {
+      const id = authQuotaWindowIdentity(window);
+      const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+      const prev = latest[id];
+      if (!prev) {
+        latest[id] = window;
+        return;
+      }
+      const prevReset = authQuotaTimeMs(authQuotaValue(prev, 'resets_at'));
+      const windowCurrent = authQuotaWindowCurrent(window, now);
+      const prevCurrent = authQuotaWindowCurrent(prev, now);
+      if (windowCurrent !== prevCurrent) {
+        if (windowCurrent) latest[id] = window;
+        return;
+      }
+      if (Number.isFinite(reset) && (!Number.isFinite(prevReset) || reset > prevReset)) latest[id] = window;
+    });
+    return Object.keys(latest).map(key => latest[key]);
+  }
+
+  function authQuotaProviderKind(provider) {
+    const key = String(provider || '').trim().toLowerCase();
+    if (key === 'antigravity' || key === 'google' || key === 'gemini') return 'antigravity';
+    if (key === 'codex' || key === 'openai' || key === 'chatgpt') return 'codex';
+    if (key === 'claude' || key === 'anthropic') return 'claude';
+    if (key === 'xai' || key === 'grok') return 'xai';
+    if (key === 'kimi' || key === 'moonshot') return 'kimi';
+    return 'generic';
+  }
+
+  function authQuotaDisplayWindows(windows, selected, cycleWindows, now, kind) {
     const list = Array.isArray(windows) ? windows : [];
     const timestamp = Number.isFinite(now) ? now : Date.now();
     const allCycles = list.filter(authQuotaIsCycleWindow);
     const cycles = Array.isArray(cycleWindows) ? cycleWindows : authQuotaPrimaryCycleWindows(list, timestamp);
     const primary = new Set(cycles);
-    const fiveHour = list.filter(authQuotaIsFiveHour);
-    const companions = allCycles.filter(window => !primary.has(window) && authQuotaWindowCurrent(window, timestamp));
     const selectedCycles = cycles.filter(window => authQuotaWeekKey(window) === selected);
-    const displayedCycles = selectedCycles.some(window => authQuotaWindowCurrent(window, timestamp)) ? cycles.filter(window => authQuotaWindowCurrent(window, timestamp)) : selectedCycles;
-    if (fiveHour.length || companions.length || cycles.length) return fiveHour.concat(companions, displayedCycles);
+    const viewingCurrent = !selected || selectedCycles.some(window => authQuotaWindowCurrent(window, timestamp));
+    const displayedCycles = viewingCurrent
+      ? authQuotaLatestByIdentity(cycles.filter(window => authQuotaWindowCurrent(window, timestamp)), timestamp)
+      : selectedCycles;
+    const fiveHour = viewingCurrent
+      ? authQuotaLatestByIdentity(list.filter(authQuotaIsFiveHour), timestamp)
+      : [];
+    const companions = viewingCurrent
+      ? authQuotaLatestByIdentity(allCycles.filter(window => !primary.has(window) && authQuotaWindowCurrent(window, timestamp)), timestamp)
+      : [];
+    const core = fiveHour.length || companions.length || displayedCycles.length ? fiveHour.concat(companions, displayedCycles) : [];
+    const extra = list.filter(window => {
+      const id = String(authQuotaValue(window, 'id') || '').toLowerCase();
+      if (kind === 'xai') return authQuotaIsExcluded(window);
+      if (kind === 'claude') return id === 'extra_usage';
+      return false;
+    });
+    const extraLatest = extra.length ? authQuotaLatestByIdentity(extra, timestamp) : [];
+    if (core.length || extraLatest.length) return core.concat(extraLatest);
     const rest = list.filter(window => !authQuotaIsExcluded(window));
     return rest.length ? rest : list;
+  }
+
+  function authQuotaGroupKey(window) {
+    const scopeID = String(authQuotaValue(window, 'scope_id') || '').trim();
+    if (scopeID) return 'scope:' + scopeID;
+    const label = String(authQuotaValue(window, 'label') || '').trim();
+    if (label) return 'label:' + label;
+    return 'id:' + authQuotaWindowIdentity(window);
+  }
+
+  function authQuotaGroupedWindows(windows) {
+    const groups = [];
+    const index = {};
+    (Array.isArray(windows) ? windows : []).forEach(window => {
+      const key = authQuotaGroupKey(window);
+      if (!index[key]) {
+        index[key] = { key, label: authQuotaText(authQuotaValue(window, 'label')), items: [] };
+        groups.push(index[key]);
+      }
+      index[key].items.push(window);
+    });
+    groups.forEach(group => {
+      group.items.sort((a, b) => Number(authQuotaIsFiveHour(a) ? 0 : 1) - Number(authQuotaIsFiveHour(b) ? 0 : 1));
+    });
+    return groups;
+  }
+
+  function authQuotaGroupTitle(label) {
+    const key = String(label || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    if (key === 'gemini models') return t('Gemini 模型');
+    if (key === 'claude and gpt models') return t('Claude 和 GPT 模型');
+    return authQuotaText(label);
+  }
+
+  function authQuotaWindowRowName(window, kind, grouped) {
+    const id = String(authQuotaValue(window, 'id') || '');
+    const label = authQuotaText(authQuotaValue(window, 'label'));
+    if (kind === 'antigravity' || grouped) {
+      if (authQuotaIsFiveHour(window)) return t('5 小时限额');
+      if (authQuotaIsWeekly(window)) return t('周限额');
+    }
+    if (kind === 'codex') {
+      if (/code-review|code review/i.test(id + ' ' + label)) {
+        if (authQuotaIsFiveHour(window)) return t('代码审查 5 小时限额');
+        if (authQuotaIsWeekly(window)) return t('代码审查周限额');
+      }
+      if (authQuotaIsFiveHour(window) || /primary/i.test(id + ' ' + label)) return t('5 小时限额');
+      if (authQuotaIsWeekly(window) || /secondary/i.test(id + ' ' + label)) return t('周限额');
+    }
+    if (kind === 'claude') {
+      const names = {
+        five_hour: t('5 小时限额'),
+        seven_day: t('7 天限额'),
+        seven_day_oauth_apps: t('7 天 OAuth 应用'),
+        seven_day_opus: t('7 天 Opus'),
+        seven_day_sonnet: t('7 天 Sonnet'),
+        seven_day_cowork: t('7 天 Cowork'),
+        iguana_necktie: 'Iguana Necktie',
+        extra_usage: t('额外用量')
+      };
+      if (names[id]) return names[id];
+    }
+    if (kind === 'xai') {
+      if (id === 'weekly') return t('周限额');
+      if (id === 'monthly') return t('月额度');
+      if (id === 'on-demand' || id.includes('on-demand')) return t('按量付费');
+      if (String(authQuotaValue(window, 'scope') || '') === 'product') return label + ' 使用';
+    }
+    if (grouped) {
+      const period = authQuotaPeriodLabel(window);
+      if (period) return t(period);
+    }
+    return label;
+  }
+
+  function authQuotaRefreshDuration(ms) {
+    const minutes = Math.max(1, Math.ceil(ms / 60000));
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    const mins = minutes % 60;
+    if (days > 0) return days + ' ' + t('天') + ' ' + hours + ' ' + t('小时');
+    if (hours > 0) return hours + ' ' + t('小时') + ' ' + mins + ' ' + t('分钟');
+    if (mins > 0) return mins + ' ' + t('分钟');
+    return t('小于 1 分钟');
+  }
+
+  function authQuotaResetRelative(window, kind) {
+    const reset = authQuotaTimeMs(authQuotaValue(window, 'resets_at'));
+    if (!Number.isFinite(reset)) return '';
+    const delta = reset - Date.now();
+    if (kind === 'antigravity') return delta <= 0 ? t('可刷新') : authQuotaRefreshDuration(delta) + ' ' + t('后刷新');
+    if (delta <= 0) return t('可刷新');
+    const minutes = Math.max(1, Math.ceil(delta / 60000));
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+    const mins = minutes % 60;
+    const relative = days > 0 ? days + t('天') + t('后') : (hours > 0 ? hours + t('小时') + t('后') : mins + t('分钟') + t('后'));
+    return authQuotaShortTime(authQuotaValue(window, 'resets_at')) + ' · ' + relative;
+  }
+
+  function authQuotaRemainingLabel(ratio, window, kind) {
+    if (kind === 'xai' && authQuotaIsExcluded(window)) {
+      const used = Number(authQuotaValue(window, 'used'));
+      const limit = Number(authQuotaValue(window, 'limit'));
+      const remaining = Number(authQuotaValue(window, 'remaining'));
+      const left = Number.isFinite(remaining) ? remaining : (Number.isFinite(limit) && Number.isFinite(used) ? Math.max(0, limit - used) : NaN);
+      if (Number.isFinite(left) && Number.isFinite(limit)) return formatMoney(left * 1e6) + ' / ' + formatMoney(limit * 1e6);
+      if (Number.isFinite(left)) return formatMoney(left * 1e6);
+    }
+    if (kind === 'claude' && String(authQuotaValue(window, 'id') || '') === 'extra_usage') {
+      const used = Number(authQuotaValue(window, 'used'));
+      const limit = Number(authQuotaValue(window, 'limit'));
+      if (Number.isFinite(used) && Number.isFinite(limit)) return '$' + (used / 100).toFixed(2) + ' / $' + (limit / 100).toFixed(2);
+    }
+    if (!ratio.known) return '—';
+    if (kind === 'antigravity') {
+      if (ratio.remainingPercent >= 100) return t('额度可用');
+      return t('剩余') + ' ' + ratio.remainingPercent + '%';
+    }
+    if (kind === 'xai') return t('已用') + ' ' + ratio.percent + '%';
+    return ratio.remainingPercent + '%';
+  }
+
+  function renderAuthQuotaWindowCard(window, kind, grouped) {
+    const ratio = authQuotaRatio(window);
+    const label = authQuotaText(authQuotaValue(window, 'label'));
+    const name = authQuotaWindowRowName(window, kind, grouped);
+    const progress = authQuotaRemainingLabel(ratio, window, kind);
+    const progressClass = ratio.known ? ratio.tone : 'unknown';
+    const resetText = authQuotaResetRelative(window, kind);
+    return '<section class="auth-quota-window-card">'+
+      '<div class="auth-quota-window-head"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(name)+'</div><div class="auth-quota-window-meta"><span class="auth-quota-window-pct">'+esc(progress)+'</span>'+(resetText ? '<span class="auth-quota-window-reset" title="'+esc(t('重置时间')+' '+authQuotaTime(authQuotaValue(window, 'resets_at')))+'">'+esc(resetText)+'</span>' : '')+'</div></div>'+
+      '<div class="auth-quota-bar '+progressClass+'" style="--quota-progress:'+ratio.remainingPercent+'%" role="progressbar" aria-valuemin="0" aria-valuemax="100"'+(ratio.known ? ' aria-valuenow="'+ratio.remainingPercent+'"' : '')+' aria-label="'+esc(label)+' '+progress+'"></div>'+
+      '</section>';
   }
 
   function authQuotaWeekKey(window) {
@@ -4655,19 +4837,17 @@
       const status = authQuotaValue(item, 'status');
       const badge = authQuotaBadge(status);
       const error = authQuotaValue(item, 'error') ?? authQuotaValue(item, 'last_error');
-      const visible = authQuotaDisplayWindows(windows, selected, cycleWindows, now);
-      const cards = visible.length ? visible.map(window => {
-        const ratio = authQuotaRatio(window);
-        const label = authQuotaText(authQuotaValue(window, 'label'));
-        const period = authQuotaPeriodBadge(window, label);
-        const progress = ratio.known ? t('已用')+' '+ratio.percent+'%' : '—';
-        const progressClass = ratio.known ? ratio.tone : 'unknown';
-        return '<section class="auth-quota-window-card">'+
-          '<div class="auth-quota-window-head"><div class="auth-quota-window-name" title="'+esc(label)+'">'+esc(label)+(period ? '<span class="auth-quota-period">'+esc(period)+'</span>' : '')+'</div><span class="auth-quota-window-reset" title="'+esc(t('重置时间')+' '+authQuotaTime(authQuotaValue(window, 'resets_at')))+'">'+esc(authQuotaShortTime(authQuotaValue(window, 'resets_at')))+'</span><span class="auth-quota-window-pct">'+esc(progress)+'</span></div>'+
-          '<div class="auth-quota-bar '+progressClass+'" style="--quota-progress:'+ratio.percent+'%" role="progressbar" aria-valuemin="0" aria-valuemax="100"'+(ratio.known ? ' aria-valuenow="'+ratio.percent+'"' : '')+' aria-label="'+esc(label)+' '+progress+'"></div>'+
-          '</section>';
+      const kind = authQuotaProviderKind(authQuotaValue(item, 'provider'));
+      const visible = authQuotaDisplayWindows(windows, selected, cycleWindows, now, kind);
+      const groups = kind === 'antigravity' ? authQuotaGroupedWindows(visible) : visible.map(window => ({ label: authQuotaText(authQuotaValue(window, 'label')), items: [window] }));
+      const cards = visible.length ? groups.map(group => {
+        const grouped = kind === 'antigravity' && group.items.length > 1;
+        const rows = group.items.map(window => renderAuthQuotaWindowCard(window, kind, grouped)).join('');
+        if (!grouped) return rows;
+        const title = authQuotaGroupTitle(group.label);
+        return '<section class="auth-quota-group"><h3 class="auth-quota-group-title" title="'+esc(title)+'">'+esc(title)+'</h3>'+rows+'</section>';
       }).join('') : '<div class="empty-state">'+esc(t('该配额窗口暂无窗口'))+'</div>';
-      const selectedPrimaryCycles = cycleWindows.filter(window => authQuotaWeekKey(window) === selected);
+      const selectedPrimaryCycles = visible.filter(window => authQuotaIsCycleWindow(window));
       const costs = authQuotaCostForecast(selectedPrimaryCycles.length ? selectedPrimaryCycles : visible);
       const selectedWeek = weeks.find(week => week.key === selected) || weeks[0];
       const weekSelect = weeks.length
