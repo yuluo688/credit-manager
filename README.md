@@ -148,7 +148,7 @@ curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
 | `monthly_quota_micro_usd` | UTC 自然月消费额度 |
 | `max_concurrent_requests` | 同时处于预占状态的最大请求数 |
 | `allowed_models` | 空数组代表全部模型；否则为 exact/glob 模式 |
-| `expires_at` | 可选 RFC3339 过期时间 |
+| `expires_at` | 可选 RFC3339 过期时间；管理台创建或编辑密钥时可设置，到期后立即拒绝新请求 |
 | `unmatched_models_mode` | 设为 `disabled` 时，未匹配模型 Token 规则的模型不可用 |
 
 周期额度计算为已结算费用加在途预占。请求会先按保守 Token 上限或出图张数预占，随后按真实 usage 结算。实际结算可能超过预占，此时余额可为负；之后请求会 fail-closed，直到额度恢复。

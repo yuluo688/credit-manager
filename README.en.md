@@ -148,7 +148,7 @@ Every Key supports the following independent fields. `0` or an omitted value mea
 | `monthly_quota_micro_usd` | UTC calendar-month spend limit |
 | `max_concurrent_requests` | Maximum number of concurrently held requests |
 | `allowed_models` | Empty array permits every model; otherwise exact/glob patterns |
-| `expires_at` | Optional RFC3339 expiration time |
+| `expires_at` | Optional RFC3339 expiration time; set it in the console when creating or editing a key. New requests are rejected after expiry |
 | `unmatched_models_mode` | With `disabled`, models without a matching Token rule are unavailable |
 
 Period limits include settled spend and active reservations. A request first reserves a conservative Token or image amount, then settles from actual usage. Actual settlement can exceed the reservation, yielding a negative balance; later requests fail closed until the limit is restored.

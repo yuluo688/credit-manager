@@ -99,6 +99,22 @@
                     <span class="key-switch-ui" aria-hidden="true"></span>
                   </span>
                 </label>
+                <div class="key-expiry-field" id="keyModalExpiryField">
+                  <div class="key-expiry-copy">
+                    <strong>有效期</strong>
+                    <span id="keyModalExpiresHint"></span>
+                  </div>
+                  <div class="token-limit-mode key-expiry-presets" id="keyModalExpiryPresets" role="group" aria-label="有效期">
+                    <button type="button" data-expiry-preset="never" class="active">长期</button>
+                    <button type="button" data-expiry-preset="7">7 天</button>
+                    <button type="button" data-expiry-preset="30">30 天</button>
+                    <button type="button" data-expiry-preset="90">90 天</button>
+                    <button type="button" data-expiry-preset="custom">指定</button>
+                  </div>
+                </div>
+                <label id="keyModalExpiresWrap" class="key-expiry-picker">到期时间
+                  <input id="keyModalExpiresAt" type="datetime-local"/>
+                </label>
                 <label>日额度（USD）
                   <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
                 </label>

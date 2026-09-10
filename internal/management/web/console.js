@@ -34,6 +34,7 @@
     '密钥已启用': { 'zh-TW':'密鑰已啟用', en:'Key enabled', ru:'Ключ включён' },
     '密钥已禁用': { 'zh-TW':'密鑰已停用', en:'Key disabled', ru:'Ключ отключён' },
     '总额度（USD）': { 'zh-TW':'總額度（USD）', en:'Total quota (USD)', ru:'Общий лимит (USD)' }, '日额度（USD）': { 'zh-TW':'日額度（USD）', en:'Daily quota (USD)', ru:'Дневной лимит (USD)' }, '周额度（USD）': { 'zh-TW':'週額度（USD）', en:'Weekly quota (USD)', ru:'Недельный лимит (USD)' }, '月额度（USD）': { 'zh-TW':'月額度（USD）', en:'Monthly quota (USD)', ru:'Месячный лимит (USD)' }, '最大并发请求数': { 'zh-TW':'最大併發請求數', en:'Max concurrent requests', ru:'Макс. параллельных запросов' },
+    '有效期': { 'zh-TW':'有效期', en:'Expiry', ru:'Срок' }, '长期': { 'zh-TW':'長期', en:'None', ru:'Нет' }, '长期有效': { 'zh-TW':'長期有效', en:'No expiry', ru:'Бессрочно' }, '指定': { 'zh-TW':'指定', en:'Custom', ru:'Своя' }, '7 天': { 'zh-TW':'7 天', en:'7 days', ru:'7 дней' }, '30 天': { 'zh-TW':'30 天', en:'30 days', ru:'30 дней' }, '90 天': { 'zh-TW':'90 天', en:'90 days', ru:'90 дней' }, '指定时间': { 'zh-TW':'指定時間', en:'Custom time', ru:'Своя дата' }, '到期时间': { 'zh-TW':'到期時間', en:'Expires at', ru:'Истекает' }, '不填则长期有效': { 'zh-TW':'不填則長期有效', en:'Leave empty for no expiry', ru:'Пусто — без срока' }, '到期后立即拒绝新请求': { 'zh-TW':'到期後立即拒絕新請求', en:'New requests are rejected after expiry', ru:'После истечения новые запросы отклоняются' }, '已过期': { 'zh-TW':'已過期', en:'Expired', ru:'Истёк' }, '已过期，新请求会被拒绝': { 'zh-TW':'已過期，新請求會被拒絕', en:'Expired; new requests are rejected', ru:'Срок истёк; новые запросы отклоняются' }, '不到 1 小时后到期': { 'zh-TW':'不到 1 小時後到期', en:'Expires in under 1 hour', ru:'Истекает меньше чем через час' }, '还有': { 'zh-TW':'還有', en:'in', ru:'через' }, '天': { 'zh-TW':'天', en:'days', ru:'дн.' }, '已于': { 'zh-TW':'已於', en:'Expired', ru:'Истёк' }, '过期': { 'zh-TW':'過期', en:'expired', ru:'истёк' }, '到期': { 'zh-TW':'到期', en:'expires', ru:'до' }, '请选择到期时间': { 'zh-TW':'請選擇到期時間', en:'Choose an expiry time', ru:'Выберите срок' }, '轮换后沿用当前有效期': { 'zh-TW':'輪換後沿用目前有效期', en:'Rotation keeps the current expiry', ru:'Ротация сохраняет текущий срок' },
     '按密钥设置额度、启停状态、可用模型和 Token 数量限制。': { 'zh-TW':'依密鑰設定額度、啟停狀態、可用模型和 Token 數量限制。', en:'Set spend limits, status, model access, and token caps for each key.', ru:'Настройте лимиты, статус, модели и потолки токенов для каждого ключа.' },
     '模型 Token 限制': { 'zh-TW':'模型 Token 限制', en:'Model token limits', ru:'Лимиты токенов модели' }, '按模型设置日/周/月数量': { 'zh-TW':'依模型設定日/週/月數量', en:'Daily, weekly, and monthly caps per model', ru:'Дневные, недельные и месячные лимиты по модели' },
     '为指定模型设置总/日/周/月上限': { 'zh-TW':'為指定模型設定總/日/週/月上限', en:'Set total, daily, weekly, and monthly caps for selected models', ru:'Задайте общий, дневной, недельный и месячный лимиты для выбранных моделей' },
@@ -410,6 +411,7 @@
       const rotating = $('keyModalMode') && $('keyModalMode').value === 'rotate';
       renderKeyTokenLimits(collectModelTokenLimits(), rotating);
       setUnmatchedModelsMode(unmatchedModelsMode(), rotating);
+      syncKeyExpiryHint();
     }
   }
 
@@ -1023,6 +1025,116 @@
     if (!value) return null;
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function parseExpiresAt(value) {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function formatExpiryWhen(date) {
+    return date.getFullYear() + '-' + padDatePart(date.getMonth() + 1) + '-' + padDatePart(date.getDate()) + ' ' +
+      padDatePart(date.getHours()) + ':' + padDatePart(date.getMinutes());
+  }
+
+  function formatExpiryRelative(date) {
+    const ms = date.getTime() - Date.now();
+    if (ms <= 0) return t('已过期，新请求会被拒绝');
+    const hour = 60 * 60 * 1000;
+    const day = 24 * hour;
+    if (ms < hour) return t('不到 1 小时后到期');
+    if (ms < day) return t('还有') + ' ' + Math.ceil(ms / hour) + ' ' + t('小时');
+    return t('还有') + ' ' + Math.ceil(ms / day) + ' ' + t('天');
+  }
+
+  function expiryPresetForDate(date) {
+    if (!date) return 'never';
+    const delta = date.getTime() - Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const match = [7, 30, 90].find(days => Math.abs(delta - days * day) < 2 * 60 * 1000);
+    return match ? String(match) : 'custom';
+  }
+
+  function currentExpiryPreset() {
+    const active = document.querySelector('#keyModalExpiryPresets [data-expiry-preset].active');
+    return (active && active.dataset.expiryPreset) || 'never';
+  }
+
+  function syncKeyExpiryHint() {
+    const field = $('keyModalExpiryField');
+    const hint = $('keyModalExpiresHint');
+    const date = parseDateTimeLocal($('keyModalExpiresAt').value);
+    const preset = currentExpiryPreset();
+    const rotating = $('keyModalMode') && $('keyModalMode').value === 'rotate';
+    field.classList.remove('is-expired', 'is-soon');
+    if (rotating) {
+      hint.textContent = t('轮换后沿用当前有效期');
+      if (date && date.getTime() <= Date.now()) field.classList.add('is-expired');
+      else if (date && date.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000) field.classList.add('is-soon');
+      return;
+    }
+    if (preset === 'never' || !date) {
+      hint.textContent = '';
+      return;
+    }
+    const expired = date.getTime() <= Date.now();
+    const soon = !expired && date.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
+    if (expired) field.classList.add('is-expired');
+    else if (soon) field.classList.add('is-soon');
+    hint.textContent = expired ? t('已过期') : formatExpiryRelative(date);
+  }
+
+  function setKeyExpiryDisabled(disabled) {
+    $('keyModalExpiryPresets').classList.toggle('is-disabled', Boolean(disabled));
+    $('keyModalExpiresAt').disabled = Boolean(disabled);
+    document.querySelectorAll('#keyModalExpiryPresets [data-expiry-preset]').forEach(btn => { btn.disabled = Boolean(disabled); });
+  }
+
+  function setKeyExpiryPreset(preset, applyValue) {
+    const next = preset || 'never';
+    document.querySelectorAll('#keyModalExpiryPresets [data-expiry-preset]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.expiryPreset === next);
+    });
+    const field = $('keyModalExpiryField');
+    field.classList.toggle('is-never', next === 'never');
+    if (next === 'never') {
+      if (applyValue) $('keyModalExpiresAt').value = '';
+    } else if (applyValue && next !== 'custom') {
+      const date = new Date();
+      date.setDate(date.getDate() + Number(next));
+      $('keyModalExpiresAt').value = formatDateTimeLocal(date);
+    }
+    refreshCustomControl($('keyModalExpiresAt'));
+    syncKeyExpiryHint();
+  }
+
+  function syncKeyExpiryFromKey(key) {
+    const date = parseExpiresAt(key && key.expires_at);
+    if (!date) {
+      setKeyExpiryPreset('never', true);
+      return;
+    }
+    $('keyModalExpiresAt').value = formatDateTimeLocal(date);
+    setKeyExpiryPreset(expiryPresetForDate(date), false);
+  }
+
+  function collectKeyExpiryPayload() {
+    const preset = currentExpiryPreset();
+    const date = parseDateTimeLocal($('keyModalExpiresAt').value);
+    if (preset === 'never' || !date) return { clear_expires_at: true };
+    return { expires_at: date.toISOString(), clear_expires_at: false };
+  }
+
+  function keyExpiryMeta(key) {
+    const date = parseExpiresAt(key && key.expires_at);
+    if (!date) return '';
+    const expired = date.getTime() <= Date.now();
+    const soon = !expired && date.getTime() - Date.now() < 7 * 24 * 60 * 60 * 1000;
+    const tone = expired ? 'is-expired' : (soon ? 'is-soon' : '');
+    const when = formatExpiryWhen(date);
+    const text = expired ? (t('已于') + ' ' + when + ' ' + t('过期')) : (when + ' ' + t('到期') + ' · ' + formatExpiryRelative(date));
+    return '<div class="key-expiry-meta '+tone+'">'+esc(text)+'</div>';
   }
 
   function dispatchControlChange(control) {
@@ -2311,35 +2423,39 @@
     const quotaBlock = (k) => {
       const quota = Number(k.quota_micro_usd || 0);
       const used = Number(k.settled_spend_micro_usd || 0);
-      const periodLimits = '<span class="quota-periods">' +
-        '<span><span>日</span> '+esc(limitText(k.daily_quota_micro_usd))+'</span>' +
-        '<span><span>周</span> '+esc(limitText(k.weekly_quota_micro_usd))+'</span>' +
-        '<span><span>月</span> '+esc(limitText(k.monthly_quota_micro_usd))+'</span>' +
-        '<span><span>并发</span> '+esc(Number(k.max_concurrent_requests || 0) || t('不限制'))+'</span>' +
-        '</span>';
+      const periods = [];
+      if (Number(k.daily_quota_micro_usd || 0) > 0) periods.push('<span><span>'+esc(t('日'))+'</span> '+esc(limitText(k.daily_quota_micro_usd))+'</span>');
+      if (Number(k.weekly_quota_micro_usd || 0) > 0) periods.push('<span><span>'+esc(t('周'))+'</span> '+esc(limitText(k.weekly_quota_micro_usd))+'</span>');
+      if (Number(k.monthly_quota_micro_usd || 0) > 0) periods.push('<span><span>'+esc(t('月'))+'</span> '+esc(limitText(k.monthly_quota_micro_usd))+'</span>');
+      if (Number(k.max_concurrent_requests || 0) > 0) periods.push('<span><span>'+esc(t('并发'))+'</span> '+esc(String(k.max_concurrent_requests))+'</span>');
+      const periodLimits = periods.length ? '<span class="quota-periods">' + periods.join('') + '</span>' : '';
       if (quota <= 0) {
         return '<div class="quota-cell">' +
-          '<div class="quota-line"><strong>不限制</strong><span class="muted">限额</span></div>' +
-          '<div class="quota-bar"><span style="width:0%"></span></div>' + periodLimits +
+          '<div class="quota-line"><strong>'+esc(t('不限制'))+'</strong><span class="muted">'+esc(t('限额'))+'</span></div>' +
+          periodLimits +
           '</div>';
       }
       const pct = Math.min(100, Math.max(0, (used / quota) * 100));
       const tone = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : '');
       return '<div class="quota-cell">' +
-        '<div class="quota-line"><strong>'+esc(money(quota))+'</strong><span class="muted">限额</span></div>' +
+        '<div class="quota-line"><strong>'+esc(money(quota))+'</strong><span class="muted">'+esc(t('限额'))+'</span></div>' +
         '<div class="quota-bar '+tone+'"><span style="width:'+pct.toFixed(1)+'%"></span></div>' + periodLimits +
         '</div>';
     };
 
     $('keysTable').innerHTML = '<div class="table-scroll"><table class="keys-table"><thead><tr><th class="key-select-column"><label class="key-select" title="'+esc(t('全选密钥'))+'"><input type="checkbox" data-select-all-keys aria-label="'+esc(t('全选密钥'))+'"/><span class="key-select-ui" aria-hidden="true"></span></label></th><th>标签</th><th>可用模型</th><th>密钥限额</th><th>已用 / 剩余</th><th>状态</th><th>操作</th></tr></thead><tbody>' +
       state.keys.map(k => {
+        const expired = parseExpiresAt(k.expires_at) && parseExpiresAt(k.expires_at).getTime() <= Date.now();
         const st = k.revoked_at
           ? '<span class="badge bad">已删除</span>'
           : '<label class="key-switch" title="'+esc(k.enabled ? t('启用') : t('禁用'))+'"><input type="checkbox" role="switch" data-enable-key="'+esc(k.id)+'" aria-label="'+esc(t('启用'))+'"'+(k.enabled ? ' checked' : '')+'/><span class="key-switch-ui" aria-hidden="true"></span></label>';
         const selected = state.selectedKeyIDs.has(k.id);
-        return '<tr'+(selected ? ' class="is-selected"' : '')+'>' +
-          '<td class="key-select-cell"><label class="key-select"><input type="checkbox" data-select-key="'+esc(k.id)+'" aria-label="'+esc(k.label || t('选择密钥'))+'"'+(selected ? ' checked' : '')+'/><span class="key-select-ui" aria-hidden="true"></span></label></td>' +
-          '<td><div class="key-label"><strong title="'+esc(k.label||'(无标签)')+'">'+esc(k.label||'(无标签)')+'</strong></div></td>' +
+        const label = k.label || t('(无标签)');
+        const rowClass = [selected ? 'is-selected' : '', expired && !k.revoked_at ? 'is-expired' : ''].filter(Boolean).join(' ');
+        const labelMeta = (k.label ? '' : (k.fingerprint ? '<div class="mono" title="'+esc(k.fingerprint)+'">'+esc(k.fingerprint)+'</div>' : '')) + keyExpiryMeta(k);
+        return '<tr'+(rowClass ? ' class="'+rowClass+'"' : '')+'>' +
+          '<td class="key-select-cell"><label class="key-select"><input type="checkbox" data-select-key="'+esc(k.id)+'" aria-label="'+esc(label)+'"'+(selected ? ' checked' : '')+'/><span class="key-select-ui" aria-hidden="true"></span></label></td>' +
+          '<td><div class="key-label"><strong title="'+esc(label)+'">'+esc(label)+'</strong>'+labelMeta+'</div></td>' +
            '<td>'+modelChips(k.allowed_models, k.model_token_limits, k.unmatched_models_mode)+'</td>' +
           '<td>'+quotaBlock(k)+'</td>' +
           '<td><div class="spend-cell"><span class="primary">'+esc(money(k.settled_spend_micro_usd))+'</span><span class="secondary"><span>剩余</span> '+(Number(k.quota_micro_usd||0) <= 0 ? t('不限制') : esc(money(k.remaining_micro_usd)))+'</span></div></td>' +
@@ -2991,6 +3107,8 @@
     $('keyModalWeeklyQuotaUSD').disabled = isRotation;
     $('keyModalMonthlyQuotaUSD').disabled = isRotation;
     $('keyModalMaxConcurrent').disabled = isRotation;
+    syncKeyExpiryFromKey(key);
+    setKeyExpiryDisabled(isRotation);
     $('keyModalModels').disabled = isRotation;
     $('btnKeyModalAllowAllModels').disabled = isRotation;
     $('keyModalTokenLimitModel').disabled = isRotation;
@@ -3076,6 +3194,10 @@
       throw new Error('最大并发请求数必须是非负整数');
     }
     let result;
+    const expiry = mode === 'rotate' ? {} : collectKeyExpiryPayload();
+    if (mode !== 'rotate' && currentExpiryPreset() !== 'never' && !expiry.expires_at) {
+      throw new Error(t('请选择到期时间'));
+    }
     if (mode === 'create') {
       result = await api('POST', 'credit-manager/keys', {
         label: $('keyModalLabel').value.trim(),
@@ -3087,6 +3209,7 @@
         enabled: $('keyModalEnabled').checked,
         allowed_models: selectedKeyModels(),
         ...collectKeyTokenLimitPayload(),
+        ...expiry,
         key_material: keyMaterial,
       });
     } else if (mode === 'manage') {
@@ -3103,6 +3226,7 @@
         allowed_models: selectedKeyModels(),
         set_model_token_limits: true,
         ...collectKeyTokenLimitPayload(),
+        ...expiry,
       });
     } else {
       result = await api('POST', 'credit-manager/keys/rotate', { id, key_material: keyMaterial });
@@ -5329,6 +5453,17 @@
   });
   $('btnSubmitKeyModal').addEventListener('click', async () => {
     try { await submitKeyModal(); } catch (e) { flash(e.message, false); }
+  });
+  document.querySelectorAll('#keyModalExpiryPresets [data-expiry-preset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      setKeyExpiryPreset(btn.dataset.expiryPreset, true);
+    });
+  });
+  $('keyModalExpiresAt').addEventListener('input', () => {
+    if ($('keyModalExpiresAt').disabled) return;
+    if ($('keyModalExpiresAt').value) setKeyExpiryPreset('custom', false);
+    else setKeyExpiryPreset('never', false);
   });
   $('btnLoadModelPrices').addEventListener('click', async () => {
     try { await loadModelPrices(); } catch (e) { $('modelPriceStatus').textContent = '同步失败：' + e.message; flash(e.message, false); }

@@ -768,6 +768,44 @@ func TestConsoleKeyEnabledSwitch(t *testing.T) {
 	}
 }
 
+func TestConsoleKeyExpiry(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		`id="keyModalExpiryField"`,
+		`id="keyModalExpiresAt" type="datetime-local"`,
+		`data-expiry-preset="never"`,
+		`data-expiry-preset="7"`,
+		`data-expiry-preset="30"`,
+		`data-expiry-preset="90"`,
+		`data-expiry-preset="custom"`,
+		"function setKeyExpiryPreset",
+		"function collectKeyExpiryPayload",
+		"function keyExpiryMeta",
+		"clear_expires_at",
+		"expires_at",
+		"长期有效",
+		"到期后立即拒绝新请求",
+		`id="keyModalExpiresWrap"`,
+		`data-expiry-preset="never" class="active">长期`,
+		">指定</button>",
+		"到期时间",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing key expiry controls: %q", text)
+		}
+	}
+	lookup := string(lookupPage().Body)
+	for _, text := range []string{
+		`id="keyExpiry"`,
+		"function formatLookupExpiry",
+		"key.expires_at",
+	} {
+		if !strings.Contains(lookup, text) {
+			t.Fatalf("lookup page is missing key expiry display: %q", text)
+		}
+	}
+}
+
 func TestConsoleUsesRepoLogo(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
