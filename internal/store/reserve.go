@@ -130,7 +130,8 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	if maxConcurrent > 0 {
 		var active int64
 		if err := tx.QueryRowContext(ctx, `SELECT COUNT(1) FROM reservations
-			WHERE plugin_key_id = ? AND status = 'held'`, request.PluginKeyID).Scan(&active); err != nil {
+			WHERE plugin_key_id = ? AND status = 'held'
+			AND local_execution_finished_at_unix_ms IS NULL`, request.PluginKeyID).Scan(&active); err != nil {
 			return Reservation{}, fmt.Errorf("count active reservations: %w", err)
 		}
 		if active >= maxConcurrent {
@@ -219,7 +220,8 @@ func (s *Store) GetKeyUsageOverview(ctx context.Context, keyID string, now time.
 		return KeyUsageOverview{}, fmt.Errorf("summarize key usage: %w", err)
 	}
 	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM reservations
-		WHERE plugin_key_id = ? AND status = 'held'`, keyID).Scan(&overview.ActiveReservations); err != nil {
+		WHERE plugin_key_id = ? AND status = 'held'
+		AND local_execution_finished_at_unix_ms IS NULL`, keyID).Scan(&overview.ActiveReservations); err != nil {
 		return KeyUsageOverview{}, fmt.Errorf("count active key reservations: %w", err)
 	}
 	nowMilli := now.UTC().UnixMilli()
