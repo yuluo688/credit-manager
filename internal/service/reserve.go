@@ -151,7 +151,9 @@ func (s *Service) TouchReservation(ctx context.Context, reservationID string) er
 }
 
 func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
-	s.FinishAuthCapture(reservation.ID)
+	if err := s.FinishExecution(ctx, reservation.ID); err != nil {
+		return err
+	}
 	metrics = overlayParsedServiceTier(metrics, parsed)
 	if hostUsage, ok := s.CapturedHostUsage(reservation.ID); ok {
 		return s.settleResolvedUsage(ctx, reservation, plan, hostUsage, "host_usage", "host_usage_callback", metrics)

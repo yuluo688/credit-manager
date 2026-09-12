@@ -65,6 +65,7 @@ func execute(raw []byte) ([]byte, error) {
 		return errorEnvelope("limit_rejected", err.Error()), nil
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
+	defer func() { _ = svc.FinishExecution(ctx, reservation.ID) }()
 	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
 		_ = svc.Release(ctx, reservation.ID, "auth_concurrency:"+err.Error())
 		return errorEnvelope("limit_rejected", err.Error()), nil
@@ -144,6 +145,7 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		return err
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
+	defer func() { _ = svc.FinishExecution(ctx, reservation.ID) }()
 	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
 		_ = svc.Release(ctx, reservation.ID, "auth_concurrency:"+err.Error())
 		return err
@@ -167,7 +169,14 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		HostCallbackID: req.HostCallbackID,
 	})
 	if err != nil {
-		_ = svc.Release(ctx, reservation.ID, "upstream_stream_error")
+		if isCancelledHostCall(err) {
+			// Cancellation can happen after upstream work but before its first
+			// chunk. Keep a fallback ledger/capture for any late official usage.
+			_ = svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, req.SourceFormat,
+				usageMetricsFromStream(body, startedAt, time.Time{}, time.Now(), "cancelled"))
+		} else {
+			_ = svc.Release(ctx, reservation.ID, "upstream_stream_error")
+		}
 		return err
 	}
 	var stream pluginapi.HostModelStreamResponse
@@ -193,6 +202,7 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	completedAt := time.Time{}
 	var buffer bytes.Buffer
 	maxBuffer := svc.Config().Stream.MaxBufferBytes
+	terminal := newStreamTerminalDetector(body)
 	for {
 		chunkRaw, errRead := callHost(pluginabi.MethodHostModelStreamRead, pluginapi.HostModelStreamReadRequest{StreamID: stream.StreamID})
 		if errRead != nil {
@@ -217,6 +227,13 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 			return fmt.Errorf("%s", chunk.Error)
 		}
 		if len(chunk.Payload) > 0 {
+			// A client can submit its next turn as soon as it sees the terminal
+			// event, even when upstream EOF or the usage callback arrives later.
+			if terminal.Feed(chunk.Payload) {
+				if err := svc.FinishExecution(ctx, reservation.ID); err != nil {
+					return err
+				}
+			}
 			if buffer.Len() < maxBuffer {
 				remain := min(maxBuffer-buffer.Len(), len(chunk.Payload))
 				_, _ = buffer.Write(chunk.Payload[:remain])
@@ -240,6 +257,14 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 	parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
 	return svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
 		usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "success"))
+}
+
+func isCancelledHostCall(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Errors cross a JSON/C ABI boundary, which does not preserve Go sentinels.
+	return errors.Is(err, context.Canceled) || strings.Contains(strings.ToLower(err.Error()), "context canceled")
 }
 
 func parseExecutorStreamUsage(buf []byte, req rpcExecutorRequest) usageparse.Result {

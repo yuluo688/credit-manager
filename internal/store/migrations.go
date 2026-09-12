@@ -320,6 +320,20 @@ var migrations = []migration{
 	},
 }
 
+// Local extension uses its own migration number so future upstream migrations
+// can still be applied without colliding with the next upstream version.
+func init() {
+	migrations = append(migrations, migration{
+		version: 2026090801,
+		name:    "local request execution completion independent of financial settlement",
+		up: []string{
+			`ALTER TABLE reservations ADD COLUMN local_execution_finished_at_unix_ms INTEGER`,
+			`CREATE INDEX local_reservations_executing_idx ON reservations(plugin_key_id)
+			 WHERE status = 'held' AND local_execution_finished_at_unix_ms IS NULL`,
+		},
+	})
+}
+
 // Migrate applies every pending migration transactionally.
 func Migrate(ctx context.Context, db *sql.DB) error {
 	if _, err := db.ExecContext(ctx, `CREATE TABLE IF NOT EXISTS schema_migrations (
