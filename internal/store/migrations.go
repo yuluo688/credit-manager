@@ -399,6 +399,13 @@ var migrations = []migration{
 			)`,
 		},
 	},
+	{
+		version: 26,
+		name:    "usage ledger upstream response model",
+		up: []string{
+			`ALTER TABLE usage_ledger ADD COLUMN upstream_response_model TEXT`,
+		},
+	},
 }
 
 // Migrate applies every pending migration transactionally.

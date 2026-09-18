@@ -29,6 +29,7 @@ type UsageEntry struct {
 	PluginKeyID           string
 	ExecutorType          string
 	Model                 string
+	UpstreamResponseModel string
 	PricingRuleID         *string
 	Usage                 money.TokenUsage
 	CostMicroUSD          money.MicroUSD
@@ -49,6 +50,22 @@ func (s *Store) UpdateUsageTier(ctx context.Context, ledgerID, tier string) erro
 	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET tier = ? WHERE id = ?`, tier, ledgerID)
 	if err != nil {
 		return fmt.Errorf("update usage tier: %w", err)
+	}
+	return requireOneRow(result, ErrInvalidArgument)
+}
+
+// UpdateUsageUpstreamResponseModel records the actual model supplied by the
+// host usage callback. It replaces a response-body fallback because CPA may
+// rewrite force-mapped response bodies to the client-visible alias.
+func (s *Store) UpdateUsageUpstreamResponseModel(ctx context.Context, ledgerID, model string) error {
+	ledgerID = strings.TrimSpace(ledgerID)
+	model = strings.TrimSpace(model)
+	if ledgerID == "" || model == "" {
+		return fmt.Errorf("%w: ledger id and upstream response model are required", ErrInvalidArgument)
+	}
+	result, err := s.db.ExecContext(ctx, `UPDATE usage_ledger SET upstream_response_model = ? WHERE id = ?`, model, ledgerID)
+	if err != nil {
+		return fmt.Errorf("update upstream response model: %w", err)
 	}
 	return requireOneRow(result, ErrInvalidArgument)
 }
@@ -201,6 +218,20 @@ func ModelsRelated(left, right string) bool {
 	return modelHasPrefix(left, right) || modelHasPrefix(right, left)
 }
 
+// UpstreamResponseModelMismatch reports whether the upstream explicitly
+// declared a different model than the one recorded for the request.
+func UpstreamResponseModelMismatch(requestModel, upstreamResponseModel string) bool {
+	requestModel = strings.TrimSpace(requestModel)
+	upstreamResponseModel = strings.TrimSpace(upstreamResponseModel)
+	return requestModel != "" && upstreamResponseModel != "" && !strings.EqualFold(requestModel, upstreamResponseModel)
+}
+
+// UpstreamResponseModelLikelyVariant identifies a mismatch that differs only
+// by a dated or build suffix, such as a provider's rolling model release.
+func UpstreamResponseModelLikelyVariant(requestModel, upstreamResponseModel string) bool {
+	return UpstreamResponseModelMismatch(requestModel, upstreamResponseModel) && ModelsRelated(requestModel, upstreamResponseModel)
+}
+
 func modelHasPrefix(model, prefix string) bool {
 	if !strings.HasPrefix(model, prefix) || len(model) <= len(prefix) {
 		return false
@@ -308,7 +339,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		limit = 100
 	}
 	query := `SELECT u.id, u.reservation_id, u.caller_id, u.plugin_key_id,
-		COALESCE(u.executor_type, ''), u.model, u.pricing_rule_id,
+		COALESCE(u.executor_type, ''), u.model, COALESCE(u.upstream_response_model, ''), u.pricing_rule_id,
 		u.input_tokens, u.output_tokens, u.reasoning_tokens, u.cached_tokens, u.cache_read_tokens,
 		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd, 0), u.source, u.tier, u.result, u.first_token_latency_ms,
 		u.generation_duration_ms, u.tokens_per_second, u.thinking_intensity,
@@ -336,7 +367,7 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		var tokensPerSecond sql.NullFloat64
 		var tier, resultLabel, thinkingIntensity sql.NullString
 		if err := rows.Scan(&entry.ID, &entry.ReservationID, &entry.CallerID, &entry.PluginKeyID,
-			&entry.ExecutorType, &entry.Model, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
+			&entry.ExecutorType, &entry.Model, &entry.UpstreamResponseModel, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
 			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.Usage.ReportedTotal, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source, &tier,
 			&resultLabel, &firstTokenLatency, &generationDuration, &tokensPerSecond, &thinkingIntensity,
 			&entry.Auth.AuthID, &entry.Auth.AuthIndex, &entry.Auth.Name, &entry.Auth.Label,

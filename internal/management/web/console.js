@@ -170,6 +170,7 @@
     '生成时间': { 'zh-TW':'生成時間', en:'Generation time', ru:'Время генерации' }, '思考强度': { 'zh-TW':'思考強度', en:'Thinking intensity', ru:'Интенсивность мышления' },
     '思考': { 'zh-TW':'思考', en:'Reasoning', ru:'Рассуждение' }, '缓存创建': { 'zh-TW':'快取建立', en:'Cache create', ru:'Создание кэша' }, '总 Token 数': { 'zh-TW':'總 Token 數', en:'Total tokens', ru:'Всего токенов' }, '缓存命中': { 'zh-TW':'快取命中', en:'Cache hit', ru:'Попадание в кэш' },
     '是': { 'zh-TW':'是', en:'Yes', ru:'Да' }, '否': { 'zh-TW':'否', en:'No', ru:'Нет' }, '未设置': { 'zh-TW':'未設定', en:'Not set', ru:'Не задано' }, '待保存': { 'zh-TW':'待儲存', en:'Unsaved', ru:'Не сохранено' }, '无价格': { 'zh-TW':'無價格', en:'No price', ru:'Нет цены' },
+    '请求模型': { 'zh-TW':'請求模型', en:'Requested model', ru:'Запрошенная модель' }, '上游响应': { 'zh-TW':'上游回應', en:'Upstream response', ru:'Ответ апстрима' }, '模型不一致': { 'zh-TW':'模型不一致', en:'Model mismatch', ru:'Несовпадение модели' }, '疑似版本变体': { 'zh-TW':'疑似版本變體', en:'Likely model variant', ru:'Вероятный вариант модели' },
     '设置价格': { 'zh-TW':'設定價格', en:'Set price', ru:'Задать цену' }, 'models.dev 价格': { 'zh-TW':'models.dev 價格', en:'models.dev price', ru:'Цена models.dev' }, '当前规则': { 'zh-TW':'目前規則', en:'Current rule', ru:'Текущее правило' },
     '指定密钥': { 'zh-TW':'指定密鑰', en:'Selected key', ru:'Выбранный ключ' }, '密钥数 / 可用': { 'zh-TW':'密鑰數 / 可用', en:'Keys / active', ru:'Ключи / активные' },
     '筛选请求': { 'zh-TW':'篩選請求', en:'Filtered requests', ru:'Запросы фильтра' }, '筛选 Token': { 'zh-TW':'篩選 Token', en:'Filtered tokens', ru:'Токены фильтра' }, '筛选费用': { 'zh-TW':'篩選費用', en:'Filtered cost', ru:'Расход фильтра' }, '模型数量': { 'zh-TW':'模型數量', en:'Models', ru:'Модели' },
@@ -4218,13 +4219,25 @@
       const primary = accountDisplay || providerDisplay || display;
       return '<td class="usage-key" title="'+esc(raw)+'"><div class="usage-key-label"><strong>'+esc(primary)+'</strong>'+(secondary ? '<div class="mono">'+esc(secondary)+'</div>' : '')+'</div></td>';
     };
+    const usageModelCell = u => {
+      const model = String(u.model || '').trim() || '—';
+      const upstream = String(u.upstream_response_model || '').trim();
+      if (!upstream || u.upstream_model_mismatch !== true) {
+        return '<td class="mono model" title="'+esc(model)+'"><div class="usage-model-request">'+esc(model)+'</div></td>';
+      }
+      const variant = u.upstream_model_variant === true;
+      const label = variant ? t('疑似版本变体') : t('模型不一致');
+      const badgeClass = 'warn';
+      const title = t('请求模型')+': '+model+'; '+t('上游响应')+': '+upstream;
+      return '<td class="mono model" title="'+esc(title)+'"><div class="usage-model-request">'+esc(model)+'</div><div class="usage-model-upstream">&#8627; '+esc(t('上游响应'))+': '+esc(upstream)+' <span class="badge '+badgeClass+' upstream-model-mismatch">'+esc(label)+'</span></div></td>';
+    };
 
     $('usageRecent').innerHTML = items.length ? '<div class="table-scroll"><table class="usage-table"><thead><tr><th>时间</th><th>账号</th><th>模型名称</th><th>来源</th><th>执行器</th><th>结果</th><th>首字延迟</th><th>生成时间</th><th>TPS</th><th>思考强度</th><th>输入</th><th>输出</th><th>思考</th><th>缓存读取</th><th>缓存创建</th><th>总 Token 数</th><th>缓存命中</th><th>费用 '+esc(currencyCode())+'</th></tr></thead><tbody>' +
       items.map(u => {
         const settledCost = u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
         return '<tr><td class="mono" title="'+esc(u.created_at)+'">'+esc(formatDateTime(u.created_at))+'</td>'+usageAuthCell(u)+
-          '<td class="mono model" title="'+esc(u.model)+'">'+esc(u.model)+'</td><td>'+esc(u.source || '—')+'</td><td class="mono">'+esc(u.executor_type || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
+          usageModelCell(u)+'<td>'+esc(u.source || '—')+'</td><td class="mono">'+esc(u.executor_type || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
           '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(settledCost))+'">'+esc(formatMoney(settledCost))+'</td></tr>';
       }).join('') + '</tbody></table></div><p class="table-swipe-hint">左右滑动查看完整明细</p>' : emptyState('当前筛选条件下暂无使用明细');

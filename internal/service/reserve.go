@@ -243,6 +243,9 @@ func (s *Service) settleMissingUsage(ctx context.Context, reservation store.Rese
 		if settlement.ExecutorType == "" {
 			settlement.ExecutorType = pending.executorType
 		}
+		if settlement.UpstreamResponseModel == "" {
+			settlement.UpstreamResponseModel = pending.upstreamResponseModel
+		}
 		if pending.hasAuth {
 			settlement.Auth = pending.auth
 		}
@@ -350,6 +353,9 @@ func (s *Service) settleWithAuth(ctx context.Context, settlement store.Settlemen
 	}
 	if strings.TrimSpace(settlement.ExecutorType) == "" {
 		settlement.ExecutorType = s.executorForSettlement(settlement.ReservationID)
+	}
+	if strings.TrimSpace(settlement.UpstreamResponseModel) == "" {
+		settlement.UpstreamResponseModel = s.upstreamResponseModelForSettlement(settlement.ReservationID)
 	}
 	settlement.Auth = s.AuthForSettlement(settlement.ReservationID, settlement.LedgerID)
 	_, err := s.store.Settle(ctx, settlement)

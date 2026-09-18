@@ -45,6 +45,9 @@ func handleUsage(raw []byte) ([]byte, error) {
 		}
 	}
 	if strings.TrimSpace(ledgerID) != "" {
+		if upstreamModel := strings.TrimSpace(record.Model); upstreamModel != "" {
+			_ = svc.Store().UpdateUsageUpstreamResponseModel(context.Background(), ledgerID, upstreamModel)
+		}
 		if !auth.Empty() {
 			_ = svc.Store().UpdateUsageAuth(context.Background(), ledgerID, auth)
 		}

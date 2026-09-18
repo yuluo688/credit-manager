@@ -16,16 +16,18 @@ const (
 )
 
 type pendingAuthCapture struct {
-	reservationID string
-	models        []string
-	startedAt     time.Time
-	active        bool
-	ledgerID      string
-	auth          store.AuthIdentity
-	hasAuth       bool
-	usage         money.TokenUsage
-	hasUsage      bool
-	executorType  string
+	reservationID              string
+	models                     []string
+	startedAt                  time.Time
+	active                     bool
+	ledgerID                   string
+	auth                       store.AuthIdentity
+	hasAuth                    bool
+	usage                      money.TokenUsage
+	hasUsage                   bool
+	executorType               string
+	upstreamResponseModel      string
+	upstreamModelFromHostUsage bool
 }
 
 // TrackAuthCapture registers a reservation that will later receive selected auth identity.
@@ -95,6 +97,10 @@ func (s *Service) observeHostUsage(requestedAt time.Time, auth store.AuthIdentit
 	if best.executorType == "" {
 		best.executorType = strings.TrimSpace(executorType)
 	}
+	if upstreamModel := firstModel(models...); upstreamModel != "" {
+		best.upstreamResponseModel = upstreamModel
+		best.upstreamModelFromHostUsage = true
+	}
 	s.signalAuthPendingLocked()
 	if strings.TrimSpace(best.ledgerID) == "" {
 		return "", true
@@ -118,6 +124,40 @@ func (s *Service) executorForSettlement(reservationID string) string {
 		return ""
 	}
 	return pending.executorType
+}
+
+// CaptureUpstreamResponseModel stores a model declared in the response body
+// until its reservation is settled. It is a fallback only: CPA can rewrite a
+// force-mapped response back to the client alias, while its usage callback
+// retains the actual upstream model.
+func (s *Service) CaptureUpstreamResponseModel(reservationID, model string) {
+	if s == nil {
+		return
+	}
+	reservationID = strings.TrimSpace(reservationID)
+	model = strings.TrimSpace(model)
+	if reservationID == "" || model == "" {
+		return
+	}
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	s.pruneAuthPendingLocked(time.Now())
+	if pending := s.authPending[reservationID]; pending != nil && !pending.upstreamModelFromHostUsage {
+		pending.upstreamResponseModel = model
+	}
+}
+
+func (s *Service) upstreamResponseModelForSettlement(reservationID string) string {
+	if s == nil {
+		return ""
+	}
+	s.authMu.Lock()
+	defer s.authMu.Unlock()
+	s.pruneAuthPendingLocked(time.Now())
+	if pending := s.authPending[strings.TrimSpace(reservationID)]; pending != nil {
+		return pending.upstreamResponseModel
+	}
+	return ""
 }
 
 func (s *Service) pickPendingAuthLocked(requestedAt time.Time, auth store.AuthIdentity, usage money.TokenUsage, modelSet map[string]struct{}, requireModelMatch bool) *pendingAuthCapture {
@@ -273,6 +313,15 @@ func uniqueModels(models ...string) []string {
 		out = append(out, model)
 	}
 	return out
+}
+
+func firstModel(models ...string) string {
+	for _, model := range models {
+		if model = strings.TrimSpace(model); model != "" {
+			return model
+		}
+	}
+	return ""
 }
 
 func modelSetOf(models ...string) map[string]struct{} {

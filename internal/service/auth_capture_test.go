@@ -7,6 +7,7 @@ import (
 
 	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/store"
+	"github.com/yuluo688/credit-manager/internal/usageparse"
 )
 
 func TestObserveHostUsageMatchesAliasBeforeSettle(t *testing.T) {
@@ -181,5 +182,66 @@ func TestObserveHostUsageMatchesReportedTotalOnly(t *testing.T) {
 	got, captured := svc.CapturedHostUsage("res-glm")
 	if !captured || got.ReportedTotal != 64 {
 		t.Fatalf("captured = (%#v, %v)", got, captured)
+	}
+}
+
+func TestCapturedUpstreamResponseModelIsStoredOnSettlement(t *testing.T) {
+	ctx := context.Background()
+	svc := openTestService(t)
+	defer svc.Close()
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 1, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 1_000_000},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "upstream-model", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "gpt-5.6-sol", []byte(`{"model":"gpt-5.6-sol","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reservation, err := svc.Reserve(ctx, key, plan, "upstream-model")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.TrackAuthCapture(reservation.ID, plan.Model)
+	svc.CaptureUpstreamResponseModel(reservation.ID, "gpt-6-sol")
+	parsed := usageparse.Result{Found: true, Source: "openai", Usage: money.TokenUsage{Input: 2, Output: 1}}
+	if err := svc.SettleFromUsage(ctx, reservation, plan, parsed, "openai", store.UsageMetrics{}); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 1})
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if got := entries[0].UpstreamResponseModel; got != "gpt-6-sol" {
+		t.Fatalf("upstream response model = %q, want gpt-6-sol", got)
+	}
+	if err := svc.Store().UpdateUsageUpstreamResponseModel(ctx, entries[0].ID, "gpt-5.6-sol"); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := svc.Store().GetUsage(ctx, entries[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := updated.UpstreamResponseModel; got != "gpt-5.6-sol" {
+		t.Fatalf("host model did not override response fallback: %q", got)
+	}
+}
+
+func TestHostUsageModelTakesPrecedenceOverResponseFallback(t *testing.T) {
+	svc := &Service{authPending: map[string]*pendingAuthCapture{}}
+	svc.TrackAuthCapture("res-model", "gpt-5.6-sol")
+	svc.CaptureUpstreamResponseModel("res-model", "gpt-5.6-sol")
+	if _, ok := svc.ObserveHostUsage(time.Now(), store.AuthIdentity{}, money.TokenUsage{Input: 1}, "gpt-6-sol"); !ok {
+		t.Fatal("expected host usage to correlate")
+	}
+	// A late body observation must not hide the authoritative host model.
+	svc.CaptureUpstreamResponseModel("res-model", "gpt-5.6-sol")
+	if got := svc.upstreamResponseModelForSettlement("res-model"); got != "gpt-6-sol" {
+		t.Fatalf("upstream response model = %q, want gpt-6-sol", got)
 	}
 }

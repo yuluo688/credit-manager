@@ -137,6 +137,7 @@ func optionalInt64(value *int64) int64 {
 }
 
 func usageView(entry store.UsageEntry) map[string]any {
+	upstreamModelMismatch := store.UpstreamResponseModelMismatch(entry.Model, entry.UpstreamResponseModel)
 	return map[string]any{
 		"id":                       entry.ID,
 		"plugin_key_id":            entry.PluginKeyID,
@@ -150,6 +151,9 @@ func usageView(entry store.UsageEntry) map[string]any {
 		"auth_path":                entry.Auth.Path,
 		"executor_type":            entry.ExecutorType,
 		"model":                    entry.Model,
+		"upstream_response_model":  entry.UpstreamResponseModel,
+		"upstream_model_mismatch":  upstreamModelMismatch,
+		"upstream_model_variant":   store.UpstreamResponseModelLikelyVariant(entry.Model, entry.UpstreamResponseModel),
 		"pricing_rule_id":          entry.PricingRuleID,
 		"input_tokens":             entry.Usage.Input,
 		"output_tokens":            entry.Usage.Output,

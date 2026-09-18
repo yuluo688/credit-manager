@@ -381,7 +381,11 @@ pre.plain { white-space:pre-wrap; word-break:break-all; background:var(--panel-2
 .usage-table { min-width:1960px; font-size:.88rem; }
 .usage-table th, .usage-table td { white-space:nowrap; padding:11px 10px; }
 .usage-table th { font-size:.78rem; }
-.usage-table td.model { max-width:260px; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+.usage-table td.model { max-width:320px; overflow:hidden; font-weight:600; white-space:normal; }
+.usage-model-request { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.usage-model-upstream { display:flex; align-items:center; gap:5px; margin-top:3px; overflow:hidden; color:var(--warn); font-family:inherit; font-size:.72rem; font-weight:600; line-height:1.25; text-overflow:ellipsis; white-space:nowrap; }
+.usage-model-upstream .upstream-model-mismatch { flex:0 0 auto; padding:1px 6px; font-size:.64rem; line-height:1.25; }
+.usage-model-upstream .upstream-model-mismatch::before { display:none; }
 .usage-table td.usage-key { width:220px; max-width:220px; white-space:normal; }
 .usage-table .usage-key-label { display:flex; align-items:baseline; gap:6px; min-width:0; white-space:nowrap; }
 .usage-table .usage-key-label strong { flex:1 1 auto; min-width:0; font-size:.84rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }

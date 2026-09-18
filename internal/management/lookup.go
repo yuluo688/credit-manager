@@ -211,8 +211,12 @@ func lookupOverviewView(overview store.KeyUsageOverview) map[string]any {
 }
 
 func publicUsageView(entry store.UsageEntry) map[string]any {
+	upstreamModelMismatch := store.UpstreamResponseModelMismatch(entry.Model, entry.UpstreamResponseModel)
 	return map[string]any{
 		"model":                    entry.Model,
+		"upstream_response_model":  entry.UpstreamResponseModel,
+		"upstream_model_mismatch":  upstreamModelMismatch,
+		"upstream_model_variant":   store.UpstreamResponseModelLikelyVariant(entry.Model, entry.UpstreamResponseModel),
 		"input_tokens":             entry.Usage.Input,
 		"output_tokens":            entry.Usage.Output,
 		"reasoning_tokens":         entry.Usage.Reasoning,
