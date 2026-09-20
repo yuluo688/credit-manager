@@ -29,6 +29,16 @@ func TestConsolePageBlocksAPIBaseOverride(t *testing.T) {
 		"function isSameOriginBase",
 		"function assertSameOriginRequest",
 		"function savedSessionToken",
+		"function persistSessionToken",
+		"function clearSessionToken",
+		"function readStoredValue",
+		"function rememberTokenChecked",
+		"function rememberedLocalToken",
+		"if (rememberTokenChecked())",
+		"localStorage.setItem(TOKEN_KEY, token)",
+		"localStorage.setItem(TOKEN_ORIGIN_KEY, location.origin)",
+		`id="rememberToken"`,
+		"记住密钥",
 		"function customAPIBaseEnabled",
 		"function persistCustomAPIBaseEnabled",
 		"function persistCustomAPIBase",
@@ -50,6 +60,9 @@ func TestConsolePageBlocksAPIBaseOverride(t *testing.T) {
 	if strings.Contains(page, `id="customApiBase" type="checkbox" checked`) {
 		t.Fatal("custom API address checkbox must default to unchecked")
 	}
+	if strings.Contains(page, `id="rememberToken" type="checkbox" checked`) {
+		t.Fatal("remember-token checkbox must default to unchecked")
+	}
 	if strings.Contains(page, "function stripDangerousQuery") || strings.Contains(page, "history.replaceState") {
 		t.Fatal("console still mutates the page URL for api_base query parameters")
 	}
@@ -58,6 +71,9 @@ func TestConsolePageBlocksAPIBaseOverride(t *testing.T) {
 	}
 	if !strings.Contains(page, "if (customAPIBaseEnabled()) return;") {
 		t.Fatal("same-origin request lock is not gated by the custom API checkbox")
+	}
+	if strings.Contains(page, "function unwrapVaultToken") || strings.Contains(page, "AES-GCM") {
+		t.Fatal("console still uses an automatic encrypted vault for the management token")
 	}
 }
 

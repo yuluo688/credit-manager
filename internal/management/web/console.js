@@ -77,7 +77,8 @@
     '标签': { 'zh-TW':'標籤', en:'Label', ru:'Метка' }, '可用模型': { 'zh-TW':'可用模型', en:'Allowed models', ru:'Доступные модели' }, '密钥限额': { 'zh-TW':'密鑰限額', en:'Key limits', ru:'Лимиты ключа' }, '已用 / 剩余': { 'zh-TW':'已用 / 剩餘', en:'Used / remaining', ru:'Использовано / остаток' }, '操作': { 'zh-TW':'操作', en:'Actions', ru:'Действия' },
     '全部模型': { 'zh-TW':'全部模型', en:'All models', ru:'Все модели' }, '暂无密钥': { 'zh-TW':'暫無密鑰', en:'No keys', ru:'Нет ключей' }, '已删除': { 'zh-TW':'已刪除', en:'Deleted', ru:'Удалено' }, '(无标签)': { 'zh-TW':'(無標籤)', en:'(no label)', ru:'(без метки)' },
     '还没有密钥。点击右上角“添加密钥”创建第一个额度凭证。': { 'zh-TW':'還沒有密鑰。點擊右上角「新增密鑰」建立第一個額度憑證。', en:'No keys yet. Use Add key in the top right to create the first credential.', ru:'Ключей пока нет. Нажмите «Добавить ключ», чтобы создать первую учётную запись.' },
-    '连接信息仅保存于当前浏览器会话。未勾选自定义 API 地址时只连接当前站点。': { 'zh-TW':'連線資訊僅保存在目前瀏覽器工作階段。未勾選自訂 API 位址時只連線目前網站。', en:'Connection details stay in this browser session only. The page only talks to the current site unless Custom API address is checked.', ru:'Данные подключения хранятся только в этом сеансе. Без галочки страница подключается только к текущему сайту.' },
+    '勾选「记住密钥」后保存在本机浏览器，关闭标签后仍可自动填入。未勾选时只保留在当前标签。未勾选自定义 API 地址时只连接当前站点。': { 'zh-TW':'勾選「記住密鑰」後儲存在本機瀏覽器，關閉分頁後仍可自動填入。未勾選時只保留在目前分頁。未勾選自訂 API 位址時只連線目前網站。', en:'Check Remember key to keep it in this browser after you close the tab. If unchecked, it stays in this tab only. The page only talks to the current site unless Custom API address is checked.', ru:'С галочкой «Запомнить ключ» ключ останется в браузере после закрытия вкладки. Без галочки — только в этой вкладке. Без своего адреса API страница подключается только к текущему сайту.' },
+    '记住密钥': { 'zh-TW':'記住密鑰', en:'Remember key', ru:'Запомнить ключ' },
     '自定义 API 地址': { 'zh-TW':'自訂 API 位址', en:'Custom API address', ru:'Свой адрес API' },
     '基础信息': { 'zh-TW':'基礎資訊', en:'Basics', ru:'Основное' }, '标签与额度': { 'zh-TW':'標籤與額度', en:'Label and quotas', ru:'Метка и лимиты' },
     '可用模型（默认全部；选择后仅限所选）': { 'zh-TW':'可用模型（預設全部；選擇後僅限所選）', en:'Allowed models (all by default; selection restricts access)', ru:'Доступные модели (по умолчанию все; выбор ограничивает доступ)' },
@@ -729,10 +730,71 @@
     }
   }
 
+  function readStoredValue(key) {
+    try { return (sessionStorage.getItem(key) || '').trim(); }
+    catch (_) { return ''; }
+  }
+
+  function rememberTokenChecked() {
+    const box = $('rememberToken');
+    return !!(box && box.checked);
+  }
+
+  function rememberedLocalToken() {
+    let origin = '';
+    try { origin = (localStorage.getItem(TOKEN_ORIGIN_KEY) || '').trim(); } catch (_) {}
+    if (origin && origin !== location.origin) return '';
+    try { return (localStorage.getItem(TOKEN_KEY) || '').trim(); }
+    catch (_) { return ''; }
+  }
+
+  function discardVault() {
+    try { indexedDB.deleteDatabase('credit_manager_console'); } catch (_) {}
+  }
+
+  function persistSessionToken(value) {
+    const token = String(value || '').trim();
+    if (!token) {
+      clearSessionToken();
+      return;
+    }
+    try {
+      sessionStorage.setItem(TOKEN_KEY, token);
+      sessionStorage.setItem(TOKEN_ORIGIN_KEY, location.origin);
+    } catch (_) {}
+    try {
+      if (rememberTokenChecked()) {
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(TOKEN_ORIGIN_KEY, location.origin);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(TOKEN_ORIGIN_KEY);
+      }
+    } catch (_) {}
+    discardVault();
+  }
+
+  function clearSessionToken() {
+    try {
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(TOKEN_ORIGIN_KEY);
+    } catch (_) {}
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_ORIGIN_KEY);
+    } catch (_) {}
+    const box = $('rememberToken');
+    if (box) box.checked = false;
+    discardVault();
+  }
+
   function savedSessionToken() {
-    const savedOrigin = (sessionStorage.getItem(TOKEN_ORIGIN_KEY) || '').trim();
-    if (savedOrigin && savedOrigin !== location.origin) return '';
-    return (sessionStorage.getItem(TOKEN_KEY) || '').trim();
+    const savedOrigin = readStoredValue(TOKEN_ORIGIN_KEY);
+    if (!savedOrigin || savedOrigin === location.origin) {
+      const session = readStoredValue(TOKEN_KEY);
+      if (session) return session;
+    }
+    return rememberedLocalToken();
   }
 
   function token() {
@@ -5683,8 +5745,7 @@
     persistCustomAPIBaseEnabled(customAPIBaseEnabled());
     syncAPIBaseField();
     const base = apiBase();
-    sessionStorage.setItem(TOKEN_KEY, t);
-    sessionStorage.setItem(TOKEN_ORIGIN_KEY, location.origin);
+    persistSessionToken(t);
     if (customAPIBaseEnabled() && base) persistCustomAPIBase(base);
     try {
       await reloadWithModelCatalog();
@@ -5696,8 +5757,7 @@
     window.clearTimeout(keySearchTimer);
     window.clearTimeout(pricingSearchTimer);
     window.clearTimeout(authQuotaSearchTimer);
-    sessionStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem(TOKEN_ORIGIN_KEY);
+    clearSessionToken();
     persistCustomAPIBase('');
     $('mgmtToken').value = '';
     syncAPIBaseField();
@@ -6165,6 +6225,8 @@
   if (savedBase) $('apiBase').value = savedBase;
   setOverviewRangeVisibility();
   setUsageRangeVisibility();
+  const remembered = rememberedLocalToken();
+  if (remembered) $('rememberToken').checked = true;
   const saved = savedSessionToken();
   if (saved && (customAPIBaseEnabled() || isSameOriginBase(apiBase()))) {
     $('mgmtToken').value = saved;

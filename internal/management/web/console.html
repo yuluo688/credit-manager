@@ -54,18 +54,19 @@
     <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
       <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">连接信息仅保存于当前浏览器会话。未勾选自定义 API 地址时只连接当前站点。</p></div>
+          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">勾选「记住密钥」后保存在本机浏览器，关闭标签后仍可自动填入。未勾选时只保留在当前标签。未勾选自定义 API 地址时只连接当前站点。</p></div>
           <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="connection-form">
-            <label class="remember-row"><input id="customApiBase" type="checkbox"/>自定义 API 地址</label>
             <label>CLIProxyAPI 根地址
               <input id="apiBase" type="text" placeholder="例如 http://127.0.0.1:8317" autocomplete="off" readonly/>
             </label>
+            <label class="remember-row"><input id="customApiBase" type="checkbox"/>自定义 API 地址</label>
             <label>宿主管理密钥（Bearer）
               <input id="mgmtToken" type="password" placeholder="remote-management secret" autocomplete="off"/>
             </label>
+            <label class="remember-row"><input id="rememberToken" type="checkbox"/>记住密钥</label>
             <div class="modal-actions">
               <button class="btn ghost" id="btnClearToken">清除本地信息</button>
               <button class="btn primary" id="btnSaveToken">连接并加载</button>
