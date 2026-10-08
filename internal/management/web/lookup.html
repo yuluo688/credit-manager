@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>密钥自助查询</title>
 <script>try{if(localStorage.getItem('credit-manager.lookup.token'))document.documentElement.dataset.lookupAuthed='1';}catch(e){}</script>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
 <link rel="stylesheet" href="./lookup.css">
 </head>
 <body>
@@ -34,6 +33,7 @@
     <div class="section"><div class="section-head"><h3><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 4h8M5.4 8h8M5.4 12h8"/><circle cx="2.7" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></span>最近调用</h3><span id="recentState">—</span></div><div id="recent" class="table-wrap"></div><div id="recentPagination" class="recent-pagination"></div></div>
   </section>
 </main>
+<script src="./vendor/echarts-5.6.0.min.js"></script>
 <script src="./lookup.js" defer></script>
 </body>
 </html>

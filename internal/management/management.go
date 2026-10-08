@@ -77,6 +77,9 @@ func Resources() []pluginapi.ResourceRoute {
 		{
 			Path: "/models-dev",
 		},
+		{
+			Path: "/" + echartsAssetPath,
+		},
 	}
 }
 
@@ -84,10 +87,13 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 	// Resource routes are unauthenticated browser pages (sidebar iframe).
 	if resourcePath, ok := resourceRelativePath(req.Path); ok {
 		if req.Method == http.MethodGet && (resourcePath == "console" || resourcePath == "") {
-			return consolePage(), nil
+			return withGzip(req.Headers, consolePage(), consolePageGzip), nil
 		}
 		if req.Method == http.MethodGet && resourcePath == "lookup" {
-			return lookupPage(), nil
+			return withGzip(req.Headers, lookupPage(), lookupPageGzip), nil
+		}
+		if req.Method == http.MethodGet && resourcePath == echartsAssetPath {
+			return staticAssetResponse(req.Headers, echartsAsset), nil
 		}
 		if req.Method == http.MethodGet && resourcePath == "lookup/data" {
 			svc := service.Current()

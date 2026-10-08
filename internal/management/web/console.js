@@ -156,6 +156,7 @@
     '输入密钥后缀': { 'zh-TW':'輸入密鑰後綴', en:'Enter key suffix', ru:'Введите суффикс ключа' },
     '尚未连接到 CPA': { 'zh-TW':'尚未連線到 CPA', en:'Not connected to CPA', ru:'Нет подключения к CPA' },
     '暂无可展示的数据': { 'zh-TW':'暫無可展示的資料', en:'Nothing to show yet', ru:'Пока нет данных' },
+    '数据加载失败': { 'zh-TW':'資料載入失敗', en:'Failed to load data', ru:'Не удалось загрузить данные' },
     '连接 CPA 管理接口后，即可查看 Token、费用和模型调用趋势。': { 'zh-TW':'連線 CPA 管理介面後，即可查看 Token、費用和模型呼叫趨勢。', en:'Connect the CPA management API to see token, cost, and model trends.', ru:'Подключите API управления CPA, чтобы видеть токены, расходы и модели.' },
     '图表组件加载失败，请检查网络连接后刷新页面': { 'zh-TW':'圖表元件載入失敗，請檢查網路連線後重新整理頁面', en:'Chart component failed to load. Check the network and refresh.', ru:'Не удалось загрузить график. Проверьте сеть и обновите страницу.' },
     '当前筛选条件下暂无 Token 趋势': { 'zh-TW':'目前篩選條件下暫無 Token 趨勢', en:'No token trend for the current filters', ru:'Нет динамики токенов для текущих фильтров' },
@@ -1855,6 +1856,50 @@
       '<div><div class="chart-empty-icon" aria-hidden="true">'+uiIcon(glyph)+'</div>' +
       '<p class="chart-empty-title">'+esc(title)+'</p>' +
       '<p class="chart-empty-copy">'+esc(copy)+'</p>'+action+'</div></div>';
+  }
+
+  // Placeholders shown while the first data round-trip is in flight, so the
+  // dashboard never sits empty. Renderers replace them via innerHTML.
+  const DATA_SKELETON_TARGETS = [
+    ['overviewStats', 'stats'], ['overviewTrend', 'chart'], ['overviewCostTrend', 'chart'],
+    ['overviewModelShare', 'chart'], ['overviewModelRank', 'rows'], ['keysTable', 'table'],
+    ['pricingTable', 'table'], ['usageStats', 'stats'], ['usageByKey', 'table'],
+    ['usageByModel', 'table'], ['usageRecent', 'table'],
+  ];
+
+  function dataSkeleton(kind) {
+    const line = (width, extra) => '<span class="sk'+(extra ? ' '+extra : '')+'" style="--w:'+width+'"></span>';
+    if (kind === 'stats') {
+      return [0, 1, 2, 3].map(() => '<div class="stat stat-skeleton data-skeleton" aria-hidden="true">'+line('48%')+line('68%', 'sk-lg')+'</div>').join('');
+    }
+    if (kind === 'chart') {
+      return '<div class="data-skeleton chart-skeleton" aria-hidden="true"><span class="sk sk-chart"></span></div>';
+    }
+    const rows = kind === 'rows' ? 5 : 6;
+    const head = kind === 'table' ? line('100%', 'sk-row') : '';
+    return '<div class="data-skeleton" aria-hidden="true">'+head+Array.from({ length: rows }, (_, index) => line((92 - index * 7)+'%', kind === 'table' ? '' : 'sk-row')).join('')+'</div>';
+  }
+
+  function showDataSkeletons() {
+    DATA_SKELETON_TARGETS.forEach(([id, kind]) => {
+      const target = $(id);
+      if (!target) return;
+      if (kind === 'chart') {
+        disposeOverviewChart(id);
+        target.className = '';
+      }
+      target.innerHTML = dataSkeleton(kind);
+    });
+  }
+
+  // Replace any skeleton the failed load left behind with a visible error.
+  function settleDataSkeletons(message) {
+    const content = chartEmptyState(message || '', false, 'info').replace('暂无可展示的数据', '数据加载失败');
+    DATA_SKELETON_TARGETS.forEach(([id]) => {
+      const target = $(id);
+      // Overview stats stay empty, matching the disconnected layout.
+      if (target && target.querySelector('.data-skeleton')) target.innerHTML = id === 'overviewStats' ? '' : content;
+    });
   }
 
   function renderDisconnectedOverview() {
@@ -5747,11 +5792,15 @@
     const base = apiBase();
     persistSessionToken(t);
     if (customAPIBaseEnabled() && base) persistCustomAPIBase(base);
+    showDataSkeletons();
     try {
       await reloadWithModelCatalog();
       closeConnectionModal();
       flash('已加载数据', true);
-    } catch (e) { flash(e.message, false); }
+    } catch (e) {
+      settleDataSkeletons(e.message);
+      flash(e.message, false);
+    }
   });
   $('btnClearToken').addEventListener('click', () => {
     window.clearTimeout(keySearchTimer);
@@ -5968,7 +6017,10 @@
     try {
       if (state.currentTab === 'auth-quotas') { await loadAuthQuotas(); flash('认证额度已从缓存刷新', true); }
       else { await reloadWithModelCatalog(); flash('数据已刷新', true); }
-    } catch (e) { flash(e.message, false); }
+    } catch (e) {
+      settleDataSkeletons(e.message);
+      flash(e.message, false);
+    }
   });
   $('overviewRangeFilter').addEventListener('change', setOverviewRangeVisibility);
   $('usageRangeFilter').addEventListener('change', setUsageRangeVisibility);
@@ -6230,8 +6282,16 @@
   const saved = savedSessionToken();
   if (saved && (customAPIBaseEnabled() || isSameOriginBase(apiBase()))) {
     $('mgmtToken').value = saved;
-    reloadWithModelCatalog().catch(e => flash(e.message, false));
+    showDataSkeletons();
+    reloadWithModelCatalog().catch(e => {
+      settleDataSkeletons(e.message);
+      flash(e.message, false);
+    });
   } else {
     clearLoadedSession();
+  }
+  // Swap the inline boot skeleton for the real workspace (see console.html).
+  if (window.creditManagerBoot) {
+    window.creditManagerBoot.ready(() => Object.values(state.charts).forEach(chart => chart.resize()));
   }
 })();

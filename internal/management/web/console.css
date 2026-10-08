@@ -2041,3 +2041,40 @@ h1, .workspace-top h1 { letter-spacing:-.045em; line-height:1.05; }
     border-color:color-mix(in srgb, var(--text) 28%, var(--line));
   }
 }
+
+/* Boot skeleton: inline in the first HTML response so the frame paints a
+   layout-shaped placeholder before console.js boots, and per-section data
+   skeletons while the first API round-trip is in flight. */
+.boot-skeleton { display:none; }
+html.cm-booting .boot-skeleton { display:block; }
+html.cm-booting .workspace { display:none !important; }
+.boot-skeleton { width:100%; max-width:1600px; margin:0 auto; padding:80px 34px 56px; box-sizing:border-box; }
+.boot-skeleton-top { display:flex; justify-content:space-between; align-items:center; gap:18px; margin:0 0 18px; }
+.boot-skeleton-brand { display:flex; align-items:center; gap:12px; min-width:0; }
+.boot-skeleton-stack { display:grid; gap:8px; min-width:0; }
+.boot-skeleton-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.boot-skeleton-tabs { display:flex; gap:4px; width:max-content; max-width:100%; margin:0 0 18px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--panel); overflow:hidden; }
+.boot-skeleton-intro { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:18px; }
+.boot-skeleton-card { display:grid; align-content:start; gap:14px; padding:18px; margin-bottom:16px; border:1px solid var(--line); border-radius:14px; background:var(--card-bg, var(--panel)); box-shadow:var(--shadow); }
+.boot-skeleton-filters { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; }
+.boot-skeleton-dashboard { display:grid; grid-template-columns:minmax(0, 1.18fr) minmax(0, 1fr); gap:16px; }
+.boot-skeleton-dashboard .boot-skeleton-card { margin-bottom:0; min-height:292px; grid-template-rows:auto 1fr; }
+.sk { position:relative; display:block; flex:none; width:var(--w, 100%); max-width:100%; height:12px; overflow:hidden; border-radius:6px; background:color-mix(in srgb, var(--line) 78%, transparent); }
+.sk::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255, 255, 255, .55), transparent); animation:cm-skeleton-shimmer 1.4s ease-in-out infinite; will-change:transform; }
+html[data-palette="dark"] .sk::after { background:linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent); }
+.sk-lg { height:18px; }
+.sk-logo { width:42px; height:42px; border-radius:12px; }
+.sk-pill { height:34px; border-radius:10px; }
+.sk-accent { background:color-mix(in srgb, var(--accent) 34%, var(--line)); }
+.sk-tab { height:32px; border-radius:8px; }
+.sk-input { height:38px; border-radius:9px; }
+.sk-chart { height:auto; min-height:180px; border-radius:10px; background:color-mix(in srgb, var(--line) 42%, transparent); }
+.data-skeleton { display:grid; align-content:start; gap:12px; width:100%; padding:4px 0; }
+.data-skeleton.chart-skeleton { min-height:200px; grid-template-rows:1fr; }
+.data-skeleton.chart-skeleton .sk-chart { min-height:200px; }
+.data-skeleton .sk-row { height:34px; border-radius:8px; background:color-mix(in srgb, var(--line) 50%, transparent); }
+.stat.stat-skeleton { display:grid; gap:10px; padding-top:30px; }
+@keyframes cm-skeleton-shimmer { to { transform:translateX(100%); } }
+@media (max-width: 980px) { .boot-skeleton-dashboard { grid-template-columns:minmax(0, 1fr); } .boot-skeleton-filters { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .boot-skeleton { padding:90px 14px 36px; } .boot-skeleton-actions .sk-pill:nth-child(-n+2) { display:none; } }
+@media (prefers-reduced-motion: reduce) { .sk::after { animation:none; display:none; } }

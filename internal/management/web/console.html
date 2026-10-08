@@ -4,11 +4,117 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>CPA 额度管理</title>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+<script>
+// Boot shim: runs before first paint. Applies the CPA theme early (no white flash
+// in dark mode), hides the workspace behind the inline skeleton until console.js
+// finishes booting, and surfaces a visible error instead of a blank page.
+(function () {
+  var root = document.documentElement;
+  function stored(key, field) {
+    var raw = '';
+    try { raw = localStorage.getItem(key) || ''; } catch (_) { return ''; }
+    try {
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? ((parsed.state || parsed)[field] || '') : parsed;
+    } catch (_) { return raw; }
+  }
+  try {
+    var theme = String(stored('cli-proxy-theme', 'theme') || 'auto').toLowerCase();
+    if (['auto', 'white', 'light', 'dark'].indexOf(theme) < 0) theme = 'auto';
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', theme);
+    root.setAttribute('data-palette', theme === 'auto' ? (dark ? 'dark' : 'white') : theme);
+  } catch (_) {}
+  var messages = {
+    script: { 'zh-CN': '控制台脚本初始化失败，请刷新页面重试。', 'zh-TW': '控制台腳本初始化失敗，請重新整理頁面再試。', en: 'The console failed to initialize. Please reload the page.', ru: 'Не удалось инициализировать консоль. Обновите страницу.' },
+    timeout: { 'zh-CN': '页面加载超时，请检查网络后刷新页面。', 'zh-TW': '頁面載入逾時，請檢查網路後重新整理頁面。', en: 'The page took too long to load. Check the network and reload.', ru: 'Страница загружается слишком долго. Проверьте сеть и обновите её.' }
+  };
+  function message(kind) {
+    var lang = String(stored('cli-proxy-language', 'language') || navigator.language || 'zh-CN').replace('_', '-').toLowerCase();
+    var locale = lang.indexOf('zh-tw') === 0 || lang.indexOf('zh-hant') === 0 ? 'zh-TW' : (lang.indexOf('ru') === 0 ? 'ru' : (lang.indexOf('en') === 0 ? 'en' : 'zh-CN'));
+    return messages[kind][locale];
+  }
+  var ready = false;
+  var revealed = false;
+  var onReveal = null;
+  function reveal() {
+    if (revealed) return;
+    revealed = true;
+    root.classList.remove('cm-booting');
+    var skeleton = document.getElementById('bootSkeleton');
+    if (skeleton) skeleton.remove();
+    // Un-hiding restarts the tab pane fade-in; skip it so the skeleton swaps
+    // straight to content instead of flashing an empty pane.
+    try {
+      document.querySelectorAll('.tabpane').forEach(function (pane) {
+        if (pane.getAnimations) pane.getAnimations().forEach(function (animation) { animation.finish(); });
+      });
+    } catch (_) {}
+    if (onReveal) { try { onReveal(); } catch (_) {} }
+  }
+  function fail(kind) {
+    if (revealed) return;
+    reveal();
+    var box = document.getElementById('flash');
+    var text = document.getElementById('flashMessage');
+    if (box && text) { text.textContent = message(kind); box.className = 'flash show err'; }
+  }
+  root.classList.add('cm-booting');
+  window.creditManagerBoot = {
+    // Called by console.js once its synchronous boot is done. The swap waits
+    // one frame so the skeleton paints before the full workspace is laid out.
+    ready: function (callback) {
+      ready = true;
+      onReveal = callback || null;
+      if (window.requestAnimationFrame) window.requestAnimationFrame(function () { window.setTimeout(reveal, 0); });
+      window.setTimeout(reveal, 300);
+    }
+  };
+  document.addEventListener('DOMContentLoaded', function () { if (!ready) fail('script'); });
+  window.setTimeout(function () { if (!ready) fail('timeout'); }, 20000);
+})();
+</script>
 <link rel="stylesheet" href="./console.css">
 
 </head>
 <body>
+  <div class="boot-skeleton" id="bootSkeleton" aria-hidden="true">
+    <div class="boot-skeleton-top">
+      <div class="boot-skeleton-brand">
+        <span class="sk sk-logo"></span>
+        <span class="boot-skeleton-stack"><span class="sk" style="--w:96px"></span><span class="sk sk-lg" style="--w:168px"></span></span>
+      </div>
+      <div class="boot-skeleton-actions">
+        <span class="sk sk-pill" style="--w:236px"></span>
+        <span class="sk sk-pill" style="--w:112px"></span>
+        <span class="sk sk-pill" style="--w:132px"></span>
+        <span class="sk sk-pill sk-accent" style="--w:104px"></span>
+      </div>
+    </div>
+    <div class="boot-skeleton-tabs">
+      <span class="sk sk-tab" style="--w:84px"></span>
+      <span class="sk sk-tab" style="--w:64px"></span>
+      <span class="sk sk-tab" style="--w:112px"></span>
+      <span class="sk sk-tab" style="--w:118px"></span>
+      <span class="sk sk-tab" style="--w:96px"></span>
+    </div>
+    <div class="boot-skeleton-intro">
+      <span class="boot-skeleton-stack"><span class="sk sk-lg" style="--w:132px"></span><span class="sk" style="--w:min(320px, 70vw)"></span></span>
+      <span class="sk sk-pill" style="--w:92px"></span>
+    </div>
+    <div class="boot-skeleton-card">
+      <span class="boot-skeleton-stack"><span class="sk sk-lg" style="--w:128px"></span><span class="sk" style="--w:min(300px, 60vw)"></span></span>
+      <div class="boot-skeleton-filters">
+        <span class="sk sk-input"></span><span class="sk sk-input"></span><span class="sk sk-input"></span><span class="sk sk-input"></span><span class="sk sk-input"></span>
+      </div>
+    </div>
+    <div class="boot-skeleton-dashboard">
+      <div class="boot-skeleton-card"><span class="sk sk-lg" style="--w:120px"></span><span class="sk sk-chart"></span></div>
+      <div class="boot-skeleton-card"><span class="sk sk-lg" style="--w:140px"></span><span class="sk sk-chart"></span></div>
+      <div class="boot-skeleton-card"><span class="sk sk-lg" style="--w:110px"></span><span class="sk sk-chart"></span></div>
+      <div class="boot-skeleton-card"><span class="sk sk-lg" style="--w:150px"></span><span class="sk sk-chart"></span></div>
+    </div>
+  </div>
   <main class="workspace">
     <header class="workspace-top topbar">
       <div class="brand">
@@ -684,6 +790,7 @@
   </div>
     </div>
   </main>
+<script src="./vendor/echarts-5.6.0.min.js"></script>
 <script src="./console.js" defer></script>
 </body>
 </html>
