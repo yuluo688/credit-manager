@@ -245,6 +245,9 @@
     authQuotaPageRefreshing: false,
     authQuotaBatchPayload: null,
     authQuotaBatchSaving: false,
+    authQuotaRequest: null,
+    authQuotaRequestSeq: 0,
+    authQuotaEpoch: 0,
     allKeys: [],
     usedAuths: [],
     modelPrices: {},
@@ -1538,6 +1541,10 @@
 
   function setTab(name) {
     const tab = name || 'overview';
+    // Fill the auth quota list before its pane is shown so the cards (cached
+    // from the prefetch) or their skeletons appear in the same frame as the
+    // toolbar; refreshActiveTab then updates them in place.
+    if (tab === 'auth-quotas') paintAuthQuotasFromCache();
     document.querySelectorAll('.tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
@@ -1572,7 +1579,7 @@
       return;
     }
     if (tab === 'auth-quotas') {
-      await loadAuthQuotas();
+      await loadAuthQuotas({ reuseInflight: true });
       return;
     }
     if (tab === 'pricing') {
@@ -1864,7 +1871,7 @@
     ['overviewStats', 'stats'], ['overviewTrend', 'chart'], ['overviewCostTrend', 'chart'],
     ['overviewModelShare', 'chart'], ['overviewModelRank', 'rows'], ['keysTable', 'table'],
     ['pricingTable', 'table'], ['usageStats', 'stats'], ['usageByKey', 'table'],
-    ['usageByModel', 'table'], ['usageRecent', 'table'],
+    ['usageByModel', 'table'], ['usageRecent', 'table'], ['authQuotaList', 'authQuota'],
   ];
 
   function dataSkeleton(kind) {
@@ -1875,9 +1882,49 @@
     if (kind === 'chart') {
       return '<div class="data-skeleton chart-skeleton" aria-hidden="true"><span class="sk sk-chart"></span></div>';
     }
+    if (kind === 'authQuota') return authQuotaSkeletonCards();
     const rows = kind === 'rows' ? 5 : 6;
     const head = kind === 'table' ? line('100%', 'sk-row') : '';
     return '<div class="data-skeleton" aria-hidden="true">'+head+Array.from({ length: rows }, (_, index) => line((92 - index * 7)+'%', kind === 'table' ? '' : 'sk-row')).join('')+'</div>';
+  }
+
+  // Card-shaped placeholders sized like a real auth quota card, so swapping in
+  // the loaded cards does not move the toolbar or pagination.
+  function authQuotaSkeletonCards() {
+    const line = (width, extra) => '<span class="sk'+(extra ? ' '+extra : '')+'" style="--w:'+width+'"></span>';
+    const card = '<article class="auth-quota-card auth-quota-card-skeleton data-skeleton" aria-hidden="true">' +
+      '<div class="auth-quota-skeleton-head">'+line('22px', 'sk-icon')+line('28%')+line('46px', 'sk-badge')+'</div>' +
+      line('72%', 'sk-lg') +
+      '<div class="auth-quota-skeleton-costs">'+line('100%', 'sk-box')+line('100%', 'sk-box')+line('100%', 'sk-box')+'</div>' +
+      line('100%', 'sk-field') +
+      '<div class="auth-quota-skeleton-tools">'+line('100%', 'sk-field')+line('42px', 'sk-field')+line('64px', 'sk-field')+'</div>' +
+      line('100%', 'sk-window') + line('100%', 'sk-window') +
+      '</article>';
+    return card.repeat(4);
+  }
+
+  function authQuotaPaginationSkeleton() {
+    return '<span class="muted auth-quota-pagination-skeleton" aria-hidden="true"><span class="sk" style="--w:132px"></span></span>' +
+      ['92px', '86px', '64px'].map(width => '<span class="sk sk-pill" aria-hidden="true" style="--w:'+width+'"></span>').join('');
+  }
+
+  function showAuthQuotaSkeleton() {
+    const list = $('authQuotaList');
+    if (list) {
+      list.innerHTML = authQuotaSkeletonCards();
+      list.setAttribute('aria-busy', 'true');
+    }
+    const pagination = $('authQuotaPagination');
+    if (pagination) pagination.innerHTML = authQuotaPaginationSkeleton();
+  }
+
+  function settleAuthQuotaSkeleton(message) {
+    const list = $('authQuotaList');
+    if (list) list.removeAttribute('aria-busy');
+    if (!list || !list.querySelector('.data-skeleton')) return;
+    list.innerHTML = chartEmptyState(message || '', false, 'info').replace('暂无可展示的数据', '数据加载失败');
+    const pagination = $('authQuotaPagination');
+    if (pagination && pagination.querySelector('.auth-quota-pagination-skeleton')) pagination.innerHTML = '';
   }
 
   function showDataSkeletons() {
@@ -1888,6 +1935,11 @@
         disposeOverviewChart(id);
         target.className = '';
       }
+      if (kind === 'authQuota') {
+        // Keep already-loaded cards; a background reload updates them in place.
+        if (!state.authQuotas) showAuthQuotaSkeleton();
+        return;
+      }
       target.innerHTML = dataSkeleton(kind);
     });
   }
@@ -1897,6 +1949,11 @@
     const content = chartEmptyState(message || '', false, 'info').replace('暂无可展示的数据', '数据加载失败');
     DATA_SKELETON_TARGETS.forEach(([id]) => {
       const target = $(id);
+      if (id === 'authQuotaList') {
+        // Its prefetch is independent of the main chain and may still succeed.
+        if (!state.authQuotaRequest) settleAuthQuotaSkeleton(message);
+        return;
+      }
       // Overview stats stay empty, matching the disconnected layout.
       if (target && target.querySelector('.data-skeleton')) target.innerHTML = id === 'overviewStats' ? '' : content;
     });
@@ -1949,6 +2006,8 @@
       const pagination = $(id);
       if (pagination) pagination.innerHTML = '';
     });
+    const authQuotaList = $('authQuotaList');
+    if (authQuotaList) authQuotaList.removeAttribute('aria-busy');
     const usageFilter = $('usageFilterState');
     if (usageFilter) usageFilter.textContent = t('未设置筛选');
     const catalogStatus = $('modelCatalogStatus');
@@ -1989,6 +2048,8 @@
     state.keySearch = '';
     state.keyPagination = null;
     state.authQuotas = null;
+    state.authQuotaRequest = null;
+    state.authQuotaEpoch += 1;
     state.authQuotaWeeks = {};
     state.authQuotaCurrentWeeks = {};
     state.authQuotaRefreshing = {};
@@ -5025,6 +5086,7 @@
   function renderAuthQuotas(result) {
     if (result) state.authQuotas = result;
     const payload = state.authQuotas || {};
+    $('authQuotaList').removeAttribute('aria-busy');
     const items = Array.isArray(authQuotaValue(payload, 'items')) ? authQuotaValue(payload, 'items') : [];
     const providers = authQuotaValue(payload, 'providers');
     syncAuthQuotaProviderFilter(providers);
@@ -5097,9 +5159,55 @@
     return '<p class="auth-quota-warmup-status is-'+esc(status)+'" title="'+esc(detail)+'"><span class="auth-quota-warmup-main"><span>'+esc(labels[status] || status)+'</span>'+(observed ? '<i class="auth-quota-warmup-observed">窗口已更新</i>' : '')+'</span>'+time+'</p>';
   }
 
-  async function loadAuthQuotas() {
+  // Opening the tab reuses a prefetch that is still in flight for the same
+  // query instead of starting a second round-trip; explicit reloads (after a
+  // write, paging, filters) always fetch fresh data.
+  function fetchAuthQuotas(reuseInflight) {
+    const query = authQuotaQuery();
+    const pending = state.authQuotaRequest;
+    if (reuseInflight && pending && pending.query === query && pending.epoch === state.authQuotaEpoch) return pending.promise;
+    const request = { query, epoch: state.authQuotaEpoch, promise: null };
+    state.authQuotaRequestSeq += 1;
+    request.promise = api('GET', 'credit-manager/auth-quotas?' + query).finally(() => {
+      if (state.authQuotaRequest === request) state.authQuotaRequest = null;
+    });
+    state.authQuotaRequest = request;
+    return request.promise;
+  }
+
+  // Started alongside the main dashboard load so the auth quota tab already
+  // has its cards when it is opened. The listing is cache-only on the server.
+  function prefetchAuthQuotas() {
+    const epoch = state.authQuotaEpoch;
+    const query = authQuotaQuery();
+    if (!state.authQuotas) showAuthQuotaSkeleton();
+    const promise = fetchAuthQuotas(true);
+    const requestSeq = state.authQuotaRequestSeq;
+    return promise.then(result => {
+      // A newer request (filter, paging, write) owns the list now.
+      if (epoch !== state.authQuotaEpoch || query !== authQuotaQuery() || requestSeq !== state.authQuotaRequestSeq) return;
+      renderAuthQuotas(result);
+    }, error => {
+      if (epoch === state.authQuotaEpoch && requestSeq === state.authQuotaRequestSeq && !state.authQuotas) settleAuthQuotaSkeleton(error && error.message);
+    });
+  }
+
+  function paintAuthQuotasFromCache() {
+    if (state.authQuotas) renderAuthQuotas();
+    else if (token()) showAuthQuotaSkeleton();
+  }
+
+  async function loadAuthQuotas(options) {
     const seq = ++state.tabLoadSeq;
-    const result = await api('GET', 'credit-manager/auth-quotas?' + authQuotaQuery());
+    const epoch = state.authQuotaEpoch;
+    if (!state.authQuotas && token()) showAuthQuotaSkeleton();
+    let result;
+    try {
+      result = await fetchAuthQuotas(!!(options && options.reuseInflight));
+    } catch (error) {
+      if (seq === state.tabLoadSeq && epoch === state.authQuotaEpoch) settleAuthQuotaSkeleton(error && error.message);
+      throw error;
+    }
     if (seq !== state.tabLoadSeq) return;
     renderAuthQuotas(result);
   }
@@ -5615,6 +5723,7 @@
   }
 
   async function reloadWithModelCatalog() {
+    prefetchAuthQuotas();
     await reload();
     loadModelCatalog().catch(error => {
       const status = $('modelCatalogStatus');

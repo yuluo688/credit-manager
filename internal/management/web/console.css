@@ -2074,6 +2074,19 @@ html[data-palette="dark"] .sk::after { background:linear-gradient(90deg, transpa
 .data-skeleton.chart-skeleton .sk-chart { min-height:200px; }
 .data-skeleton .sk-row { height:34px; border-radius:8px; background:color-mix(in srgb, var(--line) 50%, transparent); }
 .stat.stat-skeleton { display:grid; gap:10px; padding-top:30px; }
+/* Auth quota cards: same grid cell and height as a loaded card. */
+.auth-quota-card.auth-quota-card-skeleton { display:flex; flex-direction:column; gap:9px; min-height:299px; padding:12px 12px 12px 14px; box-sizing:border-box; }
+.auth-quota-card.auth-quota-card-skeleton::before { background:color-mix(in srgb, var(--line) 90%, transparent); }
+.auth-quota-card.auth-quota-card-skeleton:hover { transform:none; box-shadow:0 4px 12px rgba(41,57,46,.04); }
+.auth-quota-skeleton-head, .auth-quota-skeleton-tools { display:flex; align-items:center; gap:8px; }
+.auth-quota-skeleton-head .sk-badge { margin-left:auto; height:18px; border-radius:99px; }
+.auth-quota-skeleton-costs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+.auth-quota-skeleton-tools .sk-field:first-child { flex:1 1 auto; }
+.auth-quota-card-skeleton .sk-icon { width:22px; height:22px; border-radius:7px; }
+.auth-quota-card-skeleton .sk-box { height:44px; border-radius:8px; background:color-mix(in srgb, var(--line) 50%, transparent); }
+.auth-quota-card-skeleton .sk-field { height:28px; border-radius:8px; }
+.auth-quota-card-skeleton .sk-window { height:38px; border-radius:8px; background:color-mix(in srgb, var(--line) 50%, transparent); }
+.auth-quota-pagination-skeleton { display:flex; align-items:center; min-height:38px; }
 @keyframes cm-skeleton-shimmer { to { transform:translateX(100%); } }
 @media (max-width: 980px) { .boot-skeleton-dashboard { grid-template-columns:minmax(0, 1fr); } .boot-skeleton-filters { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .boot-skeleton { padding:90px 14px 36px; } .boot-skeleton-actions .sk-pill:nth-child(-n+2) { display:none; } }

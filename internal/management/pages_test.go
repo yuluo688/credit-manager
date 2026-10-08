@@ -178,3 +178,38 @@ func TestAcceptsGzip(t *testing.T) {
 		}
 	}
 }
+
+func TestConsoleAuthQuotasPaintWithTheirTab(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, text := range []string{
+		"['authQuotaList', 'authQuota']",
+		"function authQuotaSkeletonCards",
+		"auth-quota-card auth-quota-card-skeleton data-skeleton",
+		".auth-quota-card.auth-quota-card-skeleton {",
+		"function showAuthQuotaSkeleton",
+		"function settleAuthQuotaSkeleton",
+		"function prefetchAuthQuotas",
+		"function paintAuthQuotasFromCache",
+		"await loadAuthQuotas({ reuseInflight: true });",
+		"if (reuseInflight && pending && pending.query === query",
+	} {
+		if !strings.Contains(page, text) {
+			t.Fatalf("console page is missing auth quota early paint support: %q", text)
+		}
+	}
+	// The list must be filled (cached cards or skeleton) before the pane is
+	// un-hidden, so both land in the same frame.
+	setTab := page[strings.Index(page, "function setTab(name)"):]
+	paint := strings.Index(setTab, "paintAuthQuotasFromCache()")
+	toggle := strings.Index(setTab, "pane.classList.toggle('hidden'")
+	if paint < 0 || toggle < 0 || paint > toggle {
+		t.Fatalf("setTab must paint auth quotas before showing the pane (paint=%d toggle=%d)", paint, toggle)
+	}
+	// The prefetch runs in parallel with, not after, the main reload chain.
+	reload := page[strings.Index(page, "async function reloadWithModelCatalog()"):]
+	prefetch := strings.Index(reload, "prefetchAuthQuotas();")
+	await := strings.Index(reload, "await reload();")
+	if prefetch < 0 || await < 0 || prefetch > await {
+		t.Fatalf("auth quotas must be prefetched before awaiting the main reload (prefetch=%d await=%d)", prefetch, await)
+	}
+}
