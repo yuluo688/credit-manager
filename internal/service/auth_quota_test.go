@@ -850,6 +850,24 @@ func TestXAICreditWindowsUseCurrentWeeklyPeriod(t *testing.T) {
 		t.Fatalf("products=%#v", windows[1:])
 	}
 }
+func TestXAICreditWindowsTreatOmittedWeeklyPercentAsZero(t *testing.T) {
+	// proto3 JSON omits creditUsagePercent=0 and empty productUsage.
+	windows := xaiCreditWindows(map[string]any{
+		"currentPeriod":        map[string]any{"type": "USAGE_PERIOD_TYPE_WEEKLY", "start": "2026-10-02T05:16:00.749072+00:00", "end": "2026-10-09T05:16:00.749072+00:00"},
+		"onDemandCap":          map[string]any{"val": 0},
+		"onDemandUsed":         map[string]any{"val": 0},
+		"isUnifiedBillingUser": true,
+		"prepaidBalance":       map[string]any{"val": 1000},
+	})
+	if len(windows) != 1 {
+		t.Fatalf("windows=%#v", windows)
+	}
+	weekly := windows[0]
+	if weekly.ID != "weekly" || weekly.Unit != "percentage" || weekly.Used == nil || *weekly.Used != 0 || weekly.Remaining == nil || *weekly.Remaining != 100 || weekly.ResetsAt == nil || weekly.CycleStartSource != "upstream_period" {
+		t.Fatalf("weekly=%#v", weekly)
+	}
+}
+
 func TestAuthQuotaForecastUsesUpstreamUsedRatio(t *testing.T) {
 	s := quotaService(t)
 	used, remaining := 25.0, 75.0

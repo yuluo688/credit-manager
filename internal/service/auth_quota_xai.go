@@ -107,6 +107,14 @@ func xaiCreditWindows(d map[string]any) []AuthQuotaWindow {
 	if percent == nil && !strings.Contains(periodType, "weekly") && len(products) == 0 {
 		return nil
 	}
+	// xAI serialises this payload as proto3 JSON, which drops zero-valued
+	// scalars and empty lists. A weekly period without creditUsagePercent
+	// therefore means 0% used, not "unknown" (observed on accounts that have
+	// not used any shared weekly credits yet in the current period).
+	if percent == nil && strings.Contains(periodType, "weekly") {
+		zero := 0.0
+		percent = &zero
+	}
 	start, end, seconds := xaiPeriodTimes(d, period)
 	if seconds == nil {
 		seconds = int64ptr(604800)
