@@ -172,8 +172,10 @@ The self-service page is not listed in the management sidebar and needs no host 
 | ![Overview](docs/images/en-overview.png) | ![Keys](docs/images/en-keys.png) |
 | **Models & pricing** | **Auth quotas** |
 | ![Models & pricing](docs/images/en-pricing.png) | ![Auth quotas](docs/images/en-auth-quotas.png) |
+| **Usage analytics** | **Key self-service lookup** |
+| ![Usage analytics](docs/images/en-usage.png) | ![Key self-service lookup](docs/images/en-lookup.png) |
 
-Account emails in the screenshots are replaced with placeholders.
+Screenshots come from a separate demo instance priced with models.dev reference prices, with data from 44 real small requests; account emails are replaced with placeholders.
 
 ## Limits and Settlement
 

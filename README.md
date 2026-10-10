@@ -172,8 +172,10 @@ curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
 | ![概览](docs/images/zh-overview.png) | ![密钥管理](docs/images/zh-keys.png) |
 | **模型与价格** | **认证额度** |
 | ![模型与价格](docs/images/zh-pricing.png) | ![认证额度](docs/images/zh-auth-quotas.png) |
+| **使用统计** | **Key 自助查询页** |
+| ![使用统计](docs/images/zh-usage.png) | ![Key 自助查询页](docs/images/zh-lookup.png) |
 
-截图中的账号邮箱已替换为示例地址。
+截图来自独立的演示实例：价格按 models.dev 上的参考价配置，数据来自 44 次真实的小请求；账号邮箱已替换为示例地址。
 
 ## 额度与结算
 
