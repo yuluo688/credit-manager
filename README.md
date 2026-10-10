@@ -1,8 +1,39 @@
 # CPA Credit Manager
 
+**给 CLIProxyAPI 加上按 Key 计费、限额和并发控制：每个用户一把 `tk-...` Key，超额请求在到达上游之前就被拒绝。**
+
 [English](README.en.md) | [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | [项目仓库](https://github.com/yuluo688/credit-manager) | [下载最新版本](https://github.com/yuluo688/credit-manager/releases/latest)
 
-`credit-manager` 是 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) 的原生 Go 插件。它把插件 Key 鉴权、额度预占、实际用量结算和使用分析放在同一条请求链路中，适合为团队、用户或自动化任务分发独立、可计费的模型访问 Key。
+![管理控制台导览](docs/images/zh-tour.gif)
+
+## 功能一览
+
+- **独立的 `tk-...` Key**：签发、揭示、轮换、禁用、撤销，Key 持有人可在自助页查看自己的额度。
+- **总 / 日 / 周 / 月消费额度**：请求转发前先预占，额度或并发不足直接拒绝。
+- **按实际 usage 结算**：文本按 Token 计费，纯出图按张计费，支持上下文档位与 `service_tier` 档位定价。
+- **模型范围与 Token 上限**：每个 Key 可限定可用模型（exact/glob），并按模型设置 Token 硬上限。
+- **认证额度看板**：汇总 Codex、Claude、Antigravity、Kimi、xAI OAuth 认证的上游额度窗口，并可按认证限制并发。
+- **内置管理控制台与管理 API**：概览、密钥管理、模型与价格、使用统计、认证额度，以及审计记录。
+
+## 三步上手
+
+1. **下载**：在 [Releases](https://github.com/yuluo688/credit-manager/releases/latest) 下载与宿主平台对应的 `credit-manager_<版本>_<系统>_<架构>.zip`（提供 `linux_amd64`、`linux_arm64`、`darwin_amd64`、`darwin_arm64`、`windows_amd64`），解压出 `credit-manager.so` / `.dylib` / `.dll`，放进 CLIProxyAPI 的 `plugins/<系统>/<架构>/` 目录，例如 `plugins/linux/amd64/credit-manager.so`。
+2. **启用**：在 CLIProxyAPI 的 `config.yaml` 中启用插件后重启宿主（也可以在宿主的插件管理中启用）：
+
+   ```yaml
+   plugins:
+     enabled: true
+     dir: ./plugins
+     configs:
+       credit-manager:
+         enabled: true
+   ```
+
+3. **签发 Key**：在 CLIProxyAPI 管理中心侧栏打开 **CPA 额度管理**，输入宿主管理密钥，在“密钥管理”中创建 Key，把完整的 `tk-...` 交给客户端使用：`Authorization: Bearer tk-...`。
+
+> 首次启动会生成 `data_dir/key-peppers`，请务必备份，遗失后所有已签发的 Key 都会失效，详见 [Pepper 保护](#pepper-保护)。默认价格规则是全模型免费，正式使用前请在“模型与价格”中配置真实价格。
+
+从源码构建、管理 API 示例等详细步骤见下文 [从源码构建与详细步骤](#从源码构建与详细步骤)。
 
 | 插件 ID | 运行形态 |
 |---|---|
@@ -26,7 +57,7 @@ Authorization: Bearer tk-...
 
 `GET /v1/models` 和 `GET /v1beta/models` 可匿名获取公共模型目录，以兼容宿主管理中心；它们不能调用模型。全局禁用的模型会从目录移除，但某个 Key 的模型白名单不会裁剪公共目录。
 
-## 快速开始
+## 从源码构建与详细步骤
 
 ### 1. 准备环境
 
@@ -77,7 +108,7 @@ chmod +x scripts/build.sh
 plugins:
   enabled: true
   dir: ./plugins
-  items:
+  configs:
     credit-manager:
       enabled: true
 ```
@@ -133,6 +164,16 @@ curl -sS "http://127.0.0.1:8317/v1/chat/completions" \
 | 认证额度 | OAuth 认证的上游额度窗口、本地使用预测和认证并发上限 |
 
 自助查询页不会出现在管理侧栏，不需要宿主管理密钥。插件 Key 仅作为当前请求的 `Authorization` 头发送，不写入 URL 或浏览器存储；公开响应不包含 caller ID、认证账号、邮箱或认证文件路径。
+
+## 截图
+
+| 概览 | 密钥管理 |
+|---|---|
+| ![概览](docs/images/zh-overview.png) | ![密钥管理](docs/images/zh-keys.png) |
+| **模型与价格** | **认证额度** |
+| ![模型与价格](docs/images/zh-pricing.png) | ![认证额度](docs/images/zh-auth-quotas.png) |
+
+截图中的账号邮箱已替换为示例地址。
 
 ## 额度与结算
 
@@ -245,7 +286,7 @@ http://<CPA_HOST>:8317/v0/management/credit-manager
 
 ```yaml
 plugins:
-  items:
+  configs:
     credit-manager:
       enabled: true
       config: |

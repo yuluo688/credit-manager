@@ -1,8 +1,39 @@
 # CPA Credit Manager
 
+**Per-Key billing, spend limits, and concurrency control for CLIProxyAPI: give every user their own `tk-...` Key, and over-limit requests are rejected before they reach the upstream.**
+
 [中文文档](README.md) | [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) | [Repository](https://github.com/yuluo688/credit-manager) | [Download latest release](https://github.com/yuluo688/credit-manager/releases/latest)
 
-`credit-manager` is a native Go plugin for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI). It keeps plugin-key authentication, credit reservation, usage settlement, and analytics in one request path, so teams, users, and automated workloads can receive independent, billable model access Keys.
+![Management console tour](docs/images/en-tour.gif)
+
+## Features
+
+- **Independent `tk-...` Keys**: mint, reveal, rotate, disable, and revoke; Key holders can check their own quota on a self-service page.
+- **Total / daily / weekly / monthly spend limits**: credit is reserved before forwarding; requests over spend or concurrency limits are rejected.
+- **Settlement from actual usage**: text billed per token, image-only traffic per image, with context-tier and `service_tier` pricing.
+- **Model access and Token caps**: restrict each Key to exact/glob model patterns and set hard per-model Token caps.
+- **Auth quota dashboard**: upstream quota windows for Codex, Claude, Antigravity, Kimi, and xAI OAuth credentials, with per-auth concurrency caps.
+- **Built-in console and management API**: overview, Keys, models & pricing, usage analytics, auth quotas, and audit events.
+
+## Quick Start in 3 Steps
+
+1. **Download** `credit-manager_<version>_<goos>_<goarch>.zip` for your host from [Releases](https://github.com/yuluo688/credit-manager/releases/latest) (`linux_amd64`, `linux_arm64`, `darwin_amd64`, `darwin_arm64`, `windows_amd64`). Unzip the `credit-manager.so` / `.dylib` / `.dll` into CLIProxyAPI's `plugins/<goos>/<goarch>/` directory, e.g. `plugins/linux/amd64/credit-manager.so`.
+2. **Enable** the plugin in CLIProxyAPI's `config.yaml` and restart the host (or enable it in the host's Plugin Management):
+
+   ```yaml
+   plugins:
+     enabled: true
+     dir: ./plugins
+     configs:
+       credit-manager:
+         enabled: true
+   ```
+
+3. **Mint a Key**: open **CPA Credit Manager** in the CLIProxyAPI Management Center sidebar, enter the host management token, create a Key under "Keys", and hand the full `tk-...` string to the client: `Authorization: Bearer tk-...`.
+
+> First start creates `data_dir/key-peppers`. Back it up: losing it invalidates every issued Key (see [Pepper protection](#protect-pepper-material)). The default pricing rule makes every model free; configure real prices under "Models & pricing" before production use.
+
+For building from source and API examples, see [Build from Source and Detailed Setup](#build-from-source-and-detailed-setup).
 
 | Plugin ID | Runtime |
 |---|---|
@@ -26,7 +57,7 @@ Authorization: Bearer tk-...
 
 `GET /v1/models` and `GET /v1beta/models` remain anonymous for CLIProxyAPI Management Center compatibility. They only return the public model catalog and cannot execute models. Globally disabled models are omitted; a Key allowlist does not trim this public catalog.
 
-## Quick Start
+## Build from Source and Detailed Setup
 
 ### 1. Prepare the environment
 
@@ -77,7 +108,7 @@ The host configuration can be as small as this; the plugin itself supports zero-
 plugins:
   enabled: true
   dir: ./plugins
-  items:
+  configs:
     credit-manager:
       enabled: true
 ```
@@ -133,6 +164,16 @@ The console accepts and displays USD. Switching to CNY affects display only. Eve
 | Auth quotas | OAuth upstream quota windows, local usage estimates, and auth concurrency caps. |
 
 The self-service page is not listed in the management sidebar and needs no host management token. The plugin Key is sent only in the current request's `Authorization` header, never in the URL or browser storage. Public responses exclude caller IDs, auth accounts, emails, and auth-file paths.
+
+## Screenshots
+
+| Overview | Keys |
+|---|---|
+| ![Overview](docs/images/en-overview.png) | ![Keys](docs/images/en-keys.png) |
+| **Models & pricing** | **Auth quotas** |
+| ![Models & pricing](docs/images/en-pricing.png) | ![Auth quotas](docs/images/en-auth-quotas.png) |
+
+Account emails in the screenshots are replaced with placeholders.
 
 ## Limits and Settlement
 
@@ -245,7 +286,7 @@ See [`config.example.yaml`](config.example.yaml) for the full example. Point the
 
 ```yaml
 plugins:
-  items:
+  configs:
     credit-manager:
       enabled: true
       config: |
