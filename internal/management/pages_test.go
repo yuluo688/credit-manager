@@ -78,7 +78,7 @@ func TestPagesHaveNoRenderBlockingCDNScripts(t *testing.T) {
 				t.Fatalf("%s page still loads an external render-blocking resource: %q", name, text)
 			}
 		}
-		tag := `<script src="./` + echartsAssetPath + `"></script>`
+		tag := `<script src="./` + echartsAssetPath + `?v=` + assetVersion(mustPageFile("web/"+echartsAssetPath)) + `"></script>`
 		at := strings.Index(page, tag)
 		if at < 0 {
 			t.Fatalf("%s page does not load the vendored ECharts build", name)

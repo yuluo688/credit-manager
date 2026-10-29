@@ -16,6 +16,7 @@ func configure(req lifecycleRequest) error {
 	service.Current().SetModelDirectorySyncer(hostModelDirectorySyncer{})
 	service.Current().SetAuthWarmupExecutor(hostAuthWarmupExecutor{})
 	service.Current().StartAuthWarmup()
+	service.Current().StartAuthQuotaSync()
 	_ = service.Current().RefreshModelDirectory(context.Background())
 	return nil
 }
@@ -44,6 +45,7 @@ func pluginRegistration(schemaVersion uint32) registration {
 				{Name: "limits.default_output_reserve", Type: pluginapi.ConfigFieldTypeInteger, Description: "Default output token reserve when body omits max_tokens."},
 				{Name: "pricing.unknown_policy", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"deny", "allow", "default"}, Description: "Behavior when no price rule matches."},
 				{Name: "settlement.missing_usage", Type: pluginapi.ConfigFieldTypeEnum, EnumValues: []string{"settle_reserved", "release"}, Description: "Settlement when upstream returns no usage."},
+				{Name: "auth_quota.sync_interval", Type: pluginapi.ConfigFieldTypeString, Description: "Background upstream quota sync interval (default 45m, min 10m, 0 disables)."},
 				{Name: "settlement.host_usage_wait", Type: pluginapi.ConfigFieldTypeString, Description: "Deprecated compatibility setting. usage.handle now reprices settled fallback rows without blocking."},
 			},
 		},

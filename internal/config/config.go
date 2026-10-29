@@ -102,13 +102,24 @@ type Config struct {
 	Pricing      PricingConfig    `yaml:"pricing" json:"pricing"`
 	Settlement   SettlementConfig `yaml:"settlement" json:"settlement"`
 	Stream       StreamConfig     `yaml:"stream" json:"stream"`
+	AuthQuota    AuthQuotaConfig  `yaml:"auth_quota" json:"auth_quota"`
 }
+
+// AuthQuotaConfig controls background upstream quota syncs.
+type AuthQuotaConfig struct {
+	// SyncInterval is the background quota sync period; <= 0 disables it.
+	SyncInterval time.Duration `yaml:"sync_interval" json:"sync_interval"`
+}
+
+// DefaultAuthQuotaSyncInterval is the default background quota sync period.
+const DefaultAuthQuotaSyncInterval = 45 * time.Minute
 
 func Default() Config {
 	return Config{
 		DataDir:      "./data/credit-manager",
 		DatabaseFile: "credit-manager.db",
 		BusyTimeout:  5 * time.Second,
+		AuthQuota:    AuthQuotaConfig{SyncInterval: DefaultAuthQuotaSyncInterval},
 		Keys: KeyConfig{
 			PepperEnv:  "CREDIT_MANAGER_KEY_PEPPERS",
 			PepperFile: "key-peppers",
@@ -233,6 +244,9 @@ func (c Config) Validate() error {
 	}
 	if c.BusyTimeout <= 0 || c.BusyTimeout > 5*time.Minute {
 		errs = append(errs, errors.New("busy_timeout must be greater than zero and at most 5 minutes"))
+	}
+	if c.AuthQuota.SyncInterval > 0 && c.AuthQuota.SyncInterval < 10*time.Minute {
+		errs = append(errs, errors.New("auth_quota.sync_interval must be at least 10m (or 0 to disable)"))
 	}
 	if c.Limits.MaxTokenEstimate <= 0 {
 		errs = append(errs, errors.New("limits.max_token_estimate must be greater than zero"))

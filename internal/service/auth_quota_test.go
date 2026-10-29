@@ -230,6 +230,7 @@ func TestAuthQuotaForecastMatchesHostProviderAliases(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(2 * time.Millisecond) // ledger upper bound is ms-exclusive
 	used, remaining := 25.0, 75.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
 	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 23 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable {
@@ -933,6 +934,7 @@ func TestAuthQuotaForecastIncludesFullLocalUsage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(2 * time.Millisecond) // ledger upper bound is ms-exclusive
 	used, remaining := 25.0, 75.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
 	if window.LocalUsage == nil || window.LocalUsage.RequestCount != 1 || window.LocalUsage.TotalTokens != 36 || window.LocalUsage.EstimatedCostMicroUSD != 17 || !window.PredictionAvailable || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 3 || window.ObservedUsed == nil || *window.ObservedUsed != 25 {
@@ -987,6 +989,7 @@ func TestAuthQuotaForecastIgnoresPrePluginUsage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(2 * time.Millisecond) // ledger upper bound is ms-exclusive
 	used, remaining = 80.0, 20.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "codex", Windows: []AuthQuotaWindow{{ID: "primary", Scope: "account", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
 	if window.ObservedUsed == nil || *window.ObservedUsed != 10 || window.BaselineUsed == nil || *window.BaselineUsed != 70 || window.EstimatedRemainingRequests == nil || *window.EstimatedRemainingRequests != 2 {
@@ -1026,6 +1029,7 @@ func TestAuthQuotaAntigravityUnmatchedModelDisablesPrediction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(2 * time.Millisecond) // ledger upper bound is ms-exclusive
 	used, remaining := 25.0, 75.0
 	window := s.forecast(context.Background(), AuthQuotaOverviewItem{AuthID: "auth", AuthIndex: "idx", Provider: "antigravity", Windows: []AuthQuotaWindow{{Scope: "model_pool", ScopeID: "gemini", Used: &used, Remaining: &remaining, ResetsAt: &reset, DurationSeconds: &duration}}}).Windows[0]
 	if window.LocalAttributionStatus != "unmatched_local_usage" || window.PredictionAvailable {
@@ -1107,8 +1111,14 @@ func TestAuthQuotaContracts(t *testing.T) {
 		if err != nil || item.ResetCredits == nil || *item.ResetCredits != 3 {
 			t.Fatalf("item=%#v err=%v", item, err)
 		}
-		if len(src.requests) != 2 || src.requests[1].URL != "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits" {
+		if len(src.requests) != 3 || src.requests[1].URL != "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits" ||
+			src.requests[2].URL != "https://chatgpt.com/backend-api/wham/usage/plan_limit_history?days=7" {
 			t.Fatalf("requests=%#v", src.requests)
+		}
+		for _, r := range src.requests[1:] {
+			if r.Method != "GET" || r.Header.Get("OpenAI-Beta") != "codex-1" || r.Header.Get("Originator") != "Codex Desktop" {
+				t.Fatalf("reset/history request must be a read-only GET with codex headers: %#v", r)
+			}
 		}
 	})
 	t.Run("claude scopes and durations", func(t *testing.T) {

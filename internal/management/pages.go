@@ -55,6 +55,10 @@ func assemblePage(name string) []byte {
 	if n := bytes.Count(html, jsTag); n != 1 {
 		panic(fmt.Sprintf("web/%s.html: expected 1 script tag, got %d", name, n))
 	}
+	// Cache-bust the separately served asset by content hash so a browser or
+	// proxy never pairs a new page with a stale cached script.
+	echartsTag := []byte(`<script src="./` + echartsAssetPath + `"></script>`)
+	html = bytes.ReplaceAll(html, echartsTag, []byte(`<script src="./`+echartsAssetPath+`?v=`+assetVersion(mustPageFile("web/"+echartsAssetPath))+`"></script>`))
 	html = bytes.Replace(html, cssTag, concatPage([]byte("<style>"), css, []byte("</style>")), 1)
 	html = bytes.Replace(html, jsTag, concatPage([]byte("<script>"), js, []byte("</script>")), 1)
 	return html
@@ -224,4 +228,10 @@ func etagMatches(header, etag string) bool {
 		}
 	}
 	return false
+}
+
+// assetVersion is a short content hash used as a ?v= cache-busting token.
+func assetVersion(raw []byte) string {
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])[:12]
 }

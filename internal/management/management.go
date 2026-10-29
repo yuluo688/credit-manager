@@ -198,6 +198,9 @@ func normalizePath(path string) string {
 // resourceRelativePath returns the path under /v0/resource/plugins/<pluginID>/.
 func resourceRelativePath(path string) (string, bool) {
 	path = strings.TrimSpace(path)
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		path = path[:i] // ?v= cache-busting tokens
+	}
 	if path == "" {
 		return "", false
 	}

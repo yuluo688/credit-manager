@@ -17,7 +17,7 @@ import (
 const (
 	PluginID      = "credit-manager"
 	PluginName    = "CPA Credit Manager"
-	PluginVersion = "1.9.1"
+	PluginVersion = "1.9.2"
 	// CallerScopeMetadataKey mirrors sdk/cliproxy/executor.CallerScopeMetadataKey.
 	CallerScopeMetadataKey = "caller_scope"
 )
@@ -41,6 +41,7 @@ type Service struct {
 	warmupMu           sync.RWMutex
 	warmupExecutor     AuthWarmupExecutor
 	warmupCancel       context.CancelFunc
+	quotaSyncCancel    context.CancelFunc
 	warmupSems         map[string]chan struct{}
 	warmupSemLimit     int
 	authPickLast       map[string]string
@@ -128,6 +129,7 @@ func (s *Service) Close() error {
 		return nil
 	}
 	s.StopAuthWarmup()
+	s.StopAuthQuotaSync()
 	return s.store.Close()
 }
 
@@ -209,7 +211,9 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 			return fmt.Errorf("service replaced concurrently during reconfigure")
 		}
 		old.StopAuthWarmup()
+		old.StopAuthQuotaSync()
 		next.StartAuthWarmup()
+		next.StartAuthQuotaSync()
 		next.RefreshModelDirectory(ctx)
 		// Leave old.store attached: in-flight callers may still hold *old.
 		// Ownership of Close stays with the published Service / Shutdown.
@@ -251,6 +255,7 @@ func Quiesce() {
 		return
 	}
 	svc.StopAuthWarmup()
+	svc.StopAuthQuotaSync()
 	deadline := time.Now().Add(QuiesceDrainTimeout)
 	for time.Now().Before(deadline) && svc.activeRequestCount() > 0 {
 		time.Sleep(50 * time.Millisecond)

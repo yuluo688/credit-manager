@@ -22,8 +22,22 @@ func codex(ctx context.Context, s AuthQuotaSource, cb string, c quotaCredentials
 		return quotaSnapshot{}, fmt.Errorf("codex quota response has no recognized windows")
 	}
 	snap := quotaSnapshot{Plan: findText(d, "plan_type", "planType", "plan"), Windows: w}
-	if credits, e := request(ctx, s, cb, "GET", "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits", h, nil); e == nil {
+	// Same headers the Codex desktop client sends; read-only GETs only. Never
+	// call rate-limit-reset-credits/consume from here.
+	ch := h.Clone()
+	ch.Set("OpenAI-Beta", "codex-1")
+	ch.Set("Originator", "Codex Desktop")
+	if credits, e := request(ctx, s, cb, "GET", "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits", ch, nil); e == nil {
 		snap.ResetCredits = number(credits, "available_count", "availableCount")
+		snap.ResetCreditList = parseCodexResetCredits(credits)
+		snap.resetCreditsFetched = true
+	}
+	if history, e := request(ctx, s, cb, "GET", "https://chatgpt.com/backend-api/wham/usage/plan_limit_history?days=7", ch, nil); e == nil {
+		snap.planHistory = parseCodexPlanHistory(history)
+		snap.PlanHistoryStatus = fmt.Sprintf("ok: %d periods", len(snap.planHistory))
+	} else {
+		// Optional endpoint (404 on most plans); keep the outcome for diagnostics only.
+		snap.PlanHistoryStatus = truncateQuotaDiag(e.Error())
 	}
 	return snap, nil
 }
@@ -119,4 +133,93 @@ func codexSlug(value string) string {
 		}
 	}
 	return strings.Trim(b.String(), "_")
+}
+
+// codexResetCredit mirrors one entry of rate-limit-reset-credits credits[].
+type codexResetCredit struct {
+	ID        string     `json:"id"`
+	ResetType string     `json:"reset_type,omitempty"`
+	Status    string     `json:"status,omitempty"`
+	GrantedAt *time.Time `json:"granted_at,omitempty"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+}
+
+func parseCodexResetCredits(d map[string]any) []codexResetCredit {
+	out := []codexResetCredit{}
+	for _, x := range anySlice(d, "credits") {
+		m, ok := x.(map[string]any)
+		if !ok {
+			continue
+		}
+		c := codexResetCredit{
+			ID:        findText(m, "id"),
+			ResetType: findText(m, "reset_type", "resetType"),
+			Status:    findText(m, "status"),
+			GrantedAt: codexTime(m, "granted_at", "grantedAt"),
+			ExpiresAt: codexTime(m, "expires_at", "expiresAt"),
+		}
+		if c.ID != "" {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+// codexPlanPeriod is one plan_limit_history period (authoritative past window).
+type codexPlanPeriod struct {
+	WindowMinutes int64
+	StartsAt      time.Time
+	EndsAt        time.Time
+	Used          *float64
+}
+
+func parseCodexPlanHistory(d map[string]any) []codexPlanPeriod {
+	var out []codexPlanPeriod
+	for _, x := range anySlice(d, "periods") {
+		m, ok := x.(map[string]any)
+		if !ok {
+			continue
+		}
+		minutes := number(m, "window_minutes", "windowMinutes")
+		start, end := codexTime(m, "starts_at", "startsAt"), codexTime(m, "ends_at", "endsAt")
+		if minutes == nil || *minutes <= 0 || start == nil || end == nil || !end.After(*start) {
+			continue
+		}
+		p := codexPlanPeriod{WindowMinutes: int64(*minutes), StartsAt: *start, EndsAt: *end}
+		if bp := number(m, "used_basis_points", "usedBasisPoints"); bp != nil {
+			v := *bp / 100
+			p.Used = &v
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+func codexTime(m map[string]any, keys ...string) *time.Time {
+	for _, k := range keys {
+		switch v := m[k].(type) {
+		case string:
+			if t, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(v)); err == nil {
+				u := t.UTC()
+				return &u
+			}
+		case float64:
+			if v > 0 {
+				sec := v
+				if sec > 1e12 {
+					sec /= 1000
+				}
+				u := time.Unix(int64(sec), 0).UTC()
+				return &u
+			}
+		}
+	}
+	return nil
+}
+
+func truncateQuotaDiag(v string) string {
+	if len(v) > 160 {
+		return v[:160]
+	}
+	return v
 }

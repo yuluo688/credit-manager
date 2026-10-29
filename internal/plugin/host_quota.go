@@ -135,7 +135,7 @@ func allowedAuthQuotaRequest(method, rawURL string) bool {
 	method = strings.ToUpper(strings.TrimSpace(method))
 	switch parsed.Host {
 	case "chatgpt.com":
-		return method == http.MethodGet && (parsed.Path == "/backend-api/wham/usage" || parsed.Path == "/backend-api/wham/rate-limit-reset-credits")
+		return method == http.MethodGet && (parsed.Path == "/backend-api/wham/usage" || parsed.Path == "/backend-api/wham/rate-limit-reset-credits" || parsed.Path == "/backend-api/wham/usage/plan_limit_history")
 	case "api.anthropic.com":
 		return method == http.MethodGet && (parsed.Path == "/api/oauth/usage" || parsed.Path == "/api/oauth/profile")
 	case "cloudcode-pa.googleapis.com", "daily-cloudcode-pa.googleapis.com", "daily-cloudcode-pa.sandbox.googleapis.com", "autopush-cloudcode-pa.googleapis.com":

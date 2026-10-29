@@ -425,7 +425,51 @@ var migrations = []migration{
 			`ALTER TABLE auth_routing_settings ADD COLUMN session_affinity_ttl_seconds INTEGER NOT NULL DEFAULT 3600`,
 		},
 	},
-}
+
+	{
+		version: 29,
+		name:    "auth_quota_window_history",
+		up: []string{
+			`CREATE TABLE IF NOT EXISTS auth_quota_window_observations (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				window_id TEXT NOT NULL,
+				start_unix_ms INTEGER NOT NULL,
+				reset_unix_ms INTEGER NOT NULL,
+				duration_seconds INTEGER NOT NULL,
+				label TEXT NOT NULL DEFAULT '',
+				used REAL,
+				first_used REAL,
+				first_seen_unix_ms INTEGER NOT NULL,
+				last_seen_unix_ms INTEGER NOT NULL,
+				source TEXT NOT NULL,
+				PRIMARY KEY (provider, auth_id, window_id, start_unix_ms)
+			)`,
+			`CREATE TABLE IF NOT EXISTS auth_quota_reset_credits (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				credit_id TEXT NOT NULL,
+				reset_type TEXT NOT NULL DEFAULT '',
+				status TEXT NOT NULL DEFAULT '',
+				granted_at_unix_ms INTEGER,
+				expires_at_unix_ms INTEGER,
+				first_seen_unix_ms INTEGER NOT NULL,
+				last_seen_unix_ms INTEGER NOT NULL,
+				gone_at_unix_ms INTEGER,
+				PRIMARY KEY (provider, auth_id, credit_id)
+			)`,
+			`CREATE TABLE IF NOT EXISTS auth_quota_reset_events (
+				provider TEXT NOT NULL,
+				auth_id TEXT NOT NULL,
+				kind TEXT NOT NULL,
+				after_unix_ms INTEGER NOT NULL,
+				before_unix_ms INTEGER NOT NULL,
+				credit_id TEXT NOT NULL DEFAULT '',
+				detail TEXT NOT NULL DEFAULT '',
+				PRIMARY KEY (provider, auth_id, kind, after_unix_ms, credit_id)
+			)`,
+		},
+	}}
 
 // Migrate applies every pending migration transactionally.
 func Migrate(ctx context.Context, db *sql.DB) error {

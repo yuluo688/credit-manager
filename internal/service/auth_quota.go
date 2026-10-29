@@ -121,11 +121,24 @@ type AuthQuotaWindow struct {
 	PredictionAvailable        bool                 `json:"prediction_available"`
 	BaselineUsed               *float64             `json:"baseline_used,omitempty"`
 	ObservedUsed               *float64             `json:"observed_used,omitempty"`
+	// History fields: ScheduledResetAt is the upstream scheduled end when the
+	// window ended early; EndReason is natural|early_reset; Approximate marks
+	// boundaries inferred from the ledger or sync times.
+	ScheduledResetAt *time.Time `json:"scheduled_resets_at,omitempty"`
+	EndReason        string     `json:"end_reason,omitempty"`
+	Approximate      bool       `json:"approximate,omitempty"`
+	HistorySource    string     `json:"history_source,omitempty"`
 }
 type quotaSnapshot struct {
-	Plan         string            `json:"plan,omitempty"`
-	ResetCredits *float64          `json:"reset_credits,omitempty"`
-	Windows      []AuthQuotaWindow `json:"windows"`
+	Plan         string   `json:"plan,omitempty"`
+	ResetCredits *float64 `json:"reset_credits,omitempty"`
+	// ResetCreditList holds the full codex reset credit entries.
+	PlanHistoryStatus string             `json:"plan_history_status,omitempty"`
+	ResetCreditList   []codexResetCredit `json:"reset_credit_list,omitempty"`
+	Windows           []AuthQuotaWindow  `json:"windows"`
+
+	resetCreditsFetched bool
+	planHistory         []codexPlanPeriod
 }
 type quotaCredentials struct{ token, accountID, projectID, userID string }
 
@@ -411,12 +424,18 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 	snap, fetchErr := s.fetch(requestCtx, source, callback, provider, creds)
 	cancel()
 	if fetchErr == nil {
+		// History now lives in auth_quota_window_observations; the snapshot
+		// only keeps what upstream reported on this sync.
+		var prevPtr *quotaSnapshot
+		var prevSuccess *time.Time
 		if savedErr == nil && hasQuotaSnapshot(saved) {
-			var prev quotaSnapshot
-			if json.Unmarshal([]byte(saved.SnapshotJSON), &prev) == nil {
-				snap = mergeHistoricalQuotaWindows(prev, snap)
+			if prev, ok := decodeQuotaSnapshot(saved.SnapshotJSON); ok {
+				prevPtr = &prev
+				prevSuccess = saved.LastSuccessAt
 			}
 		}
+		s.seedQuotaWindowObservations(ctx, provider, id, prevPtr, prevPtr != nil)
+		s.recordQuotaObservations(ctx, provider, id, prevPtr, prevSuccess, snap, time.Now().UTC())
 		if snap.Plan == "" {
 			snap.Plan = quotaPlanFromAuthJSON(raw)
 		}
@@ -433,9 +452,10 @@ func (s *Service) loadAuthQuotaItem(ctx context.Context, source AuthQuotaSource,
 		item.Status = "fresh"
 		item.Plan = snap.Plan
 		item.ResetCredits = snap.ResetCredits
-		item.Windows = snap.Windows
+		item.Windows = append([]AuthQuotaWindow(nil), snap.Windows...)
 		item.LastAttemptAt = &now
 		item.LastSuccessAt = &now
+		s.applyQuotaWindowHistory(ctx, &item, now)
 		return s.forecast(ctx, item), true
 	}
 	return s.failedQuotaItem(ctx, item, saved, savedErr, provider, id, file.ModTime, fetchErr), true
@@ -572,11 +592,12 @@ func (s *Service) fromSnapshot(ctx context.Context, item AuthQuotaOverviewItem, 
 		item.LastErrorAt = x.LastErrorAt
 		return item
 	}
-	snap.Windows = addIncompleteQuotaWindows(snap.Windows, time.Now().UTC())
 	item.Status = status
 	item.Plan = snap.Plan
 	item.ResetCredits = snap.ResetCredits
 	item.Windows = snap.Windows
+	s.seedQuotaWindowObservations(ctx, item.Provider, item.AuthID, &snap, false)
+	s.applyQuotaWindowHistory(ctx, &item, time.Now().UTC())
 	item.LastSuccessAt = x.LastSuccessAt
 	if !x.LastAttemptAt.IsZero() {
 		v := x.LastAttemptAt
