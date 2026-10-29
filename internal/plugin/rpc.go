@@ -50,6 +50,16 @@ type registrationCapability struct {
 	// SchedulerAcrossPriorities asks CPA >= 8.0.36 for candidates from all
 	// priority tiers; older hosts ignore the unknown field.
 	SchedulerAcrossPriorities bool `json:"scheduler_across_priorities,omitempty"`
+	// FrontendAuthProviderOmitBody opts out of receiving FrontendAuthRequest.Body
+	// and DecodedBody in FrontendAuthProvider.Authenticate. authenticate() only
+	// reads Headers (plus Method/Path), so the body is never used. On schema 7+
+	// hosts this skips reading, decoding and cloning the whole request body
+	// during authentication. Older hosts ignore the unknown field.
+	FrontendAuthProviderOmitBody bool `json:"frontend_auth_provider_omit_body,omitempty"`
+	// RequestInterceptorOmitBodyBefore opts out of the body in
+	// InterceptRequestBeforeAuth, which returns an empty response without
+	// decoding the request. Honored only on schema 7+ hosts.
+	RequestInterceptorOmitBodyBefore bool `json:"request_interceptor_omit_body_before,omitempty"`
 }
 
 type rpcModelRouteRequest struct {

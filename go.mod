@@ -1,10 +1,10 @@
 module github.com/yuluo688/credit-manager
 
-go 1.26.0
+go 1.26.10
 
 require (
-	github.com/router-for-me/CLIProxyAPI/v8 v8.0.36
-	golang.org/x/sys v0.47.0
+	github.com/router-for-me/CLIProxyAPI/v8 v8.0.47
+	golang.org/x/sys v0.48.0
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.46.1
 )
