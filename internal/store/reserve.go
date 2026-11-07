@@ -436,53 +436,86 @@ func (s *Store) ReleaseStaleReservations(ctx context.Context, olderThan time.Tim
 	return released, nil
 }
 
-// ReleaseAbandonedFinishedReservations releases financial holds whose request
-// execution already finished and whose heartbeat has been quiet since
-// quietBefore. In-flight streams that finish execution early still heartbeat
-// until settlement, so they are left alone.
-func (s *Store) ReleaseAbandonedFinishedReservations(ctx context.Context, quietBefore time.Time) (int64, error) {
-	cutoff := quietBefore.UTC().UnixMilli()
+// ReleaseAbandonedFinishedReservations releases held reservations whose
+// heartbeat has been quiet since quietBefore. Execution does not have to be
+// finished: a goroutine that died before FinishExecution still occupies the
+// concurrency index. Live requests heartbeat at least once a minute, so a
+// fresh updated_at keeps them.
+func (s *Store) ReleaseAbandonedFinishedReservations(ctx context.Context, quietBefore time.Time) ([]string, error) {
+	return s.releaseQuietHolds(ctx, `SELECT id, execution_finished_at_unix_ms IS NOT NULL
+		FROM reservations WHERE status = 'held' AND updated_at_unix_ms < ?`, []any{quietBefore.UTC().UnixMilli()})
+}
+
+// ReleaseAllHeldReservations releases every financial hold. It is only safe
+// when this process has no in-flight request, such as during startup after
+// the previous process exited.
+func (s *Store) ReleaseAllHeldReservations(ctx context.Context, reason string) ([]string, error) {
+	if strings.TrimSpace(reason) == "" {
+		reason = "process_restart"
+	}
+	return s.releaseHeldIDs(ctx, `SELECT id FROM reservations WHERE status = 'held'`, nil, func(bool) string { return reason })
+}
+
+func (s *Store) releaseQuietHolds(ctx context.Context, query string, args []any) ([]string, error) {
+	return s.releaseHeldIDs(ctx, query, args, func(finished bool) string {
+		if finished {
+			return "execution_finished_unsettled"
+		}
+		return "heartbeat_lost"
+	})
+}
+
+func (s *Store) releaseHeldIDs(ctx context.Context, query string, args []any, reasonFor func(finished bool) string) ([]string, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer tx.Rollback()
-	rows, err := tx.QueryContext(ctx, `SELECT id FROM reservations
-		WHERE status = 'held'
-		AND execution_finished_at_unix_ms IS NOT NULL
-		AND execution_finished_at_unix_ms < ?
-		AND updated_at_unix_ms < ?`, cutoff, cutoff)
+	rows, err := tx.QueryContext(ctx, query, args...)
 	if err != nil {
-		return 0, fmt.Errorf("list abandoned finished reservations: %w", err)
+		return nil, fmt.Errorf("list held reservations: %w", err)
 	}
-	var ids []string
+	type heldRow struct {
+		id       string
+		finished bool
+	}
+	var pending []heldRow
+	finishedCol := strings.Contains(strings.ToLower(query), "execution_finished_at_unix_ms is not null")
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			_ = rows.Close()
-			return 0, fmt.Errorf("scan abandoned finished reservation: %w", err)
+		var row heldRow
+		var finished int
+		var scanErr error
+		if finishedCol {
+			scanErr = rows.Scan(&row.id, &finished)
+			row.finished = finished == 1
+		} else {
+			scanErr = rows.Scan(&row.id)
 		}
-		ids = append(ids, id)
+		if scanErr != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan held reservation: %w", scanErr)
+		}
+		pending = append(pending, row)
 	}
 	if err := rows.Close(); err != nil {
-		return 0, err
+		return nil, err
 	}
-	var released int64
-	for _, id := range ids {
-		reservation, err := getReservation(ctx, tx, id)
+	released := make([]string, 0, len(pending))
+	for _, row := range pending {
+		reservation, err := getReservation(ctx, tx, row.id)
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
 		if reservation.Status != ReservationHeld {
 			continue
 		}
-		if err := releaseHeldReservationTx(ctx, tx, reservation, "execution_finished_unsettled"); err != nil {
-			return 0, err
+		if err := releaseHeldReservationTx(ctx, tx, reservation, reasonFor(row.finished)); err != nil {
+			return nil, err
 		}
-		released++
+		released = append(released, row.id)
 	}
 	if err := tx.Commit(); err != nil {
-		return 0, err
+		return nil, err
 	}
 	return released, nil
 }

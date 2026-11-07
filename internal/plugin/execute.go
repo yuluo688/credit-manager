@@ -69,8 +69,11 @@ func execute(raw []byte) ([]byte, error) {
 		recordRejectedAttempt(ctx, svc, key, plan.Model, "failed", service.SourceAttemptRejected, code+":"+err.Error())
 		return errorEnvelope(code, err.Error()), nil
 	}
-	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
+	// Any return or panic after the hold exists must drop it. Settlement marks
+	// the row finalized, so this is a no-op on the success path.
+	defer svc.ReleaseIfHeld(ctx, reservation.ID, "unsettled_exit")
 	defer func() { _ = svc.FinishExecution(ctx, reservation.ID) }()
+	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
 	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
 		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, "auth_concurrency:"+err.Error())
 		return errorEnvelope("limit_rejected", err.Error()), nil
@@ -155,12 +158,13 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		recordRejectedAttempt(ctx, svc, key, plan.Model, "failed", service.SourceAttemptRejected, "limit_rejected:"+err.Error())
 		return err
 	}
+	defer svc.ReleaseIfHeld(ctx, reservation.ID, "unsettled_exit")
+	defer func() { _ = svc.FinishExecution(ctx, reservation.ID) }()
 	if bindStreamLifecycle(lifecycleID, reservation.ID) {
 		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "cancelled", service.SourceAttemptCancelled, "client_disconnected_before_upstream")
 		return errClientDisconnectedBeforeUpstream
 	}
 	svc.TrackAuthCapture(reservation.ID, plan.Model, req.Model)
-	defer func() { _ = svc.FinishExecution(ctx, reservation.ID) }()
 	if err := admitExecutorAuth(ctx, svc, reservation.ID, req.ExecutorRequest); err != nil {
 		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, "auth_concurrency:"+err.Error())
 		return err
@@ -350,7 +354,7 @@ func isAuthConcurrencyError(err error) bool {
 	return strings.Contains(msg, "maximum concurrent") || strings.Contains(msg, "limit_rejected")
 }
 
-func startReservationHeartbeat(svc *service.Service, reservationID string) func() {
+func startReservationHeartbeat(svc *service.Service, reservationID string, limits ...time.Duration) func() {
 	done := make(chan struct{})
 	var stopOnce sync.Once
 	if svc == nil || strings.TrimSpace(reservationID) == "" {
@@ -364,6 +368,11 @@ func startReservationHeartbeat(svc *service.Service, reservationID string) func(
 	if interval < time.Second {
 		interval = time.Second
 	}
+	var maxAge time.Duration
+	if len(limits) > 0 {
+		maxAge = limits[0]
+	}
+	started := time.Now()
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -372,6 +381,10 @@ func startReservationHeartbeat(svc *service.Service, reservationID string) func(
 			case <-done:
 				return
 			case <-ticker.C:
+				if maxAge > 0 && time.Since(started) >= maxAge {
+					svc.ReleaseIfHeld(context.Background(), reservationID, "heartbeat_lost")
+					return
+				}
 				_ = svc.TouchReservation(context.Background(), reservationID)
 			}
 		}

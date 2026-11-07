@@ -112,7 +112,10 @@ func interceptRequestAfterAuth(raw []byte) ([]byte, error) {
 		return okEnvelope(quotaRejectResponse(http.StatusTooManyRequests, err.Error()))
 	}
 	imageHoldsMu.Lock()
-	imageHolds[requestID] = imageHold{reservation: reservation, plan: plan, stopHeart: startReservationHeartbeat(svc, reservation.ID)}
+	// Image holds have no stream goroutine of their own. If the completion
+	// callback never arrives, stop refreshing the heartbeat at the stale
+	// timeout so the hold cannot pin the key forever.
+	imageHolds[requestID] = imageHold{reservation: reservation, plan: plan, stopHeart: startReservationHeartbeat(svc, reservation.ID, svc.Config().Stream.StaleReservationTimeout)}
 	imageHoldsMu.Unlock()
 	return okEnvelope(pluginapi.RequestInterceptResponse{})
 }
@@ -141,6 +144,7 @@ func completeInterceptedRequest(raw []byte) ([]byte, error) {
 		hold.stopHeart()
 	}
 	ctx := context.Background()
+	defer svc.ReleaseIfHeld(ctx, hold.reservation.ID, "unsettled_exit")
 	if req.Outcome != pluginapi.RequestCompletionSucceeded {
 		result, source := "failed", service.SourceAttemptFailed
 		if req.Outcome == pluginapi.RequestCompletionCanceled {

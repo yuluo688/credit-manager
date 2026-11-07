@@ -313,7 +313,7 @@ export CREDIT_MANAGER_CONFIG_FILE=/path/to/credit-manager.yaml
 | `pricing.unknown_policy` | `allow` | 未匹配价格规则时的策略：`allow`、`deny`、`default` |
 | `settlement.missing_usage` | `settle_reserved` | 缺 usage 时的结算策略 |
 | `settlement.host_usage_wait` | `4s` | 兼容保留项；不再等待，宿主 usage 回调会直接补记已结算账本 |
-| `stream.stale_reservation_timeout` | `2h` | 无心跳在途预占的自动释放阈值 |
+| `stream.stale_reservation_timeout` | `2h` | 无心跳预占的释放上限。重启会立刻清掉上次进程留下的 held；运行中取该值与 5 分钟的较短者，超过这个时间仍无心跳的 held 也会释放。仍在心跳的长请求不会被清掉 |
 
 ### Pepper 保护
 

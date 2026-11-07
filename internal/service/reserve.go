@@ -143,16 +143,38 @@ func (s *Service) cleanupStaleReservations(ctx context.Context, force bool) (int
 	// settle would otherwise keep consuming quota until the long stale timeout.
 	ctx, cancel := accountingContext(ctx)
 	defer cancel()
+	grace := finishedHoldGrace
+	if timeout := s.cfg.Stream.StaleReservationTimeout; timeout > 0 && timeout < grace {
+		grace = timeout
+	}
+	abandoned, err := s.store.ReleaseAbandonedFinishedReservations(ctx, now.Add(-grace))
+	if err != nil {
+		return 0, err
+	}
+	for _, id := range abandoned {
+		// The owning goroutine is gone. Drop the in-memory auth slot too.
+		s.CancelAuthCapture(id)
+	}
 	released, err := s.store.ReleaseStaleReservations(ctx, now.Add(-s.cfg.Stream.StaleReservationTimeout))
 	if err != nil {
 		return 0, err
 	}
-	abandoned, err := s.store.ReleaseAbandonedFinishedReservations(ctx, now.Add(-finishedHoldGrace))
-	if err != nil {
-		return 0, err
-	}
 	s.lastCleanup = now
-	return released + abandoned, nil
+	return released + int64(len(abandoned)), nil
+}
+
+// ReleaseIfHeld frees a reservation that is still financially held. Already
+// settled or released rows are left unchanged and are not logged.
+func (s *Service) ReleaseIfHeld(ctx context.Context, reservationID, reason string) {
+	if s == nil || strings.TrimSpace(reservationID) == "" {
+		return
+	}
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
+	_, err := s.store.Release(ctx, reservationID, reason)
+	if err != nil && !errors.Is(err, store.ErrReservationFinalized) && !errors.Is(err, store.ErrReservationNotFound) {
+		log.Printf("credit-manager: release reservation %s (%s): %v", reservationID, reason, err)
+	}
 }
 
 // accountingContext detaches financial closeout from the request context.

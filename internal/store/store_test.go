@@ -541,8 +541,8 @@ func TestReleaseAbandonedFinishedReservations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("release abandoned finished reservations: %v", err)
 	}
-	if released != 1 {
-		t.Fatalf("released = %d, want 1", released)
+	if len(released) != 2 {
+		t.Fatalf("released = %d, want 2", len(released))
 	}
 	quietGot, err := st.GetReservation(ctx, quiet.ID)
 	if err != nil {
@@ -562,15 +562,15 @@ func TestReleaseAbandonedFinishedReservations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("get unfinished reservation: %v", err)
 	}
-	if unfinishedGot.Status != ReservationHeld {
-		t.Fatalf("unfinished reservation status = %s, want held", unfinishedGot.Status)
+	if unfinishedGot.Status != ReservationReleased || unfinishedGot.SettlementSummary != "heartbeat_lost" {
+		t.Fatalf("unfinished reservation = %#v, want heartbeat_lost", unfinishedGot)
 	}
 	updatedKey, err := st.GetPluginKey(ctx, key.ID)
 	if err != nil {
 		t.Fatalf("get key: %v", err)
 	}
-	if updatedKey.HeldAmountMicroUSD != 8 {
-		t.Fatalf("held amount = %d, want 8", updatedKey.HeldAmountMicroUSD)
+	if updatedKey.HeldAmountMicroUSD != 5 {
+		t.Fatalf("held amount = %d, want 5", updatedKey.HeldAmountMicroUSD)
 	}
 }
 

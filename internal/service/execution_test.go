@@ -158,3 +158,95 @@ func TestSettleAndReleaseIgnoreCanceledContext(t *testing.T) {
 		t.Fatalf("cleanup with canceled context: %v", err)
 	}
 }
+
+func TestReleaseIfHeldLeavesSettledReservation(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Default()
+	cfg.DataDir = t.TempDir()
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "release-if-held", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "release-if-held", []byte(`{"max_tokens":16,"input":"test"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	settled, err := svc.Reserve(ctx, key, plan, "release-if-held-settled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.SettleFromUsage(ctx, settled, plan, usageparse.Result{
+		Found: true, Source: "test", Usage: money.TokenUsage{Input: 4, Output: 2},
+	}, "openai", store.UsageMetrics{}); err != nil {
+		t.Fatal(err)
+	}
+	svc.ReleaseIfHeld(ctx, settled.ID, "unsettled_exit")
+	got, err := svc.Store().GetReservation(ctx, settled.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ReservationSettled {
+		t.Fatalf("settled reservation status = %s", got.Status)
+	}
+	held, err := svc.Reserve(ctx, key, plan, "release-if-held-open")
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc.ReleaseIfHeld(ctx, held.ID, "unsettled_exit")
+	got, err = svc.Store().GetReservation(ctx, held.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ReservationReleased || got.SettlementSummary != "unsettled_exit" {
+		t.Fatalf("held reservation = %+v", got)
+	}
+}
+
+func TestOpenReleasesHeldReservationsFromPreviousProcess(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Default()
+	cfg.DataDir = t.TempDir()
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "restart-orphan", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "restart-orphan", []byte(`{"max_tokens":16,"input":"test"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reservation, err := svc.Reserve(ctx, key, plan, "restart-orphan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.Close(); err != nil {
+		t.Fatal(err)
+	}
+	svc, err = Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	got, err := svc.Store().GetReservation(ctx, reservation.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ReservationReleased || got.SettlementSummary != "process_restart" {
+		t.Fatalf("orphan reservation = %+v", got)
+	}
+	updatedKey, err := svc.Store().GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedKey.HeldAmountMicroUSD != 0 {
+		t.Fatalf("held amount = %d, want 0", updatedKey.HeldAmountMicroUSD)
+	}
+}

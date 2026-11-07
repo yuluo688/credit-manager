@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -24,9 +25,10 @@ const (
 
 const staleCleanupInterval = time.Minute
 
-// finishedHoldGrace is how long a finished execution may keep its financial
-// hold after the reservation heartbeat stops. Streams that call FinishExecution
-// early still heartbeat until settlement, so a live request is not swept.
+// finishedHoldGrace is how long a held reservation may stay quiet before it
+// is released. Live requests heartbeat at least once a minute, so a stream
+// that already called FinishExecution is kept until it settles. A dead
+// goroutine is not.
 const finishedHoldGrace = 5 * time.Minute
 
 // accountingTimeout bounds financial closeout after the caller context is
@@ -126,12 +128,35 @@ func Open(ctx context.Context, cfg config.Config) (*Service, error) {
 		_ = svc.Close()
 		return nil, err
 	}
+	if err := svc.releaseRestartOrphans(ctx); err != nil {
+		_ = svc.Close()
+		return nil, err
+	}
 	if _, err := svc.cleanupStaleReservations(ctx, true); err != nil {
 		_ = svc.Close()
 		return nil, fmt.Errorf("release stale reservations: %w", err)
 	}
 	svc.RefreshModelDirectory(ctx)
 	return svc, nil
+}
+
+// releaseRestartOrphans drops held reservations left by a previous process.
+// Open runs before this process accepts requests, so none of those rows have
+// a live owner. Reconfigure must not call this while requests are in flight.
+func (s *Service) releaseRestartOrphans(ctx context.Context) error {
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
+	ids, err := s.store.ReleaseAllHeldReservations(ctx, "process_restart")
+	if err != nil {
+		return fmt.Errorf("release reservations left by a previous process: %w", err)
+	}
+	for _, id := range ids {
+		s.CancelAuthCapture(id)
+	}
+	if len(ids) > 0 {
+		log.Printf("credit-manager: released %d held reservations left by a previous process", len(ids))
+	}
+	return nil
 }
 
 func (s *Service) Close() error {
@@ -239,6 +264,10 @@ func Configure(ctx context.Context, rawYAML []byte) error {
 	svc.authMu.init()
 	svc.authCond = sync.NewCond(&svc.authMu)
 	if err := svc.ensureBootstrap(ctx); err != nil {
+		_ = svc.Close()
+		return err
+	}
+	if err := svc.releaseRestartOrphans(ctx); err != nil {
 		_ = svc.Close()
 		return err
 	}

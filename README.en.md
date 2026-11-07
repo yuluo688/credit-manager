@@ -313,7 +313,7 @@ Host inline fields override the external file. A nested `config_file` in that ex
 | `pricing.unknown_policy` | `allow` | Behavior for unmatched rules: `allow`, `deny`, or `default` |
 | `settlement.missing_usage` | `settle_reserved` | Settlement behavior when usage is missing |
 | `settlement.host_usage_wait` | `4s` | Deprecated compatibility setting; host usage callbacks directly reprice settled fallback rows without waiting |
-| `stream.stale_reservation_timeout` | `2h` | Release threshold for in-flight reservations without a heartbeat |
+| `stream.stale_reservation_timeout` | `2h` | Cap for a hold with no heartbeat. Restart releases holds left by the previous process immediately. While running, a hold that stays quiet for the shorter of this value and 5 minutes is released. A live request keeps heartbeating and is left alone |
 
 ### Protect pepper material
 
