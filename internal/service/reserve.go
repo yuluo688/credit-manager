@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -138,19 +139,44 @@ func (s *Service) cleanupStaleReservations(ctx context.Context, force bool) (int
 	if !force && !s.lastCleanup.IsZero() && now.Sub(s.lastCleanup) < staleCleanupInterval {
 		return 0, nil
 	}
+	// Request cancellation must not skip recovery. A hold leaked by a failed
+	// settle would otherwise keep consuming quota until the long stale timeout.
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
 	released, err := s.store.ReleaseStaleReservations(ctx, now.Add(-s.cfg.Stream.StaleReservationTimeout))
 	if err != nil {
 		return 0, err
 	}
+	abandoned, err := s.store.ReleaseAbandonedFinishedReservations(ctx, now.Add(-finishedHoldGrace))
+	if err != nil {
+		return 0, err
+	}
 	s.lastCleanup = now
-	return released, nil
+	return released + abandoned, nil
+}
+
+// accountingContext detaches financial closeout from the request context.
+// Host cancellation (for example the 300s upstream cap) must not fail the
+// settle or release that frees a hold.
+func accountingContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithTimeout(context.WithoutCancel(ctx), accountingTimeout)
 }
 
 func (s *Service) TouchReservation(ctx context.Context, reservationID string) error {
 	return s.store.TouchReservation(ctx, reservationID)
 }
 
-func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) error {
+func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, parsed usageparse.Result, format string, metrics store.UsageMetrics) (err error) {
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
+	defer func() {
+		if err != nil {
+			log.Printf("credit-manager: settle reservation %s: %v", reservation.ID, err)
+		}
+	}()
 	// Execution completion is a concurrency optimization, not a precondition for
 	// accounting. Never leave a financial hold unresolved because this marker hit
 	// a transient SQLite error.
@@ -165,7 +191,7 @@ func (s *Service) SettleFromUsage(ctx context.Context, reservation store.Reserva
 	switch s.cfg.Settlement.MissingUsage {
 	case config.MissingUsageRelease:
 		s.CancelAuthCapture(reservation.ID)
-		_, err := s.store.Release(ctx, reservation.ID, "missing_usage")
+		_, err = s.store.Release(ctx, reservation.ID, "missing_usage")
 		return err
 	default:
 		if plan.Price.IsPerImage() {
@@ -370,9 +396,16 @@ func tokensPerSecond(output int64, generationDuration *time.Duration) *float64 {
 	return &value
 }
 
-func (s *Service) Release(ctx context.Context, reservationID, reason string) error {
+func (s *Service) Release(ctx context.Context, reservationID, reason string) (err error) {
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
+	defer func() {
+		if err != nil {
+			log.Printf("credit-manager: release reservation %s (%s): %v", reservationID, reason, err)
+		}
+	}()
 	s.CancelAuthCapture(reservationID)
-	_, err := s.store.Release(ctx, reservationID, reason)
+	_, err = s.store.Release(ctx, reservationID, reason)
 	return err
 }
 

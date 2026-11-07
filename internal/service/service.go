@@ -24,6 +24,16 @@ const (
 
 const staleCleanupInterval = time.Minute
 
+// finishedHoldGrace is how long a finished execution may keep its financial
+// hold after the reservation heartbeat stops. Streams that call FinishExecution
+// early still heartbeat until settlement, so a live request is not swept.
+const finishedHoldGrace = 5 * time.Minute
+
+// accountingTimeout bounds financial closeout after the caller context is
+// detached. It must outlast SQLite's busy wait so a cancelled request cannot
+// abandon a hold.
+const accountingTimeout = 15 * time.Second
+
 // Service is the process-wide plugin runtime.
 type Service struct {
 	cfg                config.Config

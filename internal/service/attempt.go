@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/yuluo688/credit-manager/internal/money"
@@ -19,7 +20,14 @@ const (
 // row. Used for post-reserve failures that previously only Release'd (upstream
 // error, concurrency reject after admit, client disconnect, image failure).
 // Ignores settlement.missing_usage so failures always appear in usage stats.
-func (s *Service) SettleZeroCostAttempt(ctx context.Context, reservation store.Reservation, model string, metrics store.UsageMetrics, source, summary string) error {
+func (s *Service) SettleZeroCostAttempt(ctx context.Context, reservation store.Reservation, model string, metrics store.UsageMetrics, source, summary string) (err error) {
+	ctx, cancel := accountingContext(ctx)
+	defer cancel()
+	defer func() {
+		if err != nil {
+			log.Printf("credit-manager: settle zero-cost attempt %s: %v", reservation.ID, err)
+		}
+	}()
 	_ = s.FinishExecution(ctx, reservation.ID)
 	model = strings.TrimSpace(model)
 	if model == "" {

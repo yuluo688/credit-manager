@@ -7,6 +7,7 @@ import (
 	"github.com/yuluo688/credit-manager/internal/config"
 	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/store"
+	"github.com/yuluo688/credit-manager/internal/usageparse"
 )
 
 func TestFinishExecutionKeepsLateAuthUsage(t *testing.T) {
@@ -92,5 +93,68 @@ func TestFinishClientExecutionKeepsAuthConcurrency(t *testing.T) {
 	svc.authMu.Unlock()
 	if active != 1 {
 		t.Fatalf("auth concurrency = %d, want 1 while upstream may still run", active)
+	}
+}
+
+func TestSettleAndReleaseIgnoreCanceledContext(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Default()
+	cfg.DataDir = t.TempDir()
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	key, _, err := svc.MintKey(ctx, BootstrapCallerID, "canceled-settle", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := svc.BuildReservePlan(ctx, "canceled-model", []byte(`{"max_tokens":16,"input":"test"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	settled, err := svc.Reserve(ctx, key, plan, "canceled-settle")
+	if err != nil {
+		t.Fatal(err)
+	}
+	canceled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := svc.SettleFromUsage(canceled, settled, plan, usageparse.Result{
+		Found: true, Source: "test", Usage: money.TokenUsage{Input: 4, Output: 2},
+	}, "openai", store.UsageMetrics{}); err != nil {
+		t.Fatalf("settle with canceled context: %v", err)
+	}
+	got, err := svc.Store().GetReservation(ctx, settled.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ReservationSettled || got.SettledMicroUSD == nil {
+		t.Fatalf("settled reservation = %+v", got)
+	}
+	released, err := svc.Reserve(ctx, key, plan, "canceled-release")
+	if err != nil {
+		t.Fatal(err)
+	}
+	canceled, cancel = context.WithCancel(ctx)
+	cancel()
+	if err := svc.Release(canceled, released.ID, "settle_failed"); err != nil {
+		t.Fatalf("release with canceled context: %v", err)
+	}
+	got, err = svc.Store().GetReservation(ctx, released.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Status != store.ReservationReleased || got.SettlementSummary != "settle_failed" {
+		t.Fatalf("released reservation = %+v", got)
+	}
+	updatedKey, err := svc.Store().GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updatedKey.HeldAmountMicroUSD != 0 {
+		t.Fatalf("held amount = %d, want 0", updatedKey.HeldAmountMicroUSD)
+	}
+	if _, err := svc.cleanupStaleReservations(canceled, true); err != nil {
+		t.Fatalf("cleanup with canceled context: %v", err)
 	}
 }

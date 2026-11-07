@@ -45,6 +45,11 @@ jobs:
       - name: Build Unix dynamic library
         if: matrix.goos != 'windows'
         shell: bash
+        env:
+          # amd64 must stay on the v1 baseline. A newer toolchain default can
+          # emit BMI2 into cgo startup (x_cgo_sigaction) and SIGILL on CPUs
+          # without AVX2/BMI2, such as Ivy Bridge.
+          GOAMD64: ${{ matrix.goarch == 'amd64' && 'v1' || '' }}
         run: |
           set -euo pipefail
           mkdir -p dist
@@ -52,6 +57,8 @@ jobs:
       - name: Build Windows dynamic library
         if: matrix.goos == 'windows'
         shell: pwsh
+        env:
+          GOAMD64: ${{ matrix.goarch == 'amd64' && 'v1' || '' }}
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $env:CGO_ENABLED = '1'

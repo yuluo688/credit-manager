@@ -782,5 +782,6 @@ func openTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("open service: %v", err)
 	}
+	t.Cleanup(func() { _ = svc.Close() })
 	return svc
 }

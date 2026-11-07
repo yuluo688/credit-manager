@@ -504,6 +504,76 @@ func TestReleaseStaleReservationsReleasesHold(t *testing.T) {
 	}
 }
 
+func TestReleaseAbandonedFinishedReservations(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{QuotaMicroUSD: 100})
+	quiet, err := st.Reserve(ctx, reserveRequest(key, "quiet", 7))
+	if err != nil {
+		t.Fatalf("reserve quiet: %v", err)
+	}
+	live, err := st.Reserve(ctx, reserveRequest(key, "live", 5))
+	if err != nil {
+		t.Fatalf("reserve live: %v", err)
+	}
+	unfinished, err := st.Reserve(ctx, reserveRequest(key, "running", 3))
+	if err != nil {
+		t.Fatalf("reserve unfinished: %v", err)
+	}
+	if err := st.FinishExecution(ctx, quiet.ID); err != nil {
+		t.Fatalf("finish quiet: %v", err)
+	}
+	if err := st.FinishExecution(ctx, live.ID); err != nil {
+		t.Fatalf("finish live: %v", err)
+	}
+	old := time.Now().UTC().Add(-10 * time.Minute).UnixMilli()
+	if _, err := st.db.ExecContext(ctx, `UPDATE reservations SET execution_finished_at_unix_ms = ?, updated_at_unix_ms = ? WHERE id = ?`, old, old, quiet.ID); err != nil {
+		t.Fatalf("age quiet reservation: %v", err)
+	}
+	if _, err := st.db.ExecContext(ctx, `UPDATE reservations SET execution_finished_at_unix_ms = ? WHERE id = ?`, old, live.ID); err != nil {
+		t.Fatalf("age live execution: %v", err)
+	}
+	if _, err := st.db.ExecContext(ctx, `UPDATE reservations SET updated_at_unix_ms = ? WHERE id = ?`, old, unfinished.ID); err != nil {
+		t.Fatalf("age unfinished reservation: %v", err)
+	}
+	released, err := st.ReleaseAbandonedFinishedReservations(ctx, time.Now().UTC().Add(-5*time.Minute))
+	if err != nil {
+		t.Fatalf("release abandoned finished reservations: %v", err)
+	}
+	if released != 1 {
+		t.Fatalf("released = %d, want 1", released)
+	}
+	quietGot, err := st.GetReservation(ctx, quiet.ID)
+	if err != nil {
+		t.Fatalf("get quiet reservation: %v", err)
+	}
+	if quietGot.Status != ReservationReleased || quietGot.SettlementSummary != "execution_finished_unsettled" {
+		t.Fatalf("quiet reservation = %#v, want released unfinished settlement", quietGot)
+	}
+	liveGot, err := st.GetReservation(ctx, live.ID)
+	if err != nil {
+		t.Fatalf("get live reservation: %v", err)
+	}
+	if liveGot.Status != ReservationHeld {
+		t.Fatalf("heartbeat reservation status = %s, want held", liveGot.Status)
+	}
+	unfinishedGot, err := st.GetReservation(ctx, unfinished.ID)
+	if err != nil {
+		t.Fatalf("get unfinished reservation: %v", err)
+	}
+	if unfinishedGot.Status != ReservationHeld {
+		t.Fatalf("unfinished reservation status = %s, want held", unfinishedGot.Status)
+	}
+	updatedKey, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatalf("get key: %v", err)
+	}
+	if updatedKey.HeldAmountMicroUSD != 8 {
+		t.Fatalf("held amount = %d, want 8", updatedKey.HeldAmountMicroUSD)
+	}
+}
+
 func TestTouchReservationKeepsHeldReservationFresh(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)

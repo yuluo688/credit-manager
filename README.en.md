@@ -98,7 +98,7 @@ chmod +x scripts/build.sh
 # macOS: dist/credit-manager.dylib
 ```
 
-Copy the library to the appropriate CLIProxyAPI plugins directory and enable `credit-manager` in Plugin Management. Windows normally locks a loaded DLL, so restart the host after directly replacing it.
+Copy the library to the appropriate CLIProxyAPI plugins directory and enable `credit-manager` in Plugin Management. Windows normally locks a loaded DLL, so restart the host after directly replacing it. amd64 builds default to `GOAMD64=v1` so the plugin still loads on older CPUs without AVX2/BMI2.
 
 ### 3. Enable the plugin and mint the first Key
 

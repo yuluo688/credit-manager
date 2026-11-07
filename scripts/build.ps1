@@ -31,7 +31,14 @@ if ($compiler) {
 }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $env:CGO_ENABLED = "1"
+if (-not $env:GOAMD64) {
+    $goarch = (& go env GOARCH).Trim()
+    # Match the release workflow: v1 loads on CPUs without AVX2/BMI2.
+    if ($goarch -eq "amd64") {
+        $env:GOAMD64 = "v1"
+    }
+}
 $out = Join-Path $OutDir ($Name + ".dll")
-Write-Host "Building $out (CGO_ENABLED=1, CC=$env:CC, buildmode=c-shared)"
+Write-Host "Building $out (CGO_ENABLED=1, CC=$env:CC, GOAMD64=$env:GOAMD64, buildmode=c-shared)"
 go build -buildmode=c-shared -o $out .
 Write-Host "OK $out"

@@ -85,6 +85,74 @@ func TestTerminalEventReleasesSlotBeforeForwarding(t *testing.T) {
 	}
 }
 
+func TestRunStreamSettlesWhenHostReadReturnsCanceled(t *testing.T) {
+	ctx := context.Background()
+	cfg := config.Default()
+	cfg.DataDir = t.TempDir()
+	svc, err := service.Open(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer svc.Close()
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "test", MatchKind: store.MatchGlob, Pattern: "*", Priority: 10, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 3_000_000},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	key, material, err := svc.MintKey(ctx, service.BootstrapCallerID, "cancel-stream", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldHost := HostCall
+	defer func() { HostCall = oldHost }()
+	// Identity and reserve must succeed first. Cancel only when the host read
+	// returns, which is the 300s upstream-cap path from the issue.
+	streamCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	HostCall = func(method string, raw []byte) ([]byte, int, error) {
+		switch method {
+		case pluginabi.MethodHostModelExecuteStream:
+			encoded, err := okEnvelope(pluginapi.HostModelStreamResponse{StreamID: "upstream", StatusCode: http.StatusOK})
+			return encoded, 0, err
+		case pluginabi.MethodHostModelStreamRead:
+			cancel()
+			return nil, 0, context.Canceled
+		case pluginabi.MethodHostModelStreamClose, pluginabi.MethodHostStreamEmit, pluginabi.MethodHostStreamClose:
+			encoded, err := okEnvelope(map[string]any{})
+			return encoded, 0, err
+		default:
+			return nil, 0, fmt.Errorf("unexpected host method %s", method)
+		}
+	}
+	body := []byte(`{"model":"test-model","stream":true,"input":"test","max_output_tokens":16}`)
+	err = runStream(streamCtx, svc, rpcExecutorRequest{ExecutorRequest: pluginapi.ExecutorRequest{
+		Model: "test-model", SourceFormat: "openai", Format: "openai", Stream: true,
+		Headers: http.Header{"Authorization": []string{"Bearer " + material.Plaintext}}, Payload: body,
+	}}, "downstream", "")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("runStream error = %v, want context.Canceled", err)
+	}
+	overview, err := svc.Store().GetKeyUsageOverview(ctx, key.ID, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.ActiveReservations != 0 {
+		t.Fatalf("active reservations = %d, want 0", overview.ActiveReservations)
+	}
+	got, err := svc.Store().GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.HeldAmountMicroUSD != 0 {
+		t.Fatalf("held amount = %d, want 0", got.HeldAmountMicroUSD)
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 5})
+	if err != nil || len(entries) != 1 || entries[0].ReservationID == "" {
+		t.Fatalf("usage after canceled host read: %v %#v", err, entries)
+	}
+}
+
 func TestReservationHeartbeatTouchesImmediately(t *testing.T) {
 	ctx := context.Background()
 	cfg := config.Default()

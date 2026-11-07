@@ -436,6 +436,57 @@ func (s *Store) ReleaseStaleReservations(ctx context.Context, olderThan time.Tim
 	return released, nil
 }
 
+// ReleaseAbandonedFinishedReservations releases financial holds whose request
+// execution already finished and whose heartbeat has been quiet since
+// quietBefore. In-flight streams that finish execution early still heartbeat
+// until settlement, so they are left alone.
+func (s *Store) ReleaseAbandonedFinishedReservations(ctx context.Context, quietBefore time.Time) (int64, error) {
+	cutoff := quietBefore.UTC().UnixMilli()
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+	rows, err := tx.QueryContext(ctx, `SELECT id FROM reservations
+		WHERE status = 'held'
+		AND execution_finished_at_unix_ms IS NOT NULL
+		AND execution_finished_at_unix_ms < ?
+		AND updated_at_unix_ms < ?`, cutoff, cutoff)
+	if err != nil {
+		return 0, fmt.Errorf("list abandoned finished reservations: %w", err)
+	}
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			_ = rows.Close()
+			return 0, fmt.Errorf("scan abandoned finished reservation: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Close(); err != nil {
+		return 0, err
+	}
+	var released int64
+	for _, id := range ids {
+		reservation, err := getReservation(ctx, tx, id)
+		if err != nil {
+			return 0, err
+		}
+		if reservation.Status != ReservationHeld {
+			continue
+		}
+		if err := releaseHeldReservationTx(ctx, tx, reservation, "execution_finished_unsettled"); err != nil {
+			return 0, err
+		}
+		released++
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return released, nil
+}
+
 func (s *Store) TouchReservation(ctx context.Context, reservationID string) error {
 	if strings.TrimSpace(reservationID) == "" {
 		return fmt.Errorf("%w: reservation id is required", ErrInvalidArgument)
