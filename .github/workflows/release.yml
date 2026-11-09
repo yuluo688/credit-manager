@@ -46,19 +46,34 @@ jobs:
         if: matrix.goos != 'windows'
         shell: bash
         env:
-          # amd64 must stay on the v1 baseline. A newer toolchain default can
-          # emit BMI2 into cgo startup (x_cgo_sigaction) and SIGILL on CPUs
-          # without AVX2/BMI2, such as Ivy Bridge.
+          # amd64 must stay on the v1 baseline. GOAMD64 only affects the Go
+          # compiler. x_cgo_sigaction is C, compiled by the runner's GCC, which
+          # may default to x86-64-v3 and emit BMI2 (shlx) into cgo startup.
+          # That SIGILLs on CPUs without AVX2/BMI2, such as Ivy Bridge.
+          # Setting CGO_CFLAGS replaces Go's default "-O2 -g", so keep both.
           GOAMD64: ${{ matrix.goarch == 'amd64' && 'v1' || '' }}
+          CGO_CFLAGS: ${{ matrix.goarch == 'amd64' && '-O2 -g -march=x86-64' || '' }}
+          CGO_CXXFLAGS: ${{ matrix.goarch == 'amd64' && '-O2 -g -march=x86-64' || '' }}
         run: |
           set -euo pipefail
           mkdir -p dist
           CGO_ENABLED=1 go build -buildmode=c-shared -o "dist/${{ matrix.library }}" .
+          if [ "${{ matrix.goos }}" = "linux" ] && [ "${{ matrix.goarch }}" = "amd64" ]; then
+            section="$(objdump -d --no-show-raw-insn "dist/${{ matrix.library }}" | sed -n '/<x_cgo_sigaction>:/,/^$/p')"
+            test -n "$section"
+            if printf '%s\n' "$section" | grep -qE '\b(shlx|mulx|andn|bzhi|bextr|sarx|pdep|pext)\b'; then
+              echo "BMI2 leaked into x_cgo_sigaction" >&2
+              printf '%s\n' "$section" >&2
+              exit 1
+            fi
+          fi
       - name: Build Windows dynamic library
         if: matrix.goos == 'windows'
         shell: pwsh
         env:
           GOAMD64: ${{ matrix.goarch == 'amd64' && 'v1' || '' }}
+          CGO_CFLAGS: ${{ matrix.goarch == 'amd64' && '-O2 -g -march=x86-64' || '' }}
+          CGO_CXXFLAGS: ${{ matrix.goarch == 'amd64' && '-O2 -g -march=x86-64' || '' }}
         run: |
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           $env:CGO_ENABLED = '1'

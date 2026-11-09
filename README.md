@@ -98,7 +98,7 @@ chmod +x scripts/build.sh
 # macOS: dist/credit-manager.dylib
 ```
 
-将产物复制到 CLIProxyAPI 的对应插件目录，在插件管理中启用 `credit-manager`。Windows 通常锁定已加载的 DLL，因此直接替换 DLL 后必须重启宿主。amd64 构建默认 `GOAMD64=v1`，这样没有 AVX2/BMI2 的较老 CPU 也能加载插件。
+将产物复制到 CLIProxyAPI 的对应插件目录，在插件管理中启用 `credit-manager`。Windows 通常锁定已加载的 DLL，因此直接替换 DLL 后必须重启宿主。amd64 构建默认 `GOAMD64=v1`，并把 C 编译参数设为 `-march=x86-64`，这样没有 AVX2/BMI2 的较老 CPU 也能加载插件。
 
 ### 3. 启用并签发第一个 Key
 

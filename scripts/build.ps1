@@ -31,14 +31,25 @@ if ($compiler) {
 }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $env:CGO_ENABLED = "1"
-if (-not $env:GOAMD64) {
-    $goarch = (& go env GOARCH).Trim()
-    # Match the release workflow: v1 loads on CPUs without AVX2/BMI2.
-    if ($goarch -eq "amd64") {
+$goarch = (& go env GOARCH).Trim()
+if ($goarch -eq "amd64") {
+    # Match the release workflow. GOAMD64 does not reach gcc; runtime/cgo needs
+    # -march=x86-64 or a newer GCC can put BMI2 in x_cgo_sigaction.
+    if (-not $env:GOAMD64) {
         $env:GOAMD64 = "v1"
+    }
+    foreach ($flag in @("CGO_CFLAGS", "CGO_CXXFLAGS")) {
+        $current = [Environment]::GetEnvironmentVariable($flag, "Process")
+        if ($current -notmatch '(^|\s)-march=') {
+            if ([string]::IsNullOrWhiteSpace($current)) {
+                Set-Item -Path "Env:$flag" -Value "-O2 -g -march=x86-64"
+            } else {
+                Set-Item -Path "Env:$flag" -Value "-O2 -g -march=x86-64 $current"
+            }
+        }
     }
 }
 $out = Join-Path $OutDir ($Name + ".dll")
-Write-Host "Building $out (CGO_ENABLED=1, CC=$env:CC, GOAMD64=$env:GOAMD64, buildmode=c-shared)"
+Write-Host "Building $out (CGO_ENABLED=1, CC=$env:CC, GOAMD64=$env:GOAMD64, CGO_CFLAGS=$env:CGO_CFLAGS, buildmode=c-shared)"
 go build -buildmode=c-shared -o $out .
 Write-Host "OK $out"
