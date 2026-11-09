@@ -27,7 +27,7 @@ jobs:
             goos: darwin
             goarch: amd64
             library: credit-manager.dylib
-          - runner: macos-14
+          - runner: macos-15
             goos: darwin
             goarch: arm64
             library: credit-manager.dylib
