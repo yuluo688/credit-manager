@@ -29,7 +29,7 @@
          enabled: true
    ```
 
-3. **Mint a Key**: open **CPA Credit Manager** in the CLIProxyAPI Management Center sidebar, enter the host management token, create a Key under "Keys", and hand the full `tk-...` string to the client: `Authorization: Bearer tk-...`.
+3. **Mint a Key**: open **CPA Credit Manager** in the CLIProxyAPI Management Center sidebar, enter the host management token, create a Key under "Keys", and hand the full `tk-...` string to the client. OpenAI-compatible clients send `Authorization: Bearer tk-...`. Gemini and Claude native clients can also send `x-goog-api-key`, `x-api-key`, or the `?key=` query parameter.
 
 > First start creates `data_dir/key-peppers`. Back it up: losing it invalidates every issued Key (see [Pepper protection](#protect-pepper-material)). The default pricing rule makes every model free; configure real prices under "Models & pricing" before production use.
 
@@ -53,7 +53,12 @@ At high concurrency, a host's upstream credentials, frontend `api-keys`, and usa
 
 ```text
 Authorization: Bearer tk-...
+x-goog-api-key: tk-...
+x-api-key: tk-...
+POST /v1beta/models/...?key=tk-...
 ```
+
+The lookup order matches CLIProxyAPI's built-in `api-keys` provider: `Authorization: Bearer`, `x-goog-api-key`, `x-api-key`, `?key=`, then `?auth_token=`. The first non-empty value wins.
 
 `GET /v1/models` and `GET /v1beta/models` remain anonymous for CLIProxyAPI Management Center compatibility. They only return the public model catalog and cannot execute models. Globally disabled models are omitted; a Key allowlist does not trim this public catalog.
 

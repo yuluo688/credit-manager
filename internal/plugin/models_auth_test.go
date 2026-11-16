@@ -17,6 +17,7 @@ func TestPublicModelDirectoryRequest(t *testing.T) {
 		{"GET", "/v1/models", true},
 		{"get", "/v1/models/", true},
 		{"GET", "/v1beta/models", true},
+		{"GET", "/v1/models?key=tk-test", true},
 		{"POST", "/v1/models", false},
 		{"GET", "/v1/chat/completions", false},
 		{"GET", "/v0/management/config", false},

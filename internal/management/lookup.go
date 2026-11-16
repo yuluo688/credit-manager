@@ -13,7 +13,7 @@ import (
 )
 
 func lookupKey(ctx context.Context, svc *service.Service, headers http.Header, query map[string][]string) (pluginapi.ManagementResponse, error) {
-	key, err := svc.LookupPluginKeyFromHeaders(ctx, headers)
+	key, err := svc.LookupPluginKeyFromHeaders(ctx, headers, query)
 	if err != nil {
 		return jsonErr(http.StatusUnauthorized, "invalid or unavailable plugin key"), nil
 	}

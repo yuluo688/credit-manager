@@ -332,14 +332,6 @@ func resultFromStatus(status int) string {
 	return "success"
 }
 
-func bearerPresent(headers http.Header) bool {
-	if headers == nil {
-		return false
-	}
-	auth := headers.Get("Authorization")
-	return strings.HasPrefix(strings.ToLower(strings.TrimSpace(auth)), "bearer ")
-}
-
 func metadataString(metadata map[string]any, key string) string {
 	if metadata == nil {
 		return ""

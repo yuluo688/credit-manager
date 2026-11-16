@@ -45,7 +45,7 @@ func execute(raw []byte) ([]byte, error) {
 		return nil, err
 	}
 	ctx := context.Background()
-	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Metadata)
+	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Query, req.Metadata)
 	if err != nil {
 		// No attributable plugin key — cannot write usage_ledger.
 		return errorEnvelope("unauthorized", err.Error()), nil
@@ -143,7 +143,7 @@ func executeStream(raw []byte) ([]byte, error) {
 
 func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest, pluginStreamID, lifecycleID string) error {
 	defer clearStreamLifecycle(lifecycleID)
-	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Metadata)
+	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Query, req.Metadata)
 	if err != nil {
 		return err
 	}

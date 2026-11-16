@@ -21,8 +21,8 @@ func routeModel(raw []byte) ([]byte, error) {
 	}
 	// Only handle authenticated plugin-key traffic; exclusive auth already rejected others.
 	scope := metadataString(req.Metadata, service.CallerScopeMetadataKey)
-	if scope == "" && bearerPresent(req.Headers) {
-		// Host may not yet inject caller_scope into router metadata; still claim authenticated Bearer traffic.
+	if scope == "" && service.PluginKeyFromRequest(req.Headers, req.Query, "") != "" {
+		// Host may not yet inject caller_scope into router metadata; still claim traffic that presented a plugin key.
 		return okEnvelope(pluginapi.ModelRouteResponse{
 			Handled:    true,
 			TargetKind: pluginapi.ModelRouteTargetSelf,

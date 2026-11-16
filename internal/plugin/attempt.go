@@ -32,7 +32,7 @@ func recordRejectedFromHeaders(ctx context.Context, svc *service.Service, header
 	if svc == nil {
 		return
 	}
-	key, _, err := svc.ResolveIdentity(ctx, http.Header(headers), metadata)
+	key, _, err := svc.ResolveIdentity(ctx, http.Header(headers), nil, metadata)
 	if err != nil {
 		return
 	}

@@ -29,7 +29,7 @@
          enabled: true
    ```
 
-3. **签发 Key**：在 CLIProxyAPI 管理中心侧栏打开 **CPA 额度管理**，输入宿主管理密钥，在“密钥管理”中创建 Key，把完整的 `tk-...` 交给客户端使用：`Authorization: Bearer tk-...`。
+3. **签发 Key**：在 CLIProxyAPI 管理中心侧栏打开 **CPA 额度管理**，输入宿主管理密钥，在“密钥管理”中创建 Key，把完整的 `tk-...` 交给客户端。OpenAI 兼容客户端使用 `Authorization: Bearer tk-...`；Gemini / Claude 原生客户端也可以使用 `x-goog-api-key`、`x-api-key` 或 URL 参数 `?key=`。
 
 > 首次启动会生成 `data_dir/key-peppers`，请务必备份，遗失后所有已签发的 Key 都会失效，详见 [Pepper 保护](#pepper-保护)。默认价格规则是全模型免费，正式使用前请在“模型与价格”中配置真实价格。
 
@@ -53,7 +53,12 @@
 
 ```text
 Authorization: Bearer tk-...
+x-goog-api-key: tk-...
+x-api-key: tk-...
+POST /v1beta/models/...?key=tk-...
 ```
+
+读取顺序与 CLIProxyAPI 自带 `api-keys` 相同：`Authorization: Bearer`、`x-goog-api-key`、`x-api-key`、`?key=`、`?auth_token=`。排在前面的非空值优先。
 
 `GET /v1/models` 和 `GET /v1beta/models` 可匿名获取公共模型目录，以兼容宿主管理中心；它们不能调用模型。全局禁用的模型会从目录移除，但某个 Key 的模型白名单不会裁剪公共目录。
 

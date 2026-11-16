@@ -34,7 +34,7 @@ func authenticate(raw []byte) ([]byte, error) {
 			Metadata:      map[string]string{"plugin": service.PluginID, "public_models": "true"},
 		})
 	}
-	principal, meta, ok := svc.Authenticate(context.Background(), req.Headers)
+	principal, meta, ok := svc.Authenticate(context.Background(), req.Headers, req.Query, req.Path)
 	if !ok {
 		return okEnvelope(pluginapi.FrontendAuthResponse{Authenticated: false})
 	}
@@ -49,7 +49,11 @@ func publicModelDirectoryRequest(method, path string) bool {
 	if !strings.EqualFold(strings.TrimSpace(method), http.MethodGet) {
 		return false
 	}
-	switch strings.TrimRight(strings.TrimSpace(path), "/") {
+	path = strings.TrimSpace(path)
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		path = path[:i]
+	}
+	switch strings.TrimRight(path, "/") {
 	case "/v1/models", "/v1beta/models":
 		return true
 	default:
@@ -71,7 +75,7 @@ func interceptRequestAfterAuth(raw []byte) ([]byte, error) {
 		return okEnvelope(pluginapi.RequestInterceptResponse{})
 	}
 	ctx := context.Background()
-	key, _, err := svc.ResolveIdentity(ctx, req.Headers, req.Metadata)
+	key, _, err := svc.ResolveIdentity(ctx, req.Headers, nil, req.Metadata)
 	if !isNativeImageProtocol(req.SourceFormat) && !isImageOnlyModel(firstNonEmpty(req.RequestedModel, req.Model)) {
 		// CPA invokes this hook before its executor. Carry the lifecycle request ID
 		// into our executor, then remove it before the nested host model call.

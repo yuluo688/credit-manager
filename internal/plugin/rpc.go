@@ -52,7 +52,7 @@ type registrationCapability struct {
 	SchedulerAcrossPriorities bool `json:"scheduler_across_priorities,omitempty"`
 	// FrontendAuthProviderOmitBody opts out of receiving FrontendAuthRequest.Body
 	// and DecodedBody in FrontendAuthProvider.Authenticate. authenticate() only
-	// reads Headers (plus Method/Path), so the body is never used. On schema 7+
+	// reads Headers, Query and Path, so the body is never used. On schema 7+
 	// hosts this skips reading, decoding and cloning the whole request body
 	// during authentication. Older hosts ignore the unknown field.
 	FrontendAuthProviderOmitBody bool `json:"frontend_auth_provider_omit_body,omitempty"`

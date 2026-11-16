@@ -58,7 +58,7 @@ func main() {
 	// Authenticate success
 	principal, _, ok := svc.Authenticate(ctx, map[string][]string{
 		"Authorization": {"Bearer " + material.Plaintext},
-	})
+	}, nil, "")
 	if !ok || principal != material.Principal {
 		panic("auth failed")
 	}
@@ -77,10 +77,10 @@ func main() {
 	// Over-settlement path is allowed; next reserve may fail if balance insufficient.
 	rotatedKey, rotatedMaterial, err := svc.RotateKey(ctx, key.ID, "")
 	must(err)
-	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + material.Plaintext}}); ok {
+	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + material.Plaintext}}, nil, ""); ok {
 		panic("rotated key still authenticates")
 	}
-	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + rotatedMaterial.Plaintext}}); !ok {
+	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + rotatedMaterial.Plaintext}}, nil, ""); !ok {
 		panic("replacement key does not authenticate")
 	}
 	if rotatedKey.RevokedAt != nil {
@@ -89,7 +89,7 @@ func main() {
 
 	// Revoke key
 	must(svc.Store().RevokePluginKey(ctx, rotatedKey.ID))
-	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + rotatedMaterial.Plaintext}}); ok {
+	if _, _, ok := svc.Authenticate(ctx, map[string][]string{"Authorization": {"Bearer " + rotatedMaterial.Plaintext}}, nil, ""); ok {
 		panic("revoked key still authenticates")
 	}
 
