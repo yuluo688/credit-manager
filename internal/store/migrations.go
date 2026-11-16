@@ -469,6 +469,38 @@ var migrations = []migration{
 				PRIMARY KEY (provider, auth_id, kind, after_unix_ms, credit_id)
 			)`,
 		},
+	},
+	{
+		version: 30,
+		name:    "plugin settings for plan-cycle spend",
+		up: []string{
+			`CREATE TABLE IF NOT EXISTS plugin_settings (
+				key TEXT PRIMARY KEY,
+				value TEXT NOT NULL
+			)`,
+		},
+	},
+	{
+		version: 31,
+		name:    "per-key plan cycle opt-out",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN follow_plan_cycle INTEGER NOT NULL DEFAULT 1 CHECK (follow_plan_cycle IN (0, 1))`,
+		},
+	},
+	{
+		version: 32,
+		name:    "per-key plan auto reset",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN plan_auto_reset INTEGER NOT NULL DEFAULT 1 CHECK (plan_auto_reset IN (0, 1))`,
+		},
+	},
+	{
+		version: 33,
+		name:    "per-key plan account",
+		up: []string{
+			`ALTER TABLE plugin_keys ADD COLUMN plan_auth_provider TEXT NOT NULL DEFAULT ''`,
+			`ALTER TABLE plugin_keys ADD COLUMN plan_auth_id TEXT NOT NULL DEFAULT ''`,
+		},
 	}}
 
 // Migrate applies every pending migration transactionally.

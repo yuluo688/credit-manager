@@ -207,6 +207,33 @@
                     <span class="key-switch-ui" aria-hidden="true"></span>
                   </span>
                 </label>
+                <div id="keyModalPlanWrap" class="field-span-2 key-plan-block">
+                  <label class="key-plan-master">是否跟随账号重置
+                    <span class="key-switch">
+                      <input id="keyModalPlanEnabled" type="checkbox" role="switch" aria-label="是否跟随账号重置"/>
+                      <span class="key-switch-ui" aria-hidden="true"></span>
+                    </span>
+                  </label>
+                  <div id="keyModalPlanDetail" class="key-plan-detail hidden">
+                    <label id="keyModalPlanAuthWrap">跟随账号
+                      <select id="keyModalPlanAuth"></select>
+                    </label>
+                    <div class="key-plan-options">
+                      <label id="keyModalPlanCycleWrap" class="key-plan-option">跟随账号重置时间
+                        <span class="key-switch">
+                          <input id="keyModalPlanCycle" type="checkbox" role="switch" checked aria-label="跟随账号重置时间"/>
+                          <span class="key-switch-ui" aria-hidden="true"></span>
+                        </span>
+                      </label>
+                      <label id="keyModalPlanAutoResetWrap" class="key-plan-option">跟随账号自动重置
+                        <span class="key-switch">
+                          <input id="keyModalPlanAutoReset" type="checkbox" role="switch" checked aria-label="跟随账号自动重置"/>
+                          <span class="key-switch-ui" aria-hidden="true"></span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
                 <div class="key-expiry-field" id="keyModalExpiryField">
                   <div class="key-expiry-copy">
                     <strong>有效期</strong>

@@ -132,6 +132,12 @@
     '额度和模型 Token 上限不会变化': { 'zh-TW':'額度和模型 Token 上限不會變化', en:'Quota caps and model token caps will not change', ru:'Лимиты квот и токенов моделей не изменятся' },
     '只会重置所选周期的已用金额与 Token 计数；历史账本保留。': { 'zh-TW':'只會重設所選週期的已用金額與 Token 計數；歷史帳本保留。', en:'Only used cost and token counts for selected periods reset; usage history remains.', ru:'Сбрасываются только расходы и токены выбранных периодов; история сохраняется.' },
     '日、周、月将在下一个 UTC 日历边界恢复自然周期。': { 'zh-TW':'日、週、月將在下一個 UTC 日曆邊界恢復自然週期。', en:'Day, week, and month return to UTC calendar periods at their next boundary.', ru:'День, неделя и месяц вернутся к календарю UTC на следующей границе.' },
+    '是否跟随账号重置': { 'zh-TW':'是否跟隨帳號重設', en:'Follow account reset', ru:'Сброс по аккаунту' },
+    '跟随账号': { 'zh-TW':'跟隨帳號', en:'Account to follow', ru:'Аккаунт' },
+    '跟随账号重置时间': { 'zh-TW':'跟隨帳號重設時間', en:'Follow the account reset time', ru:'Время сброса аккаунта' },
+    '跟随账号自动重置': { 'zh-TW':'跟隨帳號自動重設', en:'Reset automatically with the account', ru:'Автосброс по аккаунту' },
+    '请选择跟随账号': { 'zh-TW':'請選擇跟隨帳號', en:'Choose an account to follow', ru:'Выберите аккаунт' },
+    '按 UTC 零点清': { 'zh-TW':'按 UTC 零點清', en:'Clears at UTC midnight', ru:'Сброс в полночь UTC' },
     '请至少选择一项': { 'zh-TW':'請至少選擇一項', en:'Select at least one period', ru:'Выберите хотя бы один период' },
     '即将重置：': { 'zh-TW':'即將重設：', en:'Will reset: ', ru:'Будет сброшено: ' },
     '全部启用密钥': { 'zh-TW':'全部啟用密鑰', en:'all active keys', ru:'все активные ключи' }, '全部当前密钥': { 'zh-TW':'全部目前密鑰', en:'all current keys', ru:'все текущие ключи' },
@@ -1195,6 +1201,82 @@
     const date = parseDateTimeLocal($('keyModalExpiresAt').value);
     if (preset === 'never' || !date) return { clear_expires_at: true };
     return { expires_at: date.toISOString(), clear_expires_at: false };
+  }
+
+  function keyPlanCycleMeta(key) {
+    const account = keyPlanAuthLabel(key);
+    if (!account) return '';
+    const chips = [account];
+    if (key.follow_plan_cycle === false) chips.push(t('按 UTC 零点清'));
+    return '<span class="key-cycle-chip">'+esc(chips.join(' · '))+'</span>';
+  }
+
+  function keyPlanAuthLabel(key) {
+    const provider = String(key && key.plan_auth_provider || '').trim();
+    const authID = String(key && key.plan_auth_id || '').trim();
+    if (!provider || !authID) return '';
+    const name = authID.replace(/\.(json|ya?ml)$/i, '');
+    return formatProviderDisplay(provider) + ' · ' + name;
+  }
+
+  function planAuthValue(provider, authID) {
+    provider = String(provider || '').trim();
+    authID = String(authID || '').trim();
+    if (!provider || !authID) return '';
+    return provider + '\t' + authID;
+  }
+
+  function fillPlanAuthSelect(provider, authID) {
+    const select = $('keyModalPlanAuth');
+    if (!select) return;
+    const chosen = planAuthValue(provider, authID);
+    const accounts = Array.isArray(state.planAccounts) ? state.planAccounts : [];
+    const options = ['<option value="">'+esc(t('请选择'))+'</option>'];
+    let found = !chosen;
+    accounts.forEach(account => {
+      const value = planAuthValue(account.provider, account.auth_id);
+      if (!value) return;
+      if (value === chosen) found = true;
+      const name = account.display_name || account.auth_id;
+      options.push('<option value="'+esc(value)+'">'+esc(formatProviderDisplay(account.provider) + ' · ' + name)+'</option>');
+    });
+    if (chosen && !found) options.push('<option value="'+esc(chosen)+'">'+esc(keyPlanAuthLabel({ plan_auth_provider: provider, plan_auth_id: authID }))+'</option>');
+    select.innerHTML = options.join('');
+    select.value = chosen;
+    refreshCustomControl(select);
+  }
+
+  async function loadPlanAccounts() {
+    try {
+      const accounts = await api('GET', 'credit-manager/plan-accounts');
+      state.planAccounts = Array.isArray(accounts) ? accounts : [];
+    } catch (_) {
+      if (!Array.isArray(state.planAccounts)) state.planAccounts = [];
+    }
+  }
+
+  function selectedPlanAuth() {
+    const value = $('keyModalPlanAuth') ? $('keyModalPlanAuth').value : '';
+    const cut = value.indexOf('\t');
+    if (cut <= 0) return { plan_auth_provider: '', plan_auth_id: '' };
+    return { plan_auth_provider: value.slice(0, cut), plan_auth_id: value.slice(cut + 1) };
+  }
+
+  function syncPlanSection() {
+    const on = Boolean($('keyModalPlanEnabled') && $('keyModalPlanEnabled').checked);
+    const detail = $('keyModalPlanDetail');
+    if (detail) detail.classList.toggle('hidden', !on);
+  }
+
+  function planPayload() {
+    if (!$('keyModalPlanEnabled') || !$('keyModalPlanEnabled').checked) {
+      return { follow_plan_cycle: false, plan_auto_reset: false, plan_auth_provider: '', plan_auth_id: '' };
+    }
+    return {
+      follow_plan_cycle: $('keyModalPlanCycle').checked,
+      plan_auto_reset: $('keyModalPlanAutoReset').checked,
+      ...selectedPlanAuth(),
+    };
   }
 
   function keyExpiryMeta(key) {
@@ -2811,7 +2893,7 @@
         const selected = state.selectedKeyIDs.has(k.id);
         const label = k.label || t('(无标签)');
         const rowClass = [selected ? 'is-selected' : '', expired && !k.revoked_at ? 'is-expired' : ''].filter(Boolean).join(' ');
-        const labelMeta = (k.label ? '' : (k.fingerprint ? '<div class="mono" title="'+esc(k.fingerprint)+'">'+esc(k.fingerprint)+'</div>' : '')) + keyExpiryMeta(k);
+        const labelMeta = (k.label ? '' : (k.fingerprint ? '<div class="mono" title="'+esc(k.fingerprint)+'">'+esc(k.fingerprint)+'</div>' : '')) + keyPlanCycleMeta(k) + keyExpiryMeta(k);
         return '<tr'+(rowClass ? ' class="'+rowClass+'"' : '')+'>' +
           '<td class="key-select-cell"><label class="key-select"><input type="checkbox" data-select-key="'+esc(k.id)+'" aria-label="'+esc(label)+'"'+(selected ? ' checked' : '')+'/><span class="key-select-ui" aria-hidden="true"></span></label></td>' +
           '<td><div class="key-label"><strong title="'+esc(label)+'">'+esc(label)+'</strong>'+labelMeta+'</div></td>' +
@@ -3471,6 +3553,26 @@
     setKeyModels(allowedModels);
     $('keyModalEnabled').checked = !(key && !key.enabled);
     $('keyModalEnabled').disabled = isRotation;
+    const planOn = !!(key && String(key.plan_auth_provider || '').trim() && String(key.plan_auth_id || '').trim());
+    $('keyModalPlanEnabled').checked = planOn;
+    $('keyModalPlanEnabled').disabled = isRotation;
+    $('keyModalPlanWrap').classList.toggle('hidden', isRotation);
+    $('keyModalPlanCycle').checked = planOn ? key.follow_plan_cycle !== false : true;
+    $('keyModalPlanCycle').disabled = isRotation;
+    $('keyModalPlanAutoReset').checked = planOn ? key.plan_auto_reset !== false : true;
+    $('keyModalPlanAutoReset').disabled = isRotation;
+    $('keyModalPlanAuth').disabled = isRotation;
+    fillPlanAuthSelect(key && key.plan_auth_provider, key && key.plan_auth_id);
+    syncPlanSection();
+    if (!isRotation) {
+      const planProvider = key && key.plan_auth_provider;
+      const planAuthID = key && key.plan_auth_id;
+      const planKeyID = key ? key.id : '';
+      void loadPlanAccounts().then(() => {
+        if ($('keyModalMode').value === 'rotate' || ($('keyModalId').value || '') !== planKeyID) return;
+        fillPlanAuthSelect(planProvider, planAuthID);
+      });
+    }
     $('keyModalLabel').disabled = isRotation;
     $('keyModalQuotaUSD').disabled = isRotation;
     $('keyModalDailyQuotaUSD').disabled = isRotation;
@@ -3568,6 +3670,10 @@
     if (mode !== 'rotate' && currentExpiryPreset() !== 'never' && !expiry.expires_at) {
       throw new Error(t('请选择到期时间'));
     }
+    const plan = mode === 'rotate' ? null : planPayload();
+    if (plan && $('keyModalPlanEnabled').checked && !plan.plan_auth_id) {
+      throw new Error(t('请选择跟随账号'));
+    }
     if (mode === 'create') {
       result = await api('POST', 'credit-manager/keys', {
         label: $('keyModalLabel').value.trim(),
@@ -3577,6 +3683,7 @@
         monthly_quota_micro_usd: monthlyQuota,
         max_concurrent_requests: maxConcurrent,
         enabled: $('keyModalEnabled').checked,
+        ...plan,
         allowed_models: selectedKeyModels(),
         ...collectKeyTokenLimitPayload(),
         ...expiry,
@@ -3592,6 +3699,7 @@
         monthly_quota_micro_usd: monthlyQuota,
         max_concurrent_requests: maxConcurrent,
         enabled: $('keyModalEnabled').checked,
+        ...plan,
         set_allowed_models: true,
         allowed_models: selectedKeyModels(),
         set_model_token_limits: true,
@@ -6529,6 +6637,7 @@
   $('priceModal').addEventListener('click', event => {
     if (event.target === $('priceModal')) closePriceModal();
   });
+  $('keyModalPlanEnabled').addEventListener('change', syncPlanSection);
   $('btnCloseKeyModal').addEventListener('click', closeKeyModal);
   $('btnCancelKeyModal').addEventListener('click', closeKeyModal);
   $('keyModal').addEventListener('click', event => {

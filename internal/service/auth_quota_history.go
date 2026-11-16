@@ -313,40 +313,42 @@ func (s *Service) recordQuotaObservations(ctx context.Context, provider, authID 
 			DurationSeconds: p.WindowMinutes * 60, Used: p.Used, FirstUsed: p.Used, LastSeenUnixMS: nowMS, Source: "plan_history",
 		})
 	}
-	if !snap.resetCreditsFetched {
-		return
-	}
-	credits := make([]store.AuthQuotaResetCredit, 0, len(snap.ResetCreditList))
-	for _, c := range snap.ResetCreditList {
-		credits = append(credits, store.AuthQuotaResetCredit{CreditID: c.ID, ResetType: c.ResetType, Status: c.Status, GrantedAt: c.GrantedAt, ExpiresAt: c.ExpiresAt})
-	}
-	gone, err := s.store.SyncAuthQuotaResetCredits(ctx, provider, authID, credits, nowMS)
-	if err != nil {
-		return
-	}
-	after := int64(0)
-	if prevSuccess != nil {
-		after = prevSuccess.UTC().UnixMilli()
-	}
 	recorded := false
-	for _, c := range gone {
-		if c.Status != "" && !strings.EqualFold(c.Status, "available") {
-			continue
+	if snap.resetCreditsFetched {
+		credits := make([]store.AuthQuotaResetCredit, 0, len(snap.ResetCreditList))
+		for _, c := range snap.ResetCreditList {
+			credits = append(credits, store.AuthQuotaResetCredit{CreditID: c.ID, ResetType: c.ResetType, Status: c.Status, GrantedAt: c.GrantedAt, ExpiresAt: c.ExpiresAt})
 		}
-		if c.ExpiresAt != nil && !c.ExpiresAt.After(now) {
-			continue // expired, not used
+		gone, err := s.store.SyncAuthQuotaResetCredits(ctx, provider, authID, credits, nowMS)
+		if err == nil {
+			after := int64(0)
+			if prevSuccess != nil {
+				after = prevSuccess.UTC().UnixMilli()
+			}
+			for _, c := range gone {
+				if c.Status != "" && !strings.EqualFold(c.Status, "available") {
+					continue
+				}
+				if c.ExpiresAt != nil && !c.ExpiresAt.After(now) {
+					continue // expired, not used
+				}
+				from := after
+				if from == 0 || c.LastSeenUnixMS > from {
+					from = c.LastSeenUnixMS
+				}
+				_ = s.store.InsertAuthQuotaResetEvent(ctx, provider, authID, store.AuthQuotaResetEvent{Kind: "credit_used", AfterUnixMS: from, BeforeUnixMS: nowMS, CreditID: c.CreditID, Detail: "credit disappeared"})
+				recorded = true
+			}
+			if !recorded && after > 0 && prev != nil && prev.ResetCredits != nil && snap.ResetCredits != nil && *snap.ResetCredits < *prev.ResetCredits {
+				_ = s.store.InsertAuthQuotaResetEvent(ctx, provider, authID, store.AuthQuotaResetEvent{Kind: "credit_used", AfterUnixMS: after, BeforeUnixMS: nowMS,
+					Detail: "available_count " + strconv.FormatFloat(*prev.ResetCredits, 'f', -1, 64) + "->" + strconv.FormatFloat(*snap.ResetCredits, 'f', -1, 64)})
+				recorded = true
+			}
 		}
-		from := after
-		if from == 0 || c.LastSeenUnixMS > from {
-			from = c.LastSeenUnixMS
-		}
-		_ = s.store.InsertAuthQuotaResetEvent(ctx, provider, authID, store.AuthQuotaResetEvent{Kind: "credit_used", AfterUnixMS: from, BeforeUnixMS: nowMS, CreditID: c.CreditID, Detail: "credit disappeared"})
-		recorded = true
 	}
-	if !recorded && after > 0 && prev != nil && prev.ResetCredits != nil && snap.ResetCredits != nil && *snap.ResetCredits < *prev.ResetCredits {
-		_ = s.store.InsertAuthQuotaResetEvent(ctx, provider, authID, store.AuthQuotaResetEvent{Kind: "credit_used", AfterUnixMS: after, BeforeUnixMS: nowMS,
-			Detail: "available_count " + strconv.FormatFloat(*prev.ResetCredits, 'f', -1, 64) + "->" + strconv.FormatFloat(*snap.ResetCredits, 'f', -1, 64)})
-	}
+	// A missing credit is only a signal. Child keys follow whichever windows
+	// actually moved, so this still runs when the credit list could not be read.
+	s.applyPlanCycleReset(ctx, provider, authID, prev, snap, recorded)
 }
 
 // applyQuotaWindowHistory replaces the ended/partial tracked windows in the

@@ -33,3 +33,9 @@ settlement:
 stream:
   max_buffer_bytes: 4194304
   stale_reservation_timeout: 2h
+
+# auth_quota:
+#   sync_interval: 45m
+#   # 打开后，子 Key 的日/周已用跟着上游订阅窗口走，而不是 UTC 自然日/周。
+#   # 只在第一次建立数据库时生效。之后以控制台「密钥管理」里的开关为准。
+#   follow_plan_cycle: false

@@ -109,6 +109,14 @@ type Config struct {
 type AuthQuotaConfig struct {
 	// SyncInterval is the background quota sync period; <= 0 disables it.
 	SyncInterval time.Duration `yaml:"sync_interval" json:"sync_interval"`
+	// FollowPlanCycle makes every plugin key's daily and weekly spend follow
+	// upstream quota windows instead of snapping back to the UTC calendar.
+	// A new cycle or an earlier reset time zeroes the matching used amount on
+	// all child keys. A used reset credit does the same only when that window
+	// also moved. Manual resets then stick until the next plan reset.
+	// Kept for older configs. The console no longer has a global switch;
+	// each key chooses for itself. This value is not used.
+	FollowPlanCycle bool `yaml:"follow_plan_cycle" json:"follow_plan_cycle"`
 }
 
 // DefaultAuthQuotaSyncInterval is the default background quota sync period.

@@ -241,6 +241,45 @@ func (s *Service) attachAuthWarmupRun(ctx context.Context, item AuthQuotaOvervie
 	return item
 }
 
+type PlanAccount struct {
+	Provider    string `json:"provider"`
+	AuthID      string `json:"auth_id"`
+	DisplayName string `json:"display_name"`
+}
+
+func (s *Service) ListPlanAccounts(ctx context.Context) ([]PlanAccount, error) {
+	_, files, err := s.authQuotaFiles(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PlanAccount, 0, len(files))
+	seen := make(map[string]struct{}, len(files))
+	for _, file := range files {
+		provider := quotaProvider(file.Provider)
+		id := first(file.ID, file.Name, file.AuthIndex)
+		if provider == "" || id == "" {
+			continue
+		}
+		key := provider + "\t" + id
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, PlanAccount{
+			Provider:    provider,
+			AuthID:      id,
+			DisplayName: first(file.Label, file.Email, file.Account, file.Name, id),
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Provider != out[j].Provider {
+			return out[i].Provider < out[j].Provider
+		}
+		return out[i].DisplayName < out[j].DisplayName
+	})
+	return out, nil
+}
+
 func (s *Service) authQuotaFiles(ctx context.Context) (AuthQuotaSource, []AuthQuotaFile, error) {
 	source := s.authQuotaSourceValue()
 	if source == nil {

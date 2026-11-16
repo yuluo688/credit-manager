@@ -44,10 +44,11 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var created, updated int64
 	var totalReset, dailyReset, weeklyReset, monthlyReset sql.NullInt64
+	var followPlanCycle, planAutoReset int
 	if err := row.Scan(&key.ID, &key.CallerID, &key.Kid, &key.KeyHash, &key.EncryptedKeyMaterial, &key.PepperID, &key.Fingerprint,
 		&key.Label, &key.Principal, &key.CallerScope, &enabled, &revoked, &expires, &lastUsed, &created, &updated,
 		&quota, &dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &settled, &held, &allowedJSON, &tokenLimitsJSON, &unmatchedMode,
-		&totalReset, &dailyReset, &weeklyReset, &monthlyReset); err != nil {
+		&totalReset, &dailyReset, &weeklyReset, &monthlyReset, &followPlanCycle, &planAutoReset, &key.PlanAuthProvider, &key.PlanAuthID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return PluginKey{}, ErrPluginKeyNotFound
 		}
@@ -91,6 +92,9 @@ func scanPluginKey(row rowScanner) (PluginKey, error) {
 	key.DailySpendResetAt = optionalUnixTime(dailyReset)
 	key.WeeklySpendResetAt = optionalUnixTime(weeklyReset)
 	key.MonthlySpendResetAt = optionalUnixTime(monthlyReset)
+	key.FollowPlanCycle = followPlanCycle == 1
+	key.PlanAutoReset = planAutoReset == 1
+	key.PlanAuthProvider, key.PlanAuthID = planAuthProvider(key.PlanAuthProvider, key.PlanAuthID), planAuthID(key.PlanAuthProvider, key.PlanAuthID)
 	key.CreatedAt, key.UpdatedAt = fromUnixMilli(created), fromUnixMilli(updated)
 	return key, nil
 }

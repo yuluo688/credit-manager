@@ -33,6 +33,10 @@ type MintKeyRequest struct {
 	ModelTokenLimits      []store.ModelTokenLimit
 	UnmatchedModelsMode   string
 	Enabled               *bool
+	FollowPlanCycle       *bool
+	PlanAutoReset         *bool
+	PlanAuthProvider      string
+	PlanAuthID            string
 	KeyMaterial           string
 }
 
@@ -79,6 +83,10 @@ func (s *Service) MintKeyWithPolicy(ctx context.Context, req MintKeyRequest) (st
 		AllowedModels:         req.AllowedModels,
 		ModelTokenLimits:      req.ModelTokenLimits,
 		UnmatchedModelsMode:   req.UnmatchedModelsMode,
+		FollowPlanCycle:       req.FollowPlanCycle,
+		PlanAutoReset:         req.PlanAutoReset,
+		PlanAuthProvider:      req.PlanAuthProvider,
+		PlanAuthID:            req.PlanAuthID,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err
@@ -134,6 +142,10 @@ func (s *Service) RotateKey(ctx context.Context, keyID, keyMaterial string) (sto
 		AllowedModels:         oldKey.AllowedModels,
 		ModelTokenLimits:      oldKey.ModelTokenLimits,
 		UnmatchedModelsMode:   oldKey.UnmatchedModelsMode,
+		FollowPlanCycle:       &oldKey.FollowPlanCycle,
+		PlanAutoReset:         &oldKey.PlanAutoReset,
+		PlanAuthProvider:      oldKey.PlanAuthProvider,
+		PlanAuthID:            oldKey.PlanAuthID,
 	})
 	if err != nil {
 		return store.PluginKey{}, keys.Material{}, err

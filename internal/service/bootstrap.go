@@ -25,7 +25,15 @@ func (s *Service) ensureBootstrap(ctx context.Context) error {
 	if err := s.ensureBootstrapCaller(ctx); err != nil {
 		return err
 	}
-	return s.ensureBootstrapPricing(ctx)
+	if err := s.ensureBootstrapPricing(ctx); err != nil {
+		return err
+	}
+	enabled, err := s.store.EnsureFollowPlanCycle(ctx, s.cfg.AuthQuota.FollowPlanCycle)
+	if err != nil {
+		return fmt.Errorf("bootstrap plan cycle: %w", err)
+	}
+	s.cfg.AuthQuota.FollowPlanCycle = enabled
+	return nil
 }
 
 func (s *Service) ensureBootstrapCaller(ctx context.Context) error {

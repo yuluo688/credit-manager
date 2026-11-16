@@ -91,12 +91,13 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 	var allowedJSON, tokenLimitsJSON, unmatchedMode string
 	var dailyQuota, weeklyQuota, monthlyQuota, maxConcurrent int64
 	var dailyReset, weeklyReset, monthlyReset sql.NullInt64
+	var keyPlanCycle int
 	if err := tx.QueryRowContext(ctx, `SELECT enabled, revoked_at_unix_ms, expires_at_unix_ms, allowed_models_json, model_token_limits_json, unmatched_models_mode,
 		daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-		daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms
+		daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms, follow_plan_cycle
 		FROM plugin_keys WHERE id = ? AND caller_id = ?`,
 		request.PluginKeyID, request.CallerID).Scan(&keyEnabled, &revoked, &expires, &allowedJSON, &tokenLimitsJSON, &unmatchedMode,
-		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &dailyReset, &weeklyReset, &monthlyReset); err != nil {
+		&dailyQuota, &weeklyQuota, &monthlyQuota, &maxConcurrent, &dailyReset, &weeklyReset, &monthlyReset, &keyPlanCycle); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Reservation{}, ErrPluginKeyNotFound
 		}
@@ -138,13 +139,14 @@ func (s *Store) Reserve(ctx context.Context, request ReserveRequest) (Reservatio
 			return Reservation{}, ErrConcurrentLimit
 		}
 	}
+	sticky := keyPlanCycle == 1
 	for _, limit := range []struct {
 		quota money.MicroUSD
 		start int64
 		err   error
 	}{
-		{money.MicroUSD(dailyQuota), periodStart(utcDayStart(now), nullUnixMilli(dailyReset)), ErrDailyQuotaExceeded},
-		{money.MicroUSD(weeklyQuota), periodStart(utcWeekStart(now), nullUnixMilli(weeklyReset)), ErrWeeklyQuotaExceeded},
+		{money.MicroUSD(dailyQuota), periodStartMode(utcDayStart(now), nullUnixMilli(dailyReset), sticky), ErrDailyQuotaExceeded},
+		{money.MicroUSD(weeklyQuota), periodStartMode(utcWeekStart(now), nullUnixMilli(weeklyReset), sticky), ErrWeeklyQuotaExceeded},
 		{money.MicroUSD(monthlyQuota), periodStart(utcMonthStart(now), nullUnixMilli(monthlyReset)), ErrMonthlyQuotaExceeded},
 	} {
 		if limit.quota == 0 {

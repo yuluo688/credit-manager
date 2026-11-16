@@ -38,6 +38,7 @@ func Routes() []pluginapi.ManagementRoute {
 		{http.MethodGet, "credit-manager/usage/summary"},
 		{http.MethodGet, "credit-manager/audit"},
 		{http.MethodGet, "credit-manager/balance"},
+		{http.MethodGet, "credit-manager/plan-accounts"},
 		{http.MethodGet, "credit-manager/auth-quotas"},
 		{http.MethodPost, "credit-manager/auth-quotas/refresh"},
 		{http.MethodPost, "credit-manager/auth-quotas/warmup"},
@@ -165,6 +166,8 @@ func Handle(ctx context.Context, req pluginapi.ManagementRequest) (pluginapi.Man
 		return listAudit(ctx, svc, req.Query)
 	case req.Method == http.MethodGet && path == "credit-manager/balance":
 		return getBalance(ctx, svc, req.Query)
+	case req.Method == http.MethodGet && path == "credit-manager/plan-accounts":
+		return listPlanAccounts(ctx, svc)
 	case req.Method == http.MethodGet && path == "credit-manager/auth-quotas":
 		return getAuthQuotas(ctx, svc, req.Query)
 	case req.Method == http.MethodPost && path == "credit-manager/auth-quotas/refresh":

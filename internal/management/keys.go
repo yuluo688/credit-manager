@@ -32,6 +32,10 @@ func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 		ModelTokenLimits      []store.ModelTokenLimit `json:"model_token_limits"`
 		UnmatchedModelsMode   string                  `json:"unmatched_models_mode"`
 		Enabled               *bool                   `json:"enabled"`
+		FollowPlanCycle       *bool                   `json:"follow_plan_cycle"`
+		PlanAutoReset         *bool                   `json:"plan_auto_reset"`
+		PlanAuthProvider      string                  `json:"plan_auth_provider"`
+		PlanAuthID            string                  `json:"plan_auth_id"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
@@ -75,6 +79,10 @@ func createKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 		ModelTokenLimits:      req.ModelTokenLimits,
 		UnmatchedModelsMode:   req.UnmatchedModelsMode,
 		Enabled:               req.Enabled,
+		FollowPlanCycle:       req.FollowPlanCycle,
+		PlanAutoReset:         req.PlanAutoReset,
+		PlanAuthProvider:      req.PlanAuthProvider,
+		PlanAuthID:            req.PlanAuthID,
 	})
 	if err != nil {
 		return jsonErr(http.StatusBadRequest, err.Error()), nil
@@ -143,13 +151,23 @@ func listKeys(ctx context.Context, svc *service.Service, query map[string][]stri
 	for _, item := range items {
 		out = append(out, keyView(item))
 	}
-	return jsonOK(map[string]any{
-		"items":       out,
-		"page":        page,
-		"page_size":   pageSize,
-		"total":       total,
-		"total_pages": totalPages,
-	}), nil
+	cycle, err := svc.Store().PlanCycleStatus(ctx)
+	if err != nil {
+		return jsonErr(http.StatusInternalServerError, err.Error()), nil
+	}
+	body := map[string]any{
+		"items":                   out,
+		"page":                    page,
+		"page_size":               pageSize,
+		"total":                   total,
+		"total_pages":             totalPages,
+		"follow_plan_cycle":       cycle.Enabled,
+		"plan_cycle_reset_detail": cycle.Detail,
+	}
+	if cycle.ResetAt != nil {
+		body["plan_cycle_reset_at"] = cycle.ResetAt.UTC().Format(time.RFC3339)
+	}
+	return jsonOK(body), nil
 }
 
 func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginapi.ManagementResponse, error) {
@@ -170,15 +188,23 @@ func updateKey(ctx context.Context, svc *service.Service, body []byte) (pluginap
 		UnmatchedModelsMode   *string                 `json:"unmatched_models_mode"`
 		ExpiresAt             string                  `json:"expires_at"`
 		ClearExpiresAt        bool                    `json:"clear_expires_at"`
+		FollowPlanCycle       *bool                   `json:"follow_plan_cycle"`
+		PlanAutoReset         *bool                   `json:"plan_auto_reset"`
+		PlanAuthProvider      *string                 `json:"plan_auth_provider"`
+		PlanAuthID            *string                 `json:"plan_auth_id"`
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return jsonErr(http.StatusBadRequest, "invalid json"), nil
 	}
 	update := store.PluginKeyPolicyUpdate{
-		ID:             req.ID,
-		Label:          req.Label,
-		Enabled:        req.Enabled,
-		ClearExpiresAt: req.ClearExpiresAt,
+		ID:               req.ID,
+		Label:            req.Label,
+		Enabled:          req.Enabled,
+		ClearExpiresAt:   req.ClearExpiresAt,
+		FollowPlanCycle:  req.FollowPlanCycle,
+		PlanAutoReset:    req.PlanAutoReset,
+		PlanAuthProvider: req.PlanAuthProvider,
+		PlanAuthID:       req.PlanAuthID,
 	}
 	if req.QuotaMicroUSD != nil {
 		q := money.MicroUSD(*req.QuotaMicroUSD)

@@ -41,6 +41,10 @@ type PluginKey struct {
 	DailySpendResetAt     *time.Time
 	WeeklySpendResetAt    *time.Time
 	MonthlySpendResetAt   *time.Time
+	FollowPlanCycle       bool
+	PlanAutoReset         bool
+	PlanAuthProvider      string
+	PlanAuthID            string
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }
@@ -78,6 +82,14 @@ type PluginKeySpec struct {
 	AllowedModels         []string
 	ModelTokenLimits      []ModelTokenLimit
 	UnmatchedModelsMode   string
+	// FollowPlanCycle nil keeps the default: this key follows the subscription cycle.
+	FollowPlanCycle *bool
+	// PlanAutoReset nil keeps the default: an upstream quota reset clears this key.
+	PlanAutoReset *bool
+	// PlanAuthProvider and PlanAuthID name the only upstream account whose
+	// windows affect this key. Empty means it follows no account.
+	PlanAuthProvider string
+	PlanAuthID       string
 }
 
 // PluginKeyPolicyUpdate patches mutable admin fields on a key.
@@ -95,6 +107,10 @@ type PluginKeyPolicyUpdate struct {
 	UnmatchedModelsMode   *string
 	ExpiresAt             *time.Time
 	ClearExpiresAt        bool
+	FollowPlanCycle       *bool
+	PlanAutoReset         *bool
+	PlanAuthProvider      *string
+	PlanAuthID            *string
 }
 
 func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (PluginKey, error) {
@@ -134,11 +150,12 @@ func (s *Store) CreatePluginKey(ctx context.Context, spec PluginKeySpec) (Plugin
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode,
+		follow_plan_cycle, plan_auto_reset, plan_auth_provider, plan_auth_id
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, quota, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode)
+		boolInt(spec.Enabled), expires, now, now, quota, spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode, followPlanCycleValue(spec.FollowPlanCycle), followPlanCycleValue(spec.PlanAutoReset), planAuthProvider(spec.PlanAuthProvider, spec.PlanAuthID), planAuthID(spec.PlanAuthProvider, spec.PlanAuthID))
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create plugin key: %w", err)
 	}
@@ -186,11 +203,12 @@ func (s *Store) RotatePluginKey(ctx context.Context, oldKeyID string, spec Plugi
 		id, caller_id, kid, key_hash, encrypted_key_material, pepper_id, fingerprint, label, principal, caller_scope,
 		enabled, expires_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 		quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
-		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)`,
+		settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode,
+		follow_plan_cycle, plan_auto_reset, plan_auth_provider, plan_auth_id
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?)`,
 		spec.ID, spec.CallerID, spec.Kid, append([]byte(nil), spec.KeyHash...), append([]byte(nil), spec.EncryptedKeyMaterial...),
 		spec.PepperID, spec.Fingerprint, spec.Label, spec.Principal, spec.CallerScope,
-		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode)
+		boolInt(spec.Enabled), expires, now, now, int64(spec.QuotaMicroUSD), spec.DailyQuotaMicroUSD, spec.WeeklyQuotaMicroUSD, spec.MonthlyQuotaMicroUSD, spec.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON, unmatchedMode, followPlanCycleValue(spec.FollowPlanCycle), followPlanCycleValue(spec.PlanAutoReset), planAuthProvider(spec.PlanAuthProvider, spec.PlanAuthID), planAuthID(spec.PlanAuthProvider, spec.PlanAuthID))
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("create replacement plugin key: %w", err)
 	}
@@ -377,6 +395,29 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 		exp := update.ExpiresAt.UTC()
 		key.ExpiresAt = &exp
 	}
+	if update.FollowPlanCycle != nil {
+		key.FollowPlanCycle = *update.FollowPlanCycle
+	}
+	if update.PlanAutoReset != nil {
+		key.PlanAutoReset = *update.PlanAutoReset
+	}
+	authChanged := false
+	if update.PlanAuthProvider != nil || update.PlanAuthID != nil {
+		provider, authID := "", ""
+		if update.PlanAuthProvider != nil {
+			provider = *update.PlanAuthProvider
+		}
+		if update.PlanAuthID != nil {
+			authID = *update.PlanAuthID
+		}
+		provider, authID = planAuthProvider(provider, authID), planAuthID(provider, authID)
+		if provider != key.PlanAuthProvider || authID != key.PlanAuthID {
+			authChanged = true
+			key.DailySpendResetAt = nil
+			key.WeeklySpendResetAt = nil
+		}
+		key.PlanAuthProvider, key.PlanAuthID = provider, authID
+	}
 	modelsJSON, err := marshalAllowedModels(key.AllowedModels)
 	if err != nil {
 		return PluginKey{}, err
@@ -398,11 +439,15 @@ func (s *Store) UpdatePluginKeyPolicy(ctx context.Context, update PluginKeyPolic
 	result, err := s.db.ExecContext(ctx, `UPDATE plugin_keys SET
 		label = ?, enabled = ?, quota_micro_usd = ?, daily_quota_micro_usd = ?, weekly_quota_micro_usd = ?,
 		monthly_quota_micro_usd = ?, max_concurrent_requests = ?, allowed_models_json = ?, model_token_limits_json = ?,
-		unmatched_models_mode = ?, expires_at_unix_ms = ?, updated_at_unix_ms = ?
+		unmatched_models_mode = ?, expires_at_unix_ms = ?, follow_plan_cycle = ?, plan_auto_reset = ?,
+		plan_auth_provider = ?, plan_auth_id = ?,
+		daily_spend_reset_at_unix_ms = CASE WHEN ? THEN NULL ELSE daily_spend_reset_at_unix_ms END,
+		weekly_spend_reset_at_unix_ms = CASE WHEN ? THEN NULL ELSE weekly_spend_reset_at_unix_ms END,
+		updated_at_unix_ms = ?
 		WHERE id = ?`,
 		key.Label, boolInt(key.Enabled), quota, key.DailyQuotaMicroUSD, key.WeeklyQuotaMicroUSD,
 		key.MonthlyQuotaMicroUSD, key.MaxConcurrentRequests, modelsJSON, tokenLimitsJSON,
-		normalizeUnmatchedModelsMode(key.UnmatchedModelsMode), expires, now, update.ID)
+		normalizeUnmatchedModelsMode(key.UnmatchedModelsMode), expires, boolInt(key.FollowPlanCycle), boolInt(key.PlanAutoReset), key.PlanAuthProvider, key.PlanAuthID, boolInt(authChanged), boolInt(authChanged), now, update.ID)
 	if err != nil {
 		return PluginKey{}, fmt.Errorf("update plugin key policy: %w", err)
 	}
@@ -488,5 +533,29 @@ const pluginKeySelect = `SELECT id, caller_id, kid, key_hash, encrypted_key_mate
 	enabled, revoked_at_unix_ms, expires_at_unix_ms, last_used_at_unix_ms, created_at_unix_ms, updated_at_unix_ms,
 	quota_micro_usd, daily_quota_micro_usd, weekly_quota_micro_usd, monthly_quota_micro_usd, max_concurrent_requests,
 	settled_spend_micro_usd, held_amount_micro_usd, allowed_models_json, model_token_limits_json, unmatched_models_mode,
-	total_spend_reset_at_unix_ms, daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms
+	total_spend_reset_at_unix_ms, daily_spend_reset_at_unix_ms, weekly_spend_reset_at_unix_ms, monthly_spend_reset_at_unix_ms,
+	follow_plan_cycle, plan_auto_reset, plan_auth_provider, plan_auth_id
 	FROM plugin_keys`
+
+func planAuthProvider(provider, authID string) string {
+	provider = strings.ToLower(strings.TrimSpace(provider))
+	authID = strings.TrimSpace(authID)
+	if provider == "" || authID == "" {
+		return ""
+	}
+	return provider
+}
+
+func planAuthID(provider, authID string) string {
+	if planAuthProvider(provider, authID) == "" {
+		return ""
+	}
+	return strings.TrimSpace(authID)
+}
+
+func followPlanCycleValue(flag *bool) int {
+	if flag == nil || *flag {
+		return 1
+	}
+	return 0
+}

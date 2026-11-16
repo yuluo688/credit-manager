@@ -1139,6 +1139,11 @@ html[data-palette="dark"] .list-search::before { filter:brightness(0) invert(1);
 .key-select input:indeterminate + .key-select-ui { border-color:var(--accent); background:var(--accent-soft); }
 .key-select input:indeterminate + .key-select-ui::after { content:""; position:absolute; top:7px; left:4px; width:7px; height:1.5px; border-radius:1px; background:var(--accent); }
 .key-select input:focus-visible + .key-select-ui { outline:2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset:2px; }
+.key-plan-block { display:flex; flex-direction:column; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--panel); }
+.key-plan-master { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; min-height:0; color:var(--text); font-size:.84rem; font-weight:650; }
+.key-plan-detail { display:flex; flex-direction:column; gap:10px; }
+.key-plan-options { display:flex; flex-direction:column; gap:8px; }
+.key-plan-option { display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:12px; min-height:0; color:var(--text); font-size:.78rem; font-weight:500; }
 .key-switch-field { display:flex; flex-direction:column; justify-content:flex-end; gap:8px; min-height:100%; }
 .key-switch {
   display:inline-flex;
@@ -1191,6 +1196,7 @@ html[data-palette="dark"] .list-search::before { filter:brightness(0) invert(1);
 .key-label { display:grid; gap:4px; min-width:0; }
 .key-label strong { font-size:.95rem; letter-spacing:-.01em; font-weight:700; color:var(--table-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .key-label .mono { color:var(--table-muted); font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.key-cycle-chip { display:inline-block; max-width:18rem; margin-top:4px; padding:1px 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; border:1px solid var(--line); border-radius:999px; background:var(--panel-2); color:var(--muted); font-size:.68rem; font-weight:650; line-height:1.4; }
 .model-chip-row { display:flex; flex-wrap:wrap; gap:5px; max-height:52px; overflow:hidden; }
 .model-chip { display:inline-flex; align-items:center; max-width:100%; padding:4px 9px; border-radius:999px; background:#f3f6f3; border:1px solid #e4eae4; color:#3d4a42; font-size:.78rem; line-height:1.25; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .model-chip.all { background:var(--accent-soft); border-color:#c8eddd; color:#087d5a; font-weight:650; }

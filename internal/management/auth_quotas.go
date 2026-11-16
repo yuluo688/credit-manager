@@ -179,6 +179,17 @@ func updateAuthQuotaConcurrencyBatch(ctx context.Context, svc *service.Service, 
 	return jsonOKNoStore(result), nil
 }
 
+func listPlanAccounts(ctx context.Context, svc *service.Service) (pluginapi.ManagementResponse, error) {
+	accounts, err := svc.ListPlanAccounts(ctx)
+	if err != nil {
+		return jsonErrNoStore(http.StatusServiceUnavailable, "plan accounts unavailable"), nil
+	}
+	if accounts == nil {
+		accounts = []service.PlanAccount{}
+	}
+	return jsonOKNoStore(accounts), nil
+}
+
 func getAuthRoutingSettings(ctx context.Context, svc *service.Service) (pluginapi.ManagementResponse, error) {
 	settings, err := svc.AuthRoutingSettings(ctx)
 	if err != nil {

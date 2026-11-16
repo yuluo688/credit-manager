@@ -415,6 +415,243 @@ func TestPeriodStartsUseUTCCalendarBoundaries(t *testing.T) {
 	}
 }
 
+func TestFollowPlanCycleKeepsDailyWindowPastUTCMidnight(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	off := false
+	key := newTestKey(t, ctx, st, PluginKeySpec{DailyQuotaMicroUSD: 5, QuotaMicroUSD: 100, FollowPlanCycle: &off})
+	reservation, err := st.Reserve(ctx, reserveRequest(key, "yesterday", 4))
+	if err != nil {
+		t.Fatalf("reserve: %v", err)
+	}
+	if _, err := st.Settle(ctx, Settlement{
+		LedgerID: NewID(), ReservationID: reservation.ID, Model: reservation.Model,
+		Usage: money.TokenUsage{Input: 1}, CostMicroUSD: 4, EstimatedCostMicroUSD: 4, Source: "usage",
+	}); err != nil {
+		t.Fatalf("settle: %v", err)
+	}
+	anchor := time.Date(2026, 11, 6, 22, 0, 0, 0, time.UTC)
+	spentAt := time.Date(2026, 11, 6, 23, 0, 0, 0, time.UTC)
+	now := time.Date(2026, 11, 7, 1, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `UPDATE usage_ledger SET created_at_unix_ms = ? WHERE reservation_id = ?`, spentAt.UnixMilli(), reservation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.db.ExecContext(ctx, `UPDATE plugin_keys SET daily_spend_reset_at_unix_ms = ? WHERE id = ?`, anchor.UnixMilli(), key.ID); err != nil {
+		t.Fatal(err)
+	}
+	overview, err := st.GetKeyUsageOverview(ctx, key.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.DailyMicroUSD != 0 {
+		t.Fatalf("calendar daily = %d, want 0 after UTC midnight", overview.DailyMicroUSD)
+	}
+	on := true
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, FollowPlanCycle: &on}); err != nil {
+		t.Fatal(err)
+	}
+	overview, err = st.GetKeyUsageOverview(ctx, key.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.DailyMicroUSD != 4 {
+		t.Fatalf("plan-cycle daily = %d, want 4", overview.DailyMicroUSD)
+	}
+	if _, err := st.Reserve(ctx, reserveRequest(key, "still-in-cycle", 2)); !errors.Is(err, ErrDailyQuotaExceeded) {
+		t.Fatalf("reserve inside plan cycle = %v, want daily quota", err)
+	}
+}
+
+func TestKeyCanOptOutOfPlanCycle(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	off := false
+	key := newTestKey(t, ctx, st, PluginKeySpec{DailyQuotaMicroUSD: 5, QuotaMicroUSD: 100, FollowPlanCycle: &off})
+	if key.FollowPlanCycle {
+		t.Fatal("key was stored as following the plan cycle")
+	}
+	anchor := time.Date(2026, 11, 6, 22, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `UPDATE plugin_keys SET daily_spend_reset_at_unix_ms = ? WHERE id = ?`, anchor.UnixMilli(), key.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := st.SetFollowPlanCycle(ctx, true); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 7, 1, 0, 0, 0, time.UTC)
+	overview, err := st.GetKeyUsageOverview(ctx, key.ID, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if overview.DailyMicroUSD != 0 {
+		t.Fatalf("opted-out daily = %d, want the UTC day", overview.DailyMicroUSD)
+	}
+	provider, authID := "codex", "auth-main"
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, PlanAuthProvider: &provider, PlanAuthID: &authID}); err != nil {
+		t.Fatal(err)
+	}
+	ids, err := st.ListPlanAutoResetKeyIDs(ctx, provider, authID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, id := range ids {
+		if id == key.ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("turning off the plan cycle also turned off automatic reset")
+	}
+	other, err := st.ListPlanAutoResetKeyIDs(ctx, provider, "other-auth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range other {
+		if id == key.ID {
+			t.Fatal("another account reset this key")
+		}
+	}
+	none, err := st.ListPlanAutoResetKeyIDs(ctx, "", "")
+	if err != nil || len(none) != 0 {
+		t.Fatalf("unset account reset keys: %v %v", none, err)
+	}
+	autoOff := false
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, PlanAutoReset: &autoOff}); err != nil {
+		t.Fatal(err)
+	}
+	ids, err = st.ListPlanAutoResetKeyIDs(ctx, provider, authID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range ids {
+		if id == key.ID {
+			t.Fatal("key with automatic reset off was still included")
+		}
+	}
+}
+
+func TestAlignUnsetPlanCycleAnchorsLeavesExistingAndOptOuts(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	following := newTestKey(t, ctx, st, PluginKeySpec{Kid: "following", DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 100})
+	held := newTestKey(t, ctx, st, PluginKeySpec{Kid: "held-key", DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 100})
+	stray := newTestKey(t, ctx, st, PluginKeySpec{Kid: "stray-key", DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 100})
+	off := false
+	opted := newTestKey(t, ctx, st, PluginKeySpec{Kid: "opted-out", DailyQuotaMicroUSD: 100, FollowPlanCycle: &off})
+	provider, authID := "codex", "auth-main"
+	for _, id := range []string{following.ID, held.ID, opted.ID} {
+		if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: id, PlanAuthProvider: &provider, PlanAuthID: &authID}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	existing := time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `UPDATE plugin_keys SET daily_spend_reset_at_unix_ms = ? WHERE id = ?`, existing.UnixMilli(), held.ID); err != nil {
+		t.Fatal(err)
+	}
+	daily := time.Date(2026, 11, 8, 10, 0, 0, 0, time.UTC)
+	weekly := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	if err := st.AlignUnsetPlanCycleAnchors(ctx, provider, authID, daily, weekly); err != nil {
+		t.Fatal(err)
+	}
+	gotFollowing, err := st.GetPluginKey(ctx, following.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotFollowing.DailySpendResetAt == nil || gotFollowing.DailySpendResetAt.UnixMilli() != daily.UnixMilli() || gotFollowing.WeeklySpendResetAt == nil || gotFollowing.WeeklySpendResetAt.UnixMilli() != weekly.UnixMilli() {
+		t.Fatalf("empty plan-cycle key anchors = %v %v", gotFollowing.DailySpendResetAt, gotFollowing.WeeklySpendResetAt)
+	}
+	gotHeld, err := st.GetPluginKey(ctx, held.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotHeld.DailySpendResetAt == nil || gotHeld.DailySpendResetAt.UnixMilli() != existing.UnixMilli() || gotHeld.WeeklySpendResetAt == nil || gotHeld.WeeklySpendResetAt.UnixMilli() != weekly.UnixMilli() {
+		t.Fatalf("existing daily anchor changed: daily %v weekly %v", gotHeld.DailySpendResetAt, gotHeld.WeeklySpendResetAt)
+	}
+	gotOpted, err := st.GetPluginKey(ctx, opted.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotOpted.DailySpendResetAt != nil || gotOpted.WeeklySpendResetAt != nil {
+		t.Fatalf("opted-out key was aligned: %v %v", gotOpted.DailySpendResetAt, gotOpted.WeeklySpendResetAt)
+	}
+	gotStray, err := st.GetPluginKey(ctx, stray.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotStray.DailySpendResetAt != nil || gotStray.WeeklySpendResetAt != nil {
+		t.Fatalf("key without an account was aligned: %v %v", gotStray.DailySpendResetAt, gotStray.WeeklySpendResetAt)
+	}
+	if err := st.AlignUnsetPlanCycleAnchors(ctx, provider, authID, daily.Add(time.Hour), weekly.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	gotFollowing, err = st.GetPluginKey(ctx, following.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotFollowing.DailySpendResetAt.UnixMilli() != daily.UnixMilli() || gotFollowing.WeeklySpendResetAt.UnixMilli() != weekly.UnixMilli() {
+		t.Fatal("a later sync moved anchors that were already set")
+	}
+}
+
+func TestChangingPlanAccountClearsSpendAnchors(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{Kid: "plan-auth-key", DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 100})
+	firstProvider, firstAuth := "codex", "auth-a"
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, PlanAuthProvider: &firstProvider, PlanAuthID: &firstAuth}); err != nil {
+		t.Fatal(err)
+	}
+	daily := time.Date(2026, 11, 8, 10, 0, 0, 0, time.UTC)
+	weekly := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	if _, err := st.db.ExecContext(ctx, `UPDATE plugin_keys SET daily_spend_reset_at_unix_ms = ?, weekly_spend_reset_at_unix_ms = ? WHERE id = ?`, daily.UnixMilli(), weekly.UnixMilli(), key.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, PlanAuthProvider: &firstProvider, PlanAuthID: &firstAuth}); err != nil {
+		t.Fatal(err)
+	}
+	kept, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kept.DailySpendResetAt == nil || kept.WeeklySpendResetAt == nil {
+		t.Fatal("saving the same account cleared the spend anchors")
+	}
+	nextAuth := "auth-b"
+	if _, err := st.UpdatePluginKeyPolicy(ctx, PluginKeyPolicyUpdate{ID: key.ID, PlanAuthProvider: &firstProvider, PlanAuthID: &nextAuth}); err != nil {
+		t.Fatal(err)
+	}
+	moved, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if moved.PlanAuthID != nextAuth || moved.DailySpendResetAt != nil || moved.WeeklySpendResetAt != nil {
+		t.Fatalf("changed account kept old anchors: auth=%s daily=%v weekly=%v", moved.PlanAuthID, moved.DailySpendResetAt, moved.WeeklySpendResetAt)
+	}
+}
+
+func TestResetPluginKeySpendAtUsesUpstreamStart(t *testing.T) {
+	ctx := context.Background()
+	st := newTestStore(t)
+	defer st.Close()
+	key := newTestKey(t, ctx, st, PluginKeySpec{DailyQuotaMicroUSD: 100, WeeklyQuotaMicroUSD: 100})
+	daily := time.Date(2026, 11, 8, 10, 0, 0, 0, time.UTC)
+	weekly := time.Date(2026, 11, 2, 10, 0, 0, 0, time.UTC)
+	if _, err := st.ResetPluginKeySpendAt(ctx, []string{key.ID}, SpendResetScopes{Daily: true, Weekly: true}, daily, weekly); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := st.GetPluginKey(ctx, key.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.DailySpendResetAt == nil || updated.DailySpendResetAt.UnixMilli() != daily.UnixMilli() || updated.WeeklySpendResetAt == nil || updated.WeeklySpendResetAt.UnixMilli() != weekly.UnixMilli() {
+		t.Fatalf("anchors = %v %v, want upstream starts", updated.DailySpendResetAt, updated.WeeklySpendResetAt)
+	}
+}
+
 func TestListAuditEventsFiltersByPluginKey(t *testing.T) {
 	ctx := context.Background()
 	st := newTestStore(t)
