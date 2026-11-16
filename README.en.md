@@ -60,7 +60,7 @@ POST /v1beta/models/...?key=tk-...
 
 The lookup order matches CLIProxyAPI's built-in `api-keys` provider: `Authorization: Bearer`, `x-goog-api-key`, `x-api-key`, `?key=`, then `?auth_token=`. The first non-empty value wins.
 
-`GET /v1/models` and `GET /v1beta/models` remain anonymous for CLIProxyAPI Management Center compatibility. They only return the public model catalog and cannot execute models. Globally disabled models are omitted; a Key allowlist does not trim this public catalog.
+`GET /v1/models` and `GET /v1beta/models` stay anonymous when no Key is sent, so the CLIProxyAPI Management Center keeps working. They cannot execute models. Globally disabled models are always omitted. A verified plugin Key, read from the same places as a model call, trims the catalog to models that Key can call: `allowed_models` applies, and `unmatched_models_mode: disabled` also hides models with no Token rule. An empty `allowed_models` list still means every model.
 
 ## Build from Source and Detailed Setup
 

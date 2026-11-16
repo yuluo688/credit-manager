@@ -60,7 +60,7 @@ POST /v1beta/models/...?key=tk-...
 
 读取顺序与 CLIProxyAPI 自带 `api-keys` 相同：`Authorization: Bearer`、`x-goog-api-key`、`x-api-key`、`?key=`、`?auth_token=`。排在前面的非空值优先。
 
-`GET /v1/models` 和 `GET /v1beta/models` 可匿名获取公共模型目录，以兼容宿主管理中心；它们不能调用模型。全局禁用的模型会从目录移除，但某个 Key 的模型白名单不会裁剪公共目录。
+`GET /v1/models` 和 `GET /v1beta/models` 不带 Key 时仍返回公共目录，以兼容宿主管理中心；它们不能调用模型。全局禁用的模型总会从目录移除。请求带有有效插件 Key 时（位置与模型调用相同），目录只保留该 Key 可调用的模型：按 `allowed_models` 裁剪，`unmatched_models_mode` 为 `disabled` 时也会去掉没有 Token 规则的模型。空的 `allowed_models` 仍表示全部模型。
 
 ## 从源码构建与详细步骤
 

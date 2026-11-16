@@ -80,22 +80,24 @@ func (s *Service) HiddenDirectoryModels(ctx context.Context, catalog []string) [
 }
 
 func (s *Service) FilterModelDirectory(ctx context.Context, body []byte) ([]byte, bool, error) {
-	return s.filterModelDirectory(ctx, body)
+	return s.filterModelDirectory(ctx, body, store.PluginKey{})
 }
 
-func (s *Service) FilterModelDirectoryForKey(ctx context.Context, body []byte, _ store.PluginKey) ([]byte, bool, error) {
-	return s.filterModelDirectory(ctx, body)
+// FilterModelDirectoryForKey removes globally disabled models and, when the key
+// has an allowlist or disables unmatched models, models that key cannot call.
+// A zero key leaves the public catalog unchanged aside from disabled models.
+func (s *Service) FilterModelDirectoryForKey(ctx context.Context, body []byte, key store.PluginKey) ([]byte, bool, error) {
+	return s.filterModelDirectory(ctx, body, key)
 }
 
-func (s *Service) filterModelDirectory(ctx context.Context, body []byte) ([]byte, bool, error) {
-	if len(body) == 0 {
-		return body, false, nil
-	}
-	var payload any
-	if err := json.Unmarshal(body, &payload); err != nil {
-		return body, false, nil
-	}
-	root, ok := payload.(map[string]any)
+// IsModelDirectoryBody reports whether body is an OpenAI, Gemini, or Codex model list.
+func IsModelDirectoryBody(body []byte) bool {
+	root, ok := decodeModelDirectory(body)
+	return ok && looksLikeModelDirectory(root)
+}
+
+func (s *Service) filterModelDirectory(ctx context.Context, body []byte, key store.PluginKey) ([]byte, bool, error) {
+	root, ok := decodeModelDirectory(body)
 	if !ok || !looksLikeModelDirectory(root) {
 		return body, false, nil
 	}
@@ -121,7 +123,7 @@ func (s *Service) filterModelDirectory(ctx context.Context, body []byte) ([]byte
 				kept = append(kept, item)
 				continue
 			}
-			if modelDisabledByRules(id, rules) {
+			if modelDisabledByRules(id, rules) || !directoryModelVisible(key, id) {
 				changed = true
 				continue
 			}
@@ -139,6 +141,18 @@ func (s *Service) filterModelDirectory(ctx context.Context, body []byte) ([]byte
 	return out, true, nil
 }
 
+func decodeModelDirectory(body []byte) (map[string]any, bool) {
+	if len(body) == 0 {
+		return nil, false
+	}
+	var payload any
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, false
+	}
+	root, ok := payload.(map[string]any)
+	return root, ok
+}
+
 func looksLikeModelDirectory(root map[string]any) bool {
 	if obj, _ := root["object"].(string); obj == "list" {
 		return true
@@ -151,12 +165,46 @@ func looksLikeModelDirectory(root map[string]any) bool {
 	return false
 }
 
+// directoryModelVisible reports whether this key may call id.
+// An empty allowlist still means every model, matching reserve. Patterns may
+// be written with or without the Gemini "models/" catalog prefix.
+func directoryModelVisible(key store.PluginKey, id string) bool {
+	if !directoryAllowlistAllows(key, id) {
+		return false
+	}
+	if !strings.EqualFold(strings.TrimSpace(key.UnmatchedModelsMode), store.UnmatchedModelsDisabled) {
+		return true
+	}
+	if _, ok := store.MatchModelTokenLimit(key.ModelTokenLimits, id); ok {
+		return true
+	}
+	if !strings.HasPrefix(id, "models/") {
+		if _, ok := store.MatchModelTokenLimit(key.ModelTokenLimits, "models/"+id); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func directoryAllowlistAllows(key store.PluginKey, id string) bool {
+	if len(key.AllowedModels) == 0 {
+		return true
+	}
+	if store.ModelAllowed(key, id) {
+		return true
+	}
+	if strings.HasPrefix(id, "models/") {
+		return store.ModelAllowed(store.PluginKey{AllowedModels: key.AllowedModels}, strings.TrimPrefix(id, "models/"))
+	}
+	return store.ModelAllowed(store.PluginKey{AllowedModels: key.AllowedModels}, "models/"+id)
+}
+
 func modelIDFromEntry(item any) string {
 	switch value := item.(type) {
 	case string:
 		return normalizeModelListID(value)
 	case map[string]any:
-		for _, key := range []string{"id", "name", "model"} {
+		for _, key := range []string{"id", "name", "model", "slug"} {
 			raw, _ := value[key].(string)
 			if id := normalizeModelListID(raw); id != "" {
 				return id

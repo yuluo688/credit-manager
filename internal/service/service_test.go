@@ -371,22 +371,93 @@ func TestFilterModelDirectoryRemovesDisabled(t *testing.T) {
 	if err := json.Unmarshal(keyFiltered, &payload); err != nil {
 		t.Fatalf("decode key filter: %v", err)
 	}
-	if len(payload.Data) != 1 || payload.Data[0].ID != "claude-sonnet" {
-		t.Fatalf("directory list should only drop globally disabled models, got %#v", payload.Data)
+	if len(payload.Data) != 0 {
+		t.Fatalf("disabled model and models outside the allowlist should both be removed, got %#v", payload.Data)
 	}
 
 	allowedBody := []byte(`{"object":"list","data":[{"id":"claude-sonnet","object":"model"},{"id":"other","object":"model"}]}`)
 	allowedFiltered, allowedChanged, err := svc.FilterModelDirectoryForKey(ctx, allowedBody, store.PluginKey{AllowedModels: []string{"claude-sonnet"}})
-	if err != nil {
-		t.Fatalf("allowlist filter err=%v", err)
+	if err != nil || !allowedChanged {
+		t.Fatalf("allowlist filter = %s changed=%t err=%v", allowedFiltered, allowedChanged, err)
 	}
-	if allowedChanged {
-		t.Fatalf("allowlist must not clip GET /v1/models, got %s", allowedFiltered)
+	if err := json.Unmarshal(allowedFiltered, &payload); err != nil {
+		t.Fatalf("decode allowlist filter: %v", err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].ID != "claude-sonnet" {
+		t.Fatalf("allowlist = %#v", payload.Data)
+	}
+	untouched, untouchedChanged, err := svc.FilterModelDirectoryForKey(ctx, allowedBody, store.PluginKey{})
+	if err != nil || untouchedChanged || string(untouched) != string(allowedBody) {
+		t.Fatalf("empty allowlist changed public catalog: changed=%t body=%s err=%v", untouchedChanged, untouched, err)
 	}
 
 	hidden := svc.HiddenDirectoryModels(ctx, []string{"gpt-4o", "claude-sonnet", "other"})
 	if len(hidden) != 1 || hidden[0] != "gpt-4o" {
 		t.Fatalf("hidden = %#v", hidden)
+	}
+}
+
+func TestFilterModelDirectoryForKeyShapes(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	t.Setenv("CREDIT_MANAGER_TEST_PEPPERS", "active:0123456789abcdef0123456789abcdef")
+	cfg := config.Default()
+	cfg.DataDir = dir
+	cfg.Keys.PepperEnv = "CREDIT_MANAGER_TEST_PEPPERS"
+	cfg.Keys.ActivePepperID = "active"
+	svc, err := Open(ctx, cfg)
+	if err != nil {
+		t.Fatalf("open service: %v", err)
+	}
+	defer svc.Close()
+
+	gemini := []byte(`{"models":[{"name":"models/gemini-2.5-pro"},{"name":"models/gemini-2.5-flash"}]}`)
+	filtered, changed, err := svc.FilterModelDirectoryForKey(ctx, gemini, store.PluginKey{AllowedModels: []string{"models/gemini-2.5-pro"}})
+	if err != nil || !changed {
+		t.Fatalf("gemini filter = %s changed=%t err=%v", filtered, changed, err)
+	}
+	var geminiPayload struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.Unmarshal(filtered, &geminiPayload); err != nil {
+		t.Fatal(err)
+	}
+	if len(geminiPayload.Models) != 1 || geminiPayload.Models[0].Name != "models/gemini-2.5-pro" {
+		t.Fatalf("gemini catalog = %#v", geminiPayload.Models)
+	}
+
+	globBody := []byte(`{"object":"list","data":[{"id":"claude-sonnet"},{"id":"claude-opus"},{"id":"gpt-4o"}]}`)
+	filtered, changed, err = svc.FilterModelDirectoryForKey(ctx, globBody, store.PluginKey{AllowedModels: []string{"claude-*"}})
+	if err != nil || !changed {
+		t.Fatalf("glob filter = %s changed=%t err=%v", filtered, changed, err)
+	}
+	var payload struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(filtered, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 2 || payload.Data[0].ID != "claude-sonnet" || payload.Data[1].ID != "claude-opus" {
+		t.Fatalf("glob catalog = %#v", payload.Data)
+	}
+
+	unmatched := store.PluginKey{
+		UnmatchedModelsMode: store.UnmatchedModelsDisabled,
+		ModelTokenLimits:    []store.ModelTokenLimit{{Model: "gpt-4o"}},
+	}
+	filtered, changed, err = svc.FilterModelDirectoryForKey(ctx, globBody, unmatched)
+	if err != nil || !changed {
+		t.Fatalf("unmatched filter = %s changed=%t err=%v", filtered, changed, err)
+	}
+	if err := json.Unmarshal(filtered, &payload); err != nil {
+		t.Fatal(err)
+	}
+	if len(payload.Data) != 1 || payload.Data[0].ID != "gpt-4o" {
+		t.Fatalf("unmatched catalog = %#v", payload.Data)
 	}
 }
 

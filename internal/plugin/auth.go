@@ -24,10 +24,11 @@ func authenticate(raw []byte) ([]byte, error) {
 		return okEnvelope(pluginapi.FrontendAuthResponse{Authenticated: false})
 	}
 	// CLIProxyAPI's management center queries the read-only model directory
-	// without a client Key. Keep model execution exclusively Key-authenticated.
-	// Globally disabled models are stripped by the response interceptor; Key
-	// allowlists are enforced at reserve/execute time.
+	// without a client Key. Keep that anonymous. A verified Key does not change
+	// the auth result; the response interceptor trims the catalog to what that
+	// Key can call. Model execution stays exclusively Key-authenticated.
 	if publicModelDirectoryRequest(req.Method, req.Path) {
+		noteModelDirectoryAuth(req)
 		return okEnvelope(pluginapi.FrontendAuthResponse{
 			Authenticated: true,
 			Principal:     "credit-manager:model-directory",
@@ -173,7 +174,11 @@ func interceptModelDirectoryResponse(raw []byte) ([]byte, error) {
 	if err := json.Unmarshal(raw, &req); err != nil {
 		return nil, err
 	}
-	filtered, changed, err := svc.FilterModelDirectory(context.Background(), req.Body)
+	if !service.IsModelDirectoryBody(req.Body) {
+		return okEnvelope(pluginapi.ResponseInterceptResponse{})
+	}
+	key := modelDirectoryKey(context.Background(), req.RequestHeaders)
+	filtered, changed, err := svc.FilterModelDirectoryForKey(context.Background(), req.Body, key)
 	if err != nil {
 		return nil, err
 	}

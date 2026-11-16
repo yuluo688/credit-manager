@@ -9,6 +9,7 @@ import (
 )
 
 func configure(req lifecycleRequest) error {
+	resetDirectoryIntents()
 	if err := service.Configure(context.Background(), req.ConfigYAML); err != nil {
 		return err
 	}
