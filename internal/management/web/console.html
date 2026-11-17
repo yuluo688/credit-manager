@@ -99,10 +99,6 @@
       <span class="sk sk-tab" style="--w:118px"></span>
       <span class="sk sk-tab" style="--w:96px"></span>
     </div>
-    <div class="boot-skeleton-intro">
-      <span class="boot-skeleton-stack"><span class="sk sk-lg" style="--w:132px"></span><span class="sk" style="--w:min(320px, 70vw)"></span></span>
-      <span class="sk sk-pill" style="--w:92px"></span>
-    </div>
     <div class="boot-skeleton-card">
       <span class="boot-skeleton-stack"><span class="sk sk-lg" style="--w:128px"></span><span class="sk" style="--w:min(300px, 60vw)"></span></span>
       <div class="boot-skeleton-filters">
@@ -149,7 +145,7 @@
           <span>CNY</span>
         </span>
         <button class="btn ghost connection-trigger" id="btnOpenConnection"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg>连接设置</button>
-        <button class="btn primary" id="btnRefresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新数据</button>
+        <button class="btn primary" id="btnRefresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新</button>
       </div>
     </header>
 
@@ -161,22 +157,22 @@
     <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
       <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">勾选「记住密钥」后保存在本机浏览器，关闭标签后仍可自动填入。未勾选时只保留在当前标签。未勾选自定义 API 地址时只连接当前站点。</p></div>
+          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">不勾选「记住密钥」仅保留在当前标签页；不勾选「自定义 API 地址」仅连接当前站点。</p></div>
           <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="connection-form">
-            <label>CLIProxyAPI 根地址
-              <input id="apiBase" type="text" placeholder="例如 http://127.0.0.1:8317" autocomplete="off" readonly/>
+            <label>API 地址
+              <input id="apiBase" type="text" placeholder="http://127.0.0.1:8317" autocomplete="off" readonly/>
             </label>
             <label class="remember-row"><input id="customApiBase" type="checkbox"/>自定义 API 地址</label>
-            <label>宿主管理密钥（Bearer）
-              <input id="mgmtToken" type="password" placeholder="remote-management secret" autocomplete="off"/>
+            <label>管理密钥（Bearer）
+              <input id="mgmtToken" type="password" placeholder="Bearer" autocomplete="off"/>
             </label>
             <label class="remember-row"><input id="rememberToken" type="checkbox"/>记住密钥</label>
             <div class="modal-actions">
-              <button class="btn ghost" id="btnClearToken">清除本地信息</button>
-              <button class="btn primary" id="btnSaveToken">连接并加载</button>
+              <button class="btn ghost" id="btnClearToken">清除本地</button>
+              <button class="btn primary" id="btnSaveToken">连接</button>
             </div>
           </div>
         </div>
@@ -188,7 +184,7 @@
     <div class="modal-backdrop" id="keyModal" aria-hidden="true">
       <section class="connection-modal key-modal" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>添加密钥</h2><p class="hint" id="keyModalHint">设置额度和模型策略后创建凭据。</p></div>
+          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>添加密钥</h2><p class="hint" id="keyModalHint"></p></div>
           <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭密钥弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
@@ -196,7 +192,7 @@
           <input type="hidden" id="keyModalId"/>
           <div class="connection-form">
             <div class="modal-section">
-              <p class="modal-section-title">基础信息<span>标签与额度</span></p>
+              <p class="modal-section-title">基础信息</p>
               <div class="form-grid-2">
                 <label>标签
                   <input id="keyModalLabel" placeholder="team-a / bot"/>
@@ -208,9 +204,9 @@
                   </span>
                 </label>
                 <div id="keyModalPlanWrap" class="field-span-2 key-plan-block">
-                  <label class="key-plan-master">是否跟随账号重置
+                  <label class="key-plan-master">跟随账号重置
                     <span class="key-switch">
-                      <input id="keyModalPlanEnabled" type="checkbox" role="switch" aria-label="是否跟随账号重置"/>
+                      <input id="keyModalPlanEnabled" type="checkbox" role="switch" aria-label="跟随账号重置"/>
                       <span class="key-switch-ui" aria-hidden="true"></span>
                     </span>
                   </label>
@@ -219,15 +215,15 @@
                       <select id="keyModalPlanAuth"></select>
                     </label>
                     <div class="key-plan-options">
-                      <label id="keyModalPlanCycleWrap" class="key-plan-option">跟随账号重置时间
+                      <label id="keyModalPlanCycleWrap" class="key-plan-option">同步重置时间
                         <span class="key-switch">
-                          <input id="keyModalPlanCycle" type="checkbox" role="switch" checked aria-label="跟随账号重置时间"/>
+                          <input id="keyModalPlanCycle" type="checkbox" role="switch" checked aria-label="同步重置时间"/>
                           <span class="key-switch-ui" aria-hidden="true"></span>
                         </span>
                       </label>
-                      <label id="keyModalPlanAutoResetWrap" class="key-plan-option">跟随账号自动重置
+                      <label id="keyModalPlanAutoResetWrap" class="key-plan-option">自动清零已用
                         <span class="key-switch">
-                          <input id="keyModalPlanAutoReset" type="checkbox" role="switch" checked aria-label="跟随账号自动重置"/>
+                          <input id="keyModalPlanAutoReset" type="checkbox" role="switch" checked aria-label="自动清零已用"/>
                           <span class="key-switch-ui" aria-hidden="true"></span>
                         </span>
                       </label>
@@ -251,19 +247,19 @@
                   <input id="keyModalExpiresAt" type="datetime-local"/>
                 </label>
                 <label>日额度（USD）
-                  <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                  <input id="keyModalDailyQuotaUSD" type="number" step="0.01" min="0" placeholder="不限"/>
                 </label>
                 <label>周额度（USD）
-                  <input id="keyModalWeeklyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                  <input id="keyModalWeeklyQuotaUSD" type="number" step="0.01" min="0" placeholder="不限"/>
                 </label>
                 <label>月额度（USD）
-                  <input id="keyModalMonthlyQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                  <input id="keyModalMonthlyQuotaUSD" type="number" step="0.01" min="0" placeholder="不限"/>
                 </label>
                 <label>总额度（USD）
-                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="0 或留空 = 不限制"/>
+                  <input id="keyModalQuotaUSD" type="number" step="0.01" min="0" placeholder="不限"/>
                 </label>
-                <label>最大并发请求数
-                  <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="0 或留空 = 不限制"/>
+                <label>并发上限
+                  <input id="keyModalMaxConcurrent" type="number" step="1" min="0" placeholder="不限"/>
                 </label>
                 <label id="keyModalTokenLimitsEnabledWrap" class="key-switch-field">模型 Token 限制
                   <span class="key-switch">
@@ -272,19 +268,18 @@
                   </span>
                 </label>
                   <div class="field-span-2 model-access-field">
-                    <label for="keyModalModels">可用模型（默认全部；选择后仅限所选）</label>
+                    <label for="keyModalModels">可用模型</label>
                     <select id="keyModalModels" multiple size="8" aria-describedby="keyModalModelsHint"></select>
-                    <span class="hint" id="keyModalModelsHint">正在加载当前代理可用模型…</span>
-                    <span class="model-access-actions"><button type="button" class="btn ghost sm" id="btnKeyModalAllowAllModels">恢复默认：全部模型</button></span>
+                    <span class="hint" id="keyModalModelsHint"></span>
+                    <span class="model-access-actions"><button type="button" class="btn ghost sm" id="btnKeyModalAllowAllModels">全部模型</button></span>
                   </div>
                 </div>
               </div>
             <div class="modal-section" id="keyModalTokenLimitsSection">
-              <p class="modal-section-title">模型 Token 限制<span>为指定模型设置总/日/周/月上限</span></p>
+              <p class="modal-section-title">模型 Token 限制</p>
               <div class="token-limit-fallback" id="keyModalUnmatched" data-unmatched="available">
                 <div class="token-limit-fallback-copy">
                   <strong>未列入限制的模型</strong>
-                  <span id="keyModalUnmatchedHint">不在下方列表的模型允许调用，且不限制 Token。</span>
                 </div>
                 <div class="token-limit-mode" role="group" aria-label="未列入限制的模型">
                   <button type="button" data-unmatched-set="available" class="active">允许调用</button>
@@ -293,24 +288,23 @@
               </div>
               <div class="token-limit-add">
                 <span class="key-search-control token-limit-picker" id="keyModalTokenLimitSearch">
-                  <input id="keyModalTokenLimitModel" autocomplete="off" spellcheck="false" placeholder="搜索或输入模型 ID / glob" aria-autocomplete="list" aria-controls="keyModalTokenLimitOptions"/>
+                  <input id="keyModalTokenLimitModel" autocomplete="off" spellcheck="false" placeholder="模型 ID 或 glob" aria-autocomplete="list" aria-controls="keyModalTokenLimitOptions"/>
                   <span class="custom-control-panel key-search-panel token-limit-panel" id="keyModalTokenLimitOptions" hidden></span>
                 </span>
-                <button type="button" class="btn soft" id="btnAddKeyTokenLimit">添加模型</button>
+                <button type="button" class="btn soft" id="btnAddKeyTokenLimit">添加</button>
               </div>
-              <p class="hint" id="keyModalTokenLimitsHint">填写数字才启用对应周期的 Token 上限；留空即不限制。</p>
               <div id="keyModalTokenLimits" class="token-limit-list"></div>
             </div>
             <div class="modal-section" id="keyModalCredentialSection">
-              <p class="modal-section-title">凭据设置<span>生成方式</span></p>
+              <p class="modal-section-title">凭据</p>
               <div class="form-grid-2">
-                <label id="keyMaterialWrap" class="field-span-2">自定义密钥
+                <label id="keyMaterialWrap" class="field-span-2">密钥
                   <span class="key-material-field">
                     <span class="key-material-prefix">tk-</span>
-                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="输入密钥后缀" spellcheck="false"/>
+                    <input id="keyMaterial" type="text" autocomplete="off" placeholder="留空自动生成" spellcheck="false"/>
                     <button class="btn soft" id="btnGenerateKeyMaterial" type="button">生成</button>
                   </span>
-                  <span class="hint">固定前缀无需输入；后缀格式为 &lt;kid&gt;-&lt;secret&gt;。</span>
+                  <span class="hint">后缀格式：&lt;kid&gt;-&lt;secret&gt;</span>
                 </label>
               </div>
             </div>
@@ -320,13 +314,12 @@
               <button class="btn ghost" id="btnResetManagedKeySpend" type="button">重置额度</button>
             </div>
             <div id="keyPlainResult" class="hidden">
-              <p class="hint">密钥明文已加密保存，可在已有密钥中再次查看。</p>
               <pre class="plain" id="keyPlaintext"></pre>
               <div class="actions" style="margin-top:10px"><button class="btn ghost" id="btnCopyKeyPlaintext">复制密钥</button></div>
             </div>
             <div class="modal-actions">
               <button class="btn ghost" id="btnCancelKeyModal">取消</button>
-              <button class="btn primary" id="btnSubmitKeyModal">创建密钥</button>
+              <button class="btn primary" id="btnSubmitKeyModal">创建</button>
             </div>
           </div>
         </div>
@@ -336,7 +329,7 @@
     <div class="modal-backdrop" id="priceModal" aria-hidden="true">
       <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint" id="modelPriceStatus">价格来源：models.dev</p></div>
+          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint" id="modelPriceStatus"></p></div>
           <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
         </div>
         <div class="modal-body">
@@ -348,8 +341,8 @@
                 <label>规则 ID
                   <input id="priceId" placeholder="gpt-4o"/>
                 </label>
-                <label>回填价格
-                  <select id="priceModelPicker"><option value="">选择当前模型</option></select>
+                <label>参考模型
+                  <select id="priceModelPicker"><option value="">选择模型</option></select>
                 </label>
                 <label>匹配
                   <select id="priceKind">
@@ -358,11 +351,11 @@
                     <option value="regexp">regexp</option>
                   </select>
                 </label>
-                <label>priority
+                <label>优先级
                   <input id="pricePriority" type="number" value="100"/>
                 </label>
-                <label>pattern
-                  <input id="pricePattern" placeholder="gpt-4o 或 * 或 .*"/>
+                <label>匹配模式
+                  <input id="pricePattern" placeholder="gpt-4o 或 *"/>
                 </label>
                 <label id="priceEnabledWrap" class="key-switch-field">启用
                   <span class="key-switch">
@@ -390,10 +383,10 @@
                 </label>
               </div>
               <div id="priceTokenFields" class="price-rate-grid">
-                <label>input
+                <label>输入
                   <input id="priceIn" type="number" step="0.000001" value="0"/>
                 </label>
-                <label>output
+                <label>输出
                   <input id="priceOut" type="number" step="0.000001" value="0"/>
                 </label>
                 <label>缓存读
@@ -411,7 +404,7 @@
             </div>
             <div class="price-block" id="priceTierSection">
               <p class="modal-section-title price-tier-title">
-                <span>特殊档位<span>空白即用默认价</span></span>
+                <span>特殊档位</span>
                 <button class="btn ghost sm" id="btnAddContextTier" type="button">添加上下文档位</button>
               </p>
               <div id="priceContextTiers" class="price-tier-list"></div>
@@ -433,36 +426,31 @@
       <div class="tabs" id="tabs">
         <button class="tab active" data-tab="overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.6 11.8a5.8 5.8 0 1 1 10.8 0"/><path d="M8 9.4 10.7 6.7"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M2.6 13.8h10.8"/></svg>概览</button>
         <button class="tab" data-tab="keys"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg>密钥管理</button>
-        <button class="tab" data-tab="pricing"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg>模型与价格</button>
+        <button class="tab" data-tab="pricing"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg>模型价格</button>
         <button class="tab" data-tab="usage"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11"/><path d="M4.2 13.2V8.4M7.6 13.2V4.2M11 13.2V6.4"/></svg>使用统计</button>
         <button class="tab" data-tab="auth-quotas"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg>认证额度</button>
       </div>
 
   <section id="tab-overview" class="tabpane">
-    <div class="page-intro">
-      <div><h2>额度概览</h2><p>按时间、密钥、账号、模型和来源聚合账本数据。</p></div>
-      <span class="badge ok">账本运行中</span>
-    </div>
     <div class="card filter-card overview-filter-card">
       <div class="filter-heading">
         <div>
-          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>概览筛选</h2>
-          <p class="hint">筛选仅影响概览指标和图表；「今日」按本地自然日。</p>
+          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>筛选</h2>
         </div>
-        <span class="overview-filter-state" id="overviewFilterState">今日 · 全部数据</span>
+        <span class="overview-filter-state" id="overviewFilterState">今日</span>
       </div>
       <div class="overview-filter-grid">
         <label>时间范围
           <select id="overviewRangeFilter">
             <option value="today" selected>今日</option>
-            <option value="7">最近 7 天</option>
-            <option value="30">最近 30 天</option>
-            <option value="90">最近 90 天</option>
-            <option value="all">全部时间</option>
-            <option value="custom">自定义范围</option>
+            <option value="7">近 7 天</option>
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部</option>
+            <option value="custom">自定义</option>
           </select>
         </label>
-        <label id="overviewDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+        <label id="overviewDateRangeField" class="overview-date-range-field hidden">时间（UTC）
           <span class="overview-date-range">
             <input id="overviewFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
             <span aria-hidden="true">至</span>
@@ -471,22 +459,22 @@
         </label>
         <label>密钥
           <span class="key-search-control" id="overviewKeySearch">
-            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索密钥标签或 ID"/>
+            <input id="overviewKeyFilter" autocomplete="off" placeholder="搜索标签或 ID"/>
             <span class="custom-control-panel key-search-panel" id="overviewKeyOptions" hidden></span>
           </span>
         </label>
         <label>账号
           <span class="key-search-control" id="overviewAuthSearch">
-            <input id="overviewAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <input id="overviewAuthFilter" autocomplete="off" placeholder="搜索账号或 ID"/>
             <span class="custom-control-panel key-search-panel" id="overviewAuthOptions" hidden></span>
           </span>
         </label>
         <label>模型
-          <select id="overviewModelFilter"><option value="">全部已使用模型</option></select>
+          <select id="overviewModelFilter"><option value="">全部模型</option></select>
         </label>
         <label>来源
           <select id="overviewSourceFilter">
-            <option value="">全部来源</option>
+            <option value="">全部</option>
             <option value="openai">openai</option>
             <option value="claude">claude</option>
             <option value="gemini">gemini</option>
@@ -497,7 +485,7 @@
       </div>
       <div class="actions overview-actions">
         <button class="btn ghost" id="btnResetOverview">重置</button>
-        <button class="btn primary" id="btnLoadOverview">刷新概览</button>
+        <button class="btn primary" id="btnLoadOverview">刷新</button>
       </div>
     </div>
     <div class="grid stats" id="overviewStats"></div>
@@ -505,7 +493,7 @@
       <div class="overview-trends-column">
         <div class="card overview-trend-card">
           <div class="section-heading">
-            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.3h11.2"/><path d="M5 13.2V8.2M8 13.2V4.4M11 13.2V6.6" stroke-width="2.1"/></svg></span>Token 趋势</h2><p class="hint" id="overviewTrendHint">输入 / 输出 / 缓存读取 / 缓存命中率</p></div>
+            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.3h11.2"/><path d="M5 13.2V8.2M8 13.2V4.4M11 13.2V6.6" stroke-width="2.1"/></svg></span>Token 趋势</h2><p class="hint" id="overviewTrendHint"></p></div>
             <div class="unit-switch trend-grain-switch" data-trend-chart="token" role="group" aria-label="Token 趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
@@ -517,7 +505,7 @@
         </div>
         <div class="card overview-trend-card">
           <div class="section-heading">
-            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v6M6.2 6.3h3.6M6.2 9.7h3.6"/></svg></span>费用趋势</h2><p class="hint" id="overviewCostTrendHint">按日汇总实际费用</p></div>
+            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v6M6.2 6.3h3.6M6.2 9.7h3.6"/></svg></span>费用趋势</h2><p class="hint" id="overviewCostTrendHint"></p></div>
             <div class="unit-switch trend-grain-switch" data-trend-chart="cost" role="group" aria-label="费用趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
@@ -530,10 +518,10 @@
       </div>
       <div class="card overview-share-card">
         <div class="section-heading">
-          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"/><path fill="currentColor" stroke="none" d="M8 8V2.4A5.6 5.6 0 0 1 13.4 10.4Z"/></svg></span>模型调用占比</h2><p class="hint">点击区块或模型名称下钻</p></div>
+          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"/><path fill="currentColor" stroke="none" d="M8 8V2.4A5.6 5.6 0 0 1 13.4 10.4Z"/></svg></span>模型占比</h2></div>
           <div class="overview-model-tools">
             <div class="unit-switch" id="modelShareMetricSwitch" role="group" aria-label="模型占比指标">
-              <button type="button" data-model-metric="requests" class="active">调用次数</button>
+              <button type="button" data-model-metric="requests" class="active">次数</button>
               <button type="button" data-model-metric="tokens">Token</button>
               <button type="button" data-model-metric="cost">费用</button>
             </div>
@@ -547,11 +535,11 @@
       </div>
       <div class="card overview-rank-card">
         <div class="section-heading">
-          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 2.5h5.6v3.5a2.8 2.8 0 0 1-5.6 0z"/><path d="M5.2 3.6H3.3a1.9 1.9 0 0 0 1.9 3M10.8 3.6h1.9a1.9 1.9 0 0 1-1.9 3M8 8.8v2.3M5.5 13.4h5"/></svg></span>模型效率排行</h2><p class="hint" id="overviewRankHint">按每美元产出 Token 排序，越高越省</p></div>
+          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 2.5h5.6v3.5a2.8 2.8 0 0 1-5.6 0z"/><path d="M5.2 3.6H3.3a1.9 1.9 0 0 0 1.9 3M10.8 3.6h1.9a1.9 1.9 0 0 1-1.9 3M8 8.8v2.3M5.5 13.4h5"/></svg></span>模型效率排行</h2></div>
           <div class="overview-model-tools">
             <div class="unit-switch" id="modelRankMetricSwitch" role="group" aria-label="模型效率指标">
               <button type="button" data-rank-metric="value" class="active">性价比</button>
-              <button type="button" data-rank-metric="unit">单次</button>
+              <button type="button" data-rank-metric="unit">每次</button>
               <button type="button" data-rank-metric="cache">缓存</button>
               <button type="button" data-rank-metric="tps">吞吐</button>
             </div>
@@ -564,30 +552,27 @@
   </section>
 
   <section id="tab-keys" class="tabpane hidden">
-    <div class="page-intro">
-      <div><h2>密钥管理</h2><p>按密钥设置额度、启停状态、可用模型和 Token 数量限制。</p></div>
-      <div class="actions">
-        <span class="badge ok">额度隔离</span>
-        <button class="btn ghost" id="btnResetSelectedKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg><span id="selectedKeyResetLabel">重置已选额度</span></button>
-        <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部额度</button>
-        <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
-      </div>
-    </div>
     <div class="card keys-card">
-      <div class="section-heading list-header keys-list-header"><div class="list-heading"><div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>已有密钥</h2><span class="list-count" id="keysCount">额度与状态一览</span></div></div><div class="list-search"><input id="keyNameFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索标签" aria-label="搜索密钥标签"/><button class="list-search-clear" type="button" data-clear-search="keyNameFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div></div>
+      <div class="section-heading list-header keys-list-header">
+        <div class="list-heading">
+          <div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>密钥</h2><span class="list-count" id="keysCount"></span></div>
+        </div>
+        <div class="keys-list-tools">
+          <div class="list-search"><input id="keyNameFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索标签" aria-label="搜索密钥标签"/><button class="list-search-clear" type="button" data-clear-search="keyNameFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div>
+          <button class="btn ghost" id="btnResetSelectedKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg><span id="selectedKeyResetLabel">重置已选额度</span></button>
+          <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部额度</button>
+          <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
+        </div>
+      </div>
       <div id="keysTable"></div>
       <div class="usage-pagination table-pagination" id="keyPagination"></div>
     </div>
   </section>
 
   <section id="tab-pricing" class="tabpane hidden">
-    <div class="page-intro">
-      <div><h2>模型与价格</h2><p>文本模型按百万 Token 计价；纯出图模型按张计费，不能套用 Token 价。</p></div>
-      <span class="badge">定价规则</span>
-    </div>
     <div class="pricing-layout">
     <div class="card list-card">
-      <div class="section-heading list-header pricing-list-header"><div class="list-heading"><div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>当前代理模型</h2><span class="list-count" id="modelCatalogCount">未加载</span></div><p class="hint" id="modelCatalogStatus">加载当前代理公开的模型后，可设置价格，或启用/禁用单个模型。禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="pricing-list-tools"><div class="list-search"><input id="pricingModelFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索模型 ID" aria-label="搜索模型 ID"/><button class="list-search-clear" type="button" data-clear-search="pricingModelFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div><button class="btn primary" id="btnLoadModelCatalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="8" cy="3.6" rx="5.4" ry="1.9"/><path d="M2.6 3.6v8.8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9V3.6M2.6 8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9"/></svg>加载全部模型</button></div></div>
+      <div class="section-heading list-header pricing-list-header"><div class="list-heading"><div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>模型列表</h2><span class="list-count" id="modelCatalogCount"></span></div><p class="hint" id="modelCatalogStatus">禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="pricing-list-tools"><div class="list-search"><input id="pricingModelFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索模型 ID" aria-label="搜索模型 ID"/><button class="list-search-clear" type="button" data-clear-search="pricingModelFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div><button class="btn primary" id="btnLoadModelCatalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="8" cy="3.6" rx="5.4" ry="1.9"/><path d="M2.6 3.6v8.8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9V3.6M2.6 8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9"/></svg>加载模型</button></div></div>
       <div id="pricingTable"></div>
       <div class="usage-pagination table-pagination" id="pricingPagination"></div>
     </div>
@@ -595,30 +580,25 @@
   </section>
 
   <section id="tab-usage" class="tabpane hidden">
-    <div class="page-intro">
-      <div><h2>使用统计</h2><p>从请求、Token 到费用的可筛选账本视图。</p></div>
-      <span class="badge ok">实时汇总</span>
-    </div>
     <div class="card filter-card">
       <div class="filter-heading">
         <div>
-          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>统计筛选</h2>
-          <p class="hint">汇总和明细共用以下条件。「今日」按本地自然日，金额单位为 USD。</p>
+          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>筛选</h2>
         </div>
-        <span class="filter-state" id="usageFilterState">未设置筛选</span>
+        <span class="filter-state" id="usageFilterState">今日</span>
       </div>
       <div class="filter-grid">
         <label>时间范围
           <select id="usageRangeFilter">
             <option value="today" selected>今日</option>
-            <option value="7">最近 7 天</option>
-            <option value="30">最近 30 天</option>
-            <option value="90">最近 90 天</option>
-            <option value="all">全部时间</option>
-            <option value="custom">自定义范围</option>
+            <option value="7">近 7 天</option>
+            <option value="30">近 30 天</option>
+            <option value="90">近 90 天</option>
+            <option value="all">全部</option>
+            <option value="custom">自定义</option>
           </select>
         </label>
-        <label id="usageDateRangeField" class="overview-date-range-field hidden">时间范围（UTC）
+        <label id="usageDateRangeField" class="overview-date-range-field hidden">时间（UTC）
           <span class="overview-date-range">
             <input id="usageFromFilter" type="datetime-local" aria-label="开始时间" disabled/>
             <span aria-hidden="true">至</span>
@@ -627,22 +607,22 @@
         </label>
         <label>密钥
           <span class="key-search-control" id="usageKeySearch">
-            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索密钥标签或 ID"/>
+            <input id="usageKeyFilter" autocomplete="off" placeholder="搜索标签或 ID"/>
             <span class="custom-control-panel key-search-panel" id="usageKeyOptions" hidden></span>
           </span>
         </label>
         <label>账号
           <span class="key-search-control" id="usageAuthSearch">
-            <input id="usageAuthFilter" autocomplete="off" placeholder="搜索账号名称或 ID"/>
+            <input id="usageAuthFilter" autocomplete="off" placeholder="搜索账号或 ID"/>
             <span class="custom-control-panel key-search-panel" id="usageAuthOptions" hidden></span>
           </span>
         </label>
         <label>模型
-          <select id="usageModelFilter"><option value="">全部已使用模型</option></select>
+          <select id="usageModelFilter"><option value="">全部模型</option></select>
         </label>
         <label>来源
           <select id="usageSourceFilter">
-            <option value="">全部来源</option>
+            <option value="">全部</option>
             <option value="openai">openai</option>
             <option value="claude">claude</option>
             <option value="gemini">gemini</option>
@@ -651,35 +631,35 @@
           </select>
         </label>
         <label>最低费用（USD）
-          <input id="usageMinCost" type="number" min="0" step="0.000001" placeholder="例如 0.01"/>
+          <input id="usageMinCost" type="number" min="0" step="0.000001" placeholder="0.01"/>
         </label>
         <label>最高费用（USD）
-          <input id="usageMaxCost" type="number" min="0" step="0.000001" placeholder="不限制"/>
+          <input id="usageMaxCost" type="number" min="0" step="0.000001" placeholder="不限"/>
         </label>
         <label>最低 Token 数
-          <input id="usageMinTokens" type="number" min="0" step="1" placeholder="不限制"/>
+          <input id="usageMinTokens" type="number" min="0" step="1" placeholder="不限"/>
         </label>
         <label>最高 Token 数
-          <input id="usageMaxTokens" type="number" min="0" step="1" placeholder="不限制"/>
+          <input id="usageMaxTokens" type="number" min="0" step="1" placeholder="不限"/>
         </label>
       </div>
       <div class="actions filter-actions">
-        <button class="btn primary" id="btnLoadUsage">应用筛选</button>
-        <button class="btn ghost" id="btnClearUsageFilters">清除筛选</button>
+        <button class="btn primary" id="btnLoadUsage">查询</button>
+        <button class="btn ghost" id="btnClearUsageFilters">重置</button>
       </div>
     </div>
     <div class="grid stats" id="usageStats"></div>
     <div class="usage-grid">
     <div class="card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>按密钥汇总</h2><span class="muted" id="usageByKeyCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>按密钥</h2><span class="muted" id="usageByKeyCount"></span></div>
       <div id="usageByKey"></div>
     </div>
     <div class="card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>按模型汇总</h2><span class="muted" id="usageByModelCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>按模型</h2><span class="muted" id="usageByModelCount"></span></div>
       <div id="usageByModel"></div>
     </div>
     <div class="card usage-recent-card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 4h8M5.4 8h8M5.4 12h8"/><circle cx="2.7" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></span>最近明细</h2><span class="muted" id="usageRecentCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 4h8M5.4 8h8M5.4 12h8"/><circle cx="2.7" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></span>明细</h2><span class="muted" id="usageRecentCount"></span></div>
       <div id="usageRecent"></div>
       <div class="usage-pagination" id="usagePagination"></div>
     </div>
@@ -687,31 +667,28 @@
   </section>
 
   <section id="tab-auth-quotas" class="tabpane hidden">
-    <div class="page-intro">
-      <div><h2>认证额度</h2><p>各认证的额度窗口与并发；默认读缓存，刷新才请求上游。</p></div>
-      <div class="auth-quota-toolbar">
-        <div class="auth-quota-toolbar-filters">
-          <label class="auth-quota-filter">
-            <span>平台</span>
-            <select id="authQuotaProviderFilter"><option value="">全部平台</option></select>
-          </label>
-          <label class="auth-quota-filter">
-            <span>名称</span>
-            <input id="authQuotaNameFilter" autocomplete="off" placeholder="搜索账号或名称"/>
-          </label>
-        </div>
-        <div class="auth-quota-batch">
-          <label class="auth-quota-filter">
-            <span>批量并发</span>
-            <input id="authQuotaBatchConcurrency" type="number" min="0" step="1" inputmode="numeric" placeholder="不限制" title="最大并发请求数，0 或不填为不限制"/>
-          </label>
-          <button type="button" class="btn" id="btnAuthQuotaBatchPage" title="应用本页" aria-label="应用本页"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><path d="m5.6 8.2 1.7 1.7 3.1-3.5"/></svg>应用本页</button>
-          <button type="button" class="btn ghost" id="btnAuthQuotaBatchFilter" title="应用筛选" aria-label="应用筛选"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg>应用筛选</button>
-        </div>
-        <button type="button" class="btn ghost" id="btnAuthRoutingSettings" title="选号策略与会话粘性"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg>路由策略</button>
-        <button type="button" class="btn ghost" id="btnAuthWarmupSettings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.3 1.8-4.6 6h3.45l-1.1 6.4 4.2-6H7.9l1.4-6.4Z"/></svg>预热设置</button>
-        <button type="button" class="btn" id="btnRefreshAuthQuotaPage" title="向本页各认证同步上游额度（会请求上游）"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新本页</button>
+    <div class="auth-quota-toolbar">
+      <div class="auth-quota-toolbar-filters">
+        <label class="auth-quota-filter">
+          <span>平台</span>
+          <select id="authQuotaProviderFilter"><option value="">全部</option></select>
+        </label>
+        <label class="auth-quota-filter">
+          <span>名称</span>
+          <input id="authQuotaNameFilter" autocomplete="off" placeholder="搜索账号"/>
+        </label>
       </div>
+      <div class="auth-quota-batch">
+        <label class="auth-quota-filter">
+          <span>批量并发</span>
+          <input id="authQuotaBatchConcurrency" type="number" min="0" step="1" inputmode="numeric" placeholder="不限" title="最大并发，0 或留空为不限"/>
+        </label>
+        <button type="button" class="btn" id="btnAuthQuotaBatchPage" title="应用本页" aria-label="应用本页"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><path d="m5.6 8.2 1.7 1.7 3.1-3.5"/></svg>应用本页</button>
+        <button type="button" class="btn ghost" id="btnAuthQuotaBatchFilter" title="应用筛选" aria-label="应用筛选"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg>应用筛选</button>
+      </div>
+      <button type="button" class="btn ghost" id="btnAuthRoutingSettings" title="选号策略与会话粘性"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg>路由策略</button>
+      <button type="button" class="btn ghost" id="btnAuthWarmupSettings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.3 1.8-4.6 6h3.45l-1.1 6.4 4.2-6H7.9l1.4-6.4Z"/></svg>预热设置</button>
+      <button type="button" class="btn" id="btnRefreshAuthQuotaPage" title="请求上游刷新本页额度"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新本页</button>
     </div>
     <div id="authQuotaList" class="auth-quota-list"></div>
     <div class="usage-pagination" id="authQuotaPagination"></div>
@@ -720,7 +697,7 @@
   <div class="modal-backdrop" id="resetSpendModal" aria-hidden="true">
     <section class="connection-modal reset-spend-modal" role="dialog" aria-modal="true" aria-labelledby="resetSpendModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">范围按日、周、月、总递进；选择后面的周期会自动包含前面的周期。</p></div>
+        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">选择长周期会自动包含更短周期。</p></div>
         <button class="modal-close" id="btnCloseResetSpendModal" aria-label="关闭重置确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body reset-spend-body">
@@ -729,29 +706,29 @@
           <strong id="resetSpendTarget"></strong>
         </div>
         <fieldset class="reset-spend-scopes" aria-describedby="resetSpendNote resetSpendUtcNote">
-          <legend>选择要重置的最长周期</legend>
+          <legend>重置范围</legend>
           <label class="reset-spend-scope">
             <input id="resetSpendDaily" data-reset-period="daily" type="checkbox" checked/>
-            <span class="reset-spend-scope-card"><span><strong>日额度</strong><small>当日费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+            <span class="reset-spend-scope-card"><span><strong>日额度</strong></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
           </label>
           <label class="reset-spend-scope">
             <input id="resetSpendWeekly" data-reset-period="weekly" type="checkbox" checked/>
-            <span class="reset-spend-scope-card"><span><strong>周额度</strong><small>本周费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+            <span class="reset-spend-scope-card"><span><strong>周额度</strong></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
           </label>
           <label class="reset-spend-scope">
             <input id="resetSpendMonthly" data-reset-period="monthly" type="checkbox" checked/>
-            <span class="reset-spend-scope-card"><span><strong>月额度</strong><small>本月费用与 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+            <span class="reset-spend-scope-card"><span><strong>月额度</strong></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
           </label>
           <label class="reset-spend-scope">
             <input id="resetSpendTotal" data-reset-period="total" type="checkbox" checked/>
-            <span class="reset-spend-scope-card"><span><strong>总额度</strong><small>总费用与总 Token 已用从当前重新计量</small></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
+            <span class="reset-spend-scope-card"><span><strong>总额度</strong></span><span class="reset-spend-scope-mark" aria-hidden="true"></span></span>
           </label>
         </fieldset>
         <div class="reset-spend-note" id="resetSpendNote">
           <span class="reset-spend-note-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.7"/><path d="M8 7.2v3.4"/><circle cx="8" cy="5.1" r=".75" fill="currentColor" stroke="none"/></svg></span>
-          <p><strong>额度和模型 Token 上限不会变化</strong><span>只会重置所选周期的已用金额与 Token 计数；历史账本保留。</span></p>
+          <p>仅重置所选周期的已用统计，历史账本与上限配置保留。</p>
         </div>
-        <p class="reset-spend-utc-note" id="resetSpendUtcNote">日、周、月将在下一个 UTC 日历边界恢复自然周期。</p>
+        <p class="reset-spend-utc-note" id="resetSpendUtcNote">日、周、月将在下一个 UTC 边界恢复自然周期。</p>
       </div>
       <div class="modal-footer reset-spend-footer">
         <div class="modal-actions">
@@ -765,7 +742,7 @@
   <div class="modal-backdrop" id="authQuotaBatchModal" aria-hidden="true">
     <section class="connection-modal auth-quota-batch-modal" role="dialog" aria-modal="true" aria-labelledby="authQuotaBatchModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authQuotaBatchModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg></span>确认批量并发</h2><p class="hint">此操作会覆盖目标认证的最大并发设置。</p></div>
+        <div><h2 class="panel-title" id="authQuotaBatchModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg></span>确认批量并发</h2></div>
         <button class="modal-close" id="btnCloseAuthQuotaBatchModal" aria-label="关闭批量并发确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body auth-quota-batch-body">
@@ -775,7 +752,7 @@
         </div>
         <div class="auth-quota-batch-confirm-note">
           <span class="auth-quota-batch-confirm-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.7"/><path d="M8 7.2v3.4"/><circle cx="8" cy="5.1" r=".75" fill="currentColor" stroke="none"/></svg></span>
-          <p><strong>将覆盖现有设置</strong><span>确认后立即更新目标认证；0 或留空表示不限制。</span></p>
+          <p>确认后立即覆盖目标认证；0 或留空为不限。</p>
         </div>
       </div>
       <div class="modal-footer auth-quota-batch-footer">
@@ -791,7 +768,7 @@
   <div class="modal-backdrop" id="authRoutingModal" aria-hidden="true">
     <section class="connection-modal auth-routing-modal" role="dialog" aria-modal="true" aria-labelledby="authRoutingModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authRoutingModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg></span>路由策略</h2><p class="hint">插件选号方式与会话粘性；跳过已满与预热中的认证。</p></div>
+        <div><h2 class="panel-title" id="authRoutingModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg></span>路由策略</h2><p class="hint">跳过已满与预热中的认证。</p></div>
         <button class="modal-close" id="btnCloseAuthRoutingModal" aria-label="关闭路由策略"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body auth-routing-body">
@@ -799,7 +776,6 @@
           <div class="auth-routing-row" role="listitem">
             <div class="auth-routing-copy">
               <strong>路由策略</strong>
-              <span>选择认证选号策略</span>
             </div>
             <select id="authQuotaRoutingStrategy" class="auth-routing-control" aria-label="路由策略">
               <option value="round-robin">轮询</option>
@@ -810,7 +786,7 @@
           <div class="auth-routing-row" role="listitem">
             <div class="auth-routing-copy">
               <strong>会话粘性</strong>
-              <span>同一会话优先复用同一认证，提高缓存命中；不可用时改选</span>
+              <span>同会话优先复用同一认证，不可用时自动切换</span>
             </div>
             <label class="key-switch auth-routing-switch" title="会话粘性">
               <input id="authQuotaSessionAffinity" type="checkbox" role="switch" aria-label="会话粘性"/>
@@ -820,9 +796,9 @@
           <div class="auth-routing-row" role="listitem">
             <div class="auth-routing-copy">
               <strong>粘性空闲</strong>
-              <span>空闲超过此时长（秒）后解除会话绑定，默认 3600</span>
+              <span>空闲超时（秒），默认 3600</span>
             </div>
-            <input id="authQuotaSessionAffinityTTL" class="auth-routing-control auth-routing-ttl-input" type="number" min="60" step="60" value="3600" inputmode="numeric" aria-label="粘性空闲" title="空闲超过此时长后解除会话绑定，默认 3600"/>
+            <input id="authQuotaSessionAffinityTTL" class="auth-routing-control auth-routing-ttl-input" type="number" min="60" step="60" value="3600" inputmode="numeric" aria-label="粘性空闲" title="空闲超时（秒），默认 3600"/>
           </div>
         </div>
       </div>
@@ -838,22 +814,22 @@
   <div class="modal-backdrop" id="authWarmupSettingsModal" aria-hidden="true">
     <section class="connection-modal auth-warmup-settings-modal" role="dialog" aria-modal="true" aria-labelledby="authWarmupSettingsTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authWarmupSettingsTitle">额度窗口预热</h2><p class="hint">对启用的平台认证发送最小真实请求，提前启动其滚动额度周期。仅在确认该平台窗口行为后启用。</p></div>
+        <div><h2 class="panel-title" id="authWarmupSettingsTitle">预热设置</h2><p class="hint">定时发送最小请求以提前触发滚动额度周期。</p></div>
         <button class="modal-close" id="btnCloseAuthWarmupSettings" aria-label="关闭预热设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body auth-warmup-settings-form">
-        <div class="auth-warmup-intro"><div><strong>定时任务</strong><p>每条任务独立选择每天、每周或单次、认证文件、模型与运行时间。单次任务执行后会自动停用。</p></div><button type="button" class="btn primary sm" id="btnAddAuthWarmupSchedule">添加任务</button></div>
+        <div class="auth-warmup-intro"><div><strong>定时任务</strong><p>单次任务执行后自动停用。</p></div><button type="button" class="btn primary sm" id="btnAddAuthWarmupSchedule">添加任务</button></div>
         <div id="authWarmupScheduleList" class="auth-warmup-schedule-list"></div>
-        <details class="auth-warmup-advanced"><summary>执行保护 <span>并行与稳定抖动</span></summary><div class="form-grid auth-warmup-advanced-grid"><label><span>每个认证最大并行</span><input id="authWarmupMaxParallel" type="number" min="1" max="16" value="10" title="同一认证文件同时进行的预热数。不同认证互不影响。"/></label><label><span>稳定抖动（秒）</span><input id="authWarmupJitter" type="number" min="0" max="900" value="30" title="在预热时刻之后最多推迟这么多秒，避免整点撞车。不同认证仍按各自哈希错开。"/></label></div></details>
+        <details class="auth-warmup-advanced"><summary>并发与抖动</summary><div class="form-grid auth-warmup-advanced-grid"><label><span>单认证最大并发</span><input id="authWarmupMaxParallel" type="number" min="1" max="16" value="10" title="同一认证文件同时进行的预热数，不同认证互不影响"/></label><label><span>随机延迟（秒）</span><input id="authWarmupJitter" type="number" min="0" max="900" value="30" title="在预热时刻之后最多推迟的秒数，避免整点同时请求"/></label></div></details>
       </div>
-      <div class="modal-footer auth-warmup-settings-footer"><div class="modal-actions"><button class="btn ghost" id="btnCancelAuthWarmupSettings">取消</button><button class="btn primary" id="btnSaveAuthWarmupSettings">保存设置</button></div></div>
+      <div class="modal-footer auth-warmup-settings-footer"><div class="modal-actions"><button class="btn ghost" id="btnCancelAuthWarmupSettings">取消</button><button class="btn primary" id="btnSaveAuthWarmupSettings">保存</button></div></div>
     </section>
   </div>
 
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
     <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg></span>删除密钥</h2><p class="hint">删除后该密钥将立即失效，历史使用统计、预占和审计记录会保留。</p></div>
+        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg></span>删除密钥</h2><p class="hint">密钥将立即失效，历史记录保留。</p></div>
         <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
       </div>
       <div class="modal-body">

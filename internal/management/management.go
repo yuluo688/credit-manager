@@ -66,7 +66,7 @@ func Resources() []pluginapi.ResourceRoute {
 		{
 			Path:        "/console",
 			Menu:        "CPA 额度管理",
-			Description: "Key / 模型 / 限额 / 使用统计可视化管理",
+			Description: "额度、密钥、定价与统计",
 		},
 		{
 			Path: "/lookup",

@@ -431,11 +431,11 @@ func TestConsoleImagePricingUsesPerImageBilling(t *testing.T) {
 func TestConsoleAuthQuotaViewIsManagementOnly(t *testing.T) {
 	page := string(consolePage().Body)
 	for _, text := range []string{
-		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "credit-manager/auth-quotas/warmup", "credit-manager/auth-quotas/warmup/settings", "auth-quota-warmup", "authQuotaWarmupStatus", "btnAuthWarmupSettings", "authWarmupSettingsModal", "btnAddAuthWarmupSchedule", "authWarmupScheduleList", "auth-warmup-task", "auth-warmup-settings-footer", "renderAuthWarmupSchedules", "openAuthWarmupSettings", "saveAuthWarmupSettings", "短周期同样显示", "auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
-		"auth-quota-period-picker", "auth-quota-period-trigger", "auth-quota-period-menu", "auth-quota-period-option", "closeAuthQuotaPeriodMenus", "配额窗口", "authQuotaIsWeekly", "authQuotaIsCycleWindow", "function authQuotaPrimaryCycleWindows", "latestByBaseline", "authQuotaIsFiveHour", "authQuotaDisplayWindows", "const companions", "displayedCycles", "selectedPrimaryCycles", "authQuotaIsPartial(window)", "function authQuotaIsPartial", "return '不完整'", "authQuotaIsWeekly(window) || /quota|window/i.test(text)", "timeless", "function authQuotaWindowStartMs", "reset - duration * 1000", "authQuotaWindowCurrent", "6 * 60 * 60 * 1000", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "认证额度已从缓存刷新", "同步上游额度", "auth-quota-status-banner", "btnAuthQuotaBannerRefresh", "需有本地用量观测后才能估算", "authQuotaStatusBanner",
+		"data-tab=\"auth-quotas\"", "credit-manager/auth-quotas", "credit-manager/auth-quotas/refresh", "credit-manager/auth-quotas/warmup", "credit-manager/auth-quotas/warmup/settings", "auth-quota-warmup", "authQuotaWarmupStatus", "btnAuthWarmupSettings", "authWarmupSettingsModal", "btnAddAuthWarmupSchedule", "authWarmupScheduleList", "auth-warmup-task", "auth-warmup-settings-footer", "renderAuthWarmupSchedules", "openAuthWarmupSettings", "saveAuthWarmupSettings", "authQuotaIsFiveHour", "auth-quota-window-card", "auth-quota-bar", "function authQuotaPeriodBadge", "auth-quota-reload",
+		"auth-quota-period-picker", "auth-quota-period-trigger", "auth-quota-period-menu", "auth-quota-period-option", "closeAuthQuotaPeriodMenus", "配额窗口", "authQuotaIsWeekly", "authQuotaIsCycleWindow", "function authQuotaPrimaryCycleWindows", "latestByBaseline", "authQuotaDisplayWindows", "const companions", "displayedCycles", "selectedPrimaryCycles", "authQuotaIsPartial(window)", "function authQuotaIsPartial", "return '不完整'", "authQuotaIsWeekly(window) || /quota|window/i.test(text)", "timeless", "function authQuotaWindowStartMs", "reset - duration * 1000", "authQuotaWindowCurrent", "6 * 60 * 60 * 1000", "includes('secondary')", "authQuotaCostForecast", "当前费用", "预估剩余", "预计可用", "authQuotaProviderFilter", "authQuotaNameFilter", "overflow-x:auto", "state.currentTab === 'auth-quotas'", "已刷新缓存", "同步上游额度", "auth-quota-status-banner", "btnAuthQuotaBannerRefresh", "需有本地用量观测", "authQuotaStatusBanner",
 		"btnRefreshAuthQuotaPage", "刷新本页", "authQuotaPagination", "authQuotaPageSize", "credit-manager/auth-quotas?", "page_size",
 		"authQuotaPlanName", "auth-quota-plan", "订阅类型",
-		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "当前并发量", "批量并发", "应用本页", "应用筛选", "将当前筛选结果中的认证设为同一并发（不是勾选）", "btnAuthQuotaBatchPage", "data-provider",
+		"auth-quota-concurrency", "最大并发", "credit-manager/auth-quotas/concurrency", "credit-manager/auth-quotas/concurrency/batch", "max_concurrent_requests", "active_requests", "auth-quota-active", "批量并发", "应用本页", "应用筛选", "筛选结果", "btnAuthQuotaBatchPage", "data-provider",
 		"auth-codex-fill", "M6.469 8.776L16.512 23", "function authQuotaProviderIcon",
 		"align-items:stretch", "flex-direction:column", "height:100%", "auth-quota-account-row", "function authQuotaRemainingLabel", "额度可用", "后刷新",
 	} {
@@ -758,9 +758,9 @@ func TestConsoleKeySpendResetUI(t *testing.T) {
 		"data-reset-period=\"monthly\"",
 		"data-reset-period=\"total\"",
 		"重置全部额度",
-		"是否跟随账号重置",
-		"跟随账号重置时间",
-		"跟随账号自动重置",
+		"跟随账号重置",
+		"同步重置时间",
+		"自动清零已用",
 		"keyModalPlanEnabled",
 		"keyModalPlanCycle",
 		"keyModalPlanAutoReset",
@@ -769,8 +769,8 @@ func TestConsoleKeySpendResetUI(t *testing.T) {
 		"function planPayload",
 		"credit-manager/plan-accounts",
 		"重置额度",
-		"额度和模型 Token 上限不会变化",
-		"总费用与总 Token 已用从当前重新计量",
+		"仅重置所选周期的已用统计，历史账本与上限配置保留。",
+		"总额度",
 		"data-reset-spend",
 		"btnResetManagedKeySpend",
 		"keyPagination",
@@ -785,7 +785,7 @@ func TestConsoleKeySpendResetUI(t *testing.T) {
 			t.Fatalf("console spend reset UI is missing %q", text)
 		}
 	}
-	if !strings.Contains(page, "await reload();\n      flash(t('已用额度已重置')") {
+	if !strings.Contains(page, "await reload();\n      flash(t('已重置')") {
 		t.Fatal("reset success toast is cleared before the refreshed data finishes loading")
 	}
 }
@@ -819,7 +819,7 @@ func TestConsoleManagementListSearch(t *testing.T) {
 		"keySearch: ''",
 		"pricingSearch: ''",
 		"params.set('q', query);",
-		"$('modelCatalogCount').textContent = models.length + ' ' + t('个模型');",
+		"$('modelCatalogCount').textContent = models.length.toLocaleString();",
 		"function syncListSearchClearButton(inputID)",
 		"function queueKeyNameSearch()",
 		"function queuePricingModelSearch()",
@@ -892,8 +892,7 @@ func TestConsoleKeyExpiry(t *testing.T) {
 		"function keyExpiryMeta",
 		"clear_expires_at",
 		"expires_at",
-		"长期有效",
-		"到期后立即拒绝新请求",
+		"已过期",
 		`id="keyModalExpiresWrap"`,
 		`data-expiry-preset="never" class="active">长期`,
 		">指定</button>",
@@ -944,10 +943,10 @@ func TestConsoleModelTokenLimits(t *testing.T) {
 		"未列入限制的模型",
 		"data-unmatched-set=\"disabled\"",
 		"unmatched_models_mode",
-		"填写数字才启用对应周期的 Token 上限；留空即不限制。",
+		"未添加模型",
 		"全部模型（默认）",
 		"btnKeyModalAllowAllModels",
-		"总 Token",
+		"periodField('total', '总', item.total)",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console page is missing model token limits: %q", text)
@@ -975,7 +974,7 @@ func TestConsoleDiscoversAIProviderModels(t *testing.T) {
 		"openai-compatibility",
 		"gemini-api-key",
 		"models?scope=available",
-		"上游认证文件或 AI 提供商",
+		"管理接口与 /v1/models 均未获取到模型",
 	} {
 		if !strings.Contains(page, text) {
 			t.Fatalf("console page is missing AI provider model discovery: %q", text)
@@ -1053,7 +1052,7 @@ func TestLookupStatsIconsAndEmptyLayouts(t *testing.T) {
 		"tr class=\"empty-row\"",
 		"share-body:has(.chart-empty)",
 		"chart(id,empty,null,moneyAxis?'coin':'chart')",
-		"return chart('modelShare',t('当前筛选条件下暂无模型使用数据'),null,'pie')",
+		"return chart('modelShare',t('暂无数据'),null,'pie')",
 		`id="keyLabel"`,
 		`class="heading-icon" aria-hidden="true"`,
 	} {

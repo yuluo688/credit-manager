@@ -193,7 +193,7 @@ func TestConsoleAuthQuotasPaintWithTheirTab(t *testing.T) {
 		"await loadAuthQuotas({ reuseInflight: true });",
 		"if (reuseInflight && pending && pending.query === query",
 		"function emptyState(message)",
-		"当前没有可用的认证额度数据",
+		"暂无认证额度",
 		"if (state.currentTab === 'auth-quotas') renderAuthQuotas(result);",
 		"if (epoch !== state.authQuotaEpoch || query !== authQuotaQuery()) return;",
 	} {
@@ -248,7 +248,7 @@ func TestConsoleOtherTabsAvoidFirstPaintRaces(t *testing.T) {
 	if strings.Contains(usage, "const emptyState") || strings.Contains(usage, "function emptyState") {
 		t.Fatal("renderUsage must use the shared emptyState helper")
 	}
-	if !strings.Contains(usage, "emptyState('当前筛选条件下暂无按密钥汇总')") {
+	if !strings.Contains(usage, "emptyState('暂无数据')") {
 		t.Fatal("renderUsage empty states are missing")
 	}
 
