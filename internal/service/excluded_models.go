@@ -5,13 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"sort"
 	"strings"
 
 	"github.com/yuluo688/credit-manager/internal/store"
 )
 
-const managedExcludedModelsKey = "credit_manager_excluded_models"
+const (
+	managedExcludedModelsKey = "credit_manager_excluded_models"
+	managedRemovedModelsKey  = "credit_manager_removed_models"
+	managedOptOutKey         = "credit_manager_managed"
+)
 
 type ModelDirectorySyncer interface {
 	SyncExcludedModels(ctx context.Context, disabled []string) error
@@ -104,6 +109,24 @@ func modelDisabledByRules(model string, rules []store.PricingRule) bool {
 	return !rule.Enabled
 }
 
+// MergeAuthExcludedModels rewrites an auth file's excluded_models so that
+// plugin-managed entries track the disabled set while user edits survive.
+//
+// Ownership model (case-sensitive, exact model IDs):
+//   - credit_manager_excluded_models (P): what the plugin added last sync.
+//   - credit_manager_removed_models (R): managed models the user deleted from
+//     excluded_models; they are never re-added until the user re-adds them.
+//   - Everything else in excluded_models is user-owned and preserved.
+//
+// The merge formula is: userAdded = E \ P, newlyRemoved = P \ E,
+// R_next = (R \ E) ∪ newlyRemoved, managed = (D \ R_next) \ userAdded,
+// E_next = userAdded ∪ managed.
+//
+// R is intentionally not pruned against D: when the disabled catalog is
+// temporarily empty (cold start before the first model directory snapshot),
+// remembered removals must not be forgotten.
+//
+// An explicit "credit_manager_managed": false opts the file out entirely.
 func MergeAuthExcludedModels(raw []byte, disabled []string) ([]byte, bool, error) {
 	src := bytes.TrimSpace(raw)
 	if len(src) == 0 {
@@ -113,15 +136,33 @@ func MergeAuthExcludedModels(raw []byte, disabled []string) ([]byte, bool, error
 	if err != nil {
 		return nil, false, err
 	}
+	if boolFieldFalse(fields[managedOptOutKey]) {
+		return raw, false, nil
+	}
 	current := uniqueSortedStrings(disabled)
 	previous := stringSliceFromRaw(fields[managedExcludedModelsKey])
-	existing := stringSliceFromRaw(fields["excluded_models"])
-	if len(existing) == 0 {
+	removed := stringSliceFromRaw(fields[managedRemovedModelsKey])
+	_, hasCanonical := fields["excluded_models"]
+	_, hasLegacyAlias := fields["excluded-models"]
+	var existing []string
+	if hasCanonical {
+		existing = stringSliceFromRaw(fields["excluded_models"])
+	} else {
 		existing = stringSliceFromRaw(fields["excluded-models"])
 	}
-	user := subtractStrings(existing, previous)
-	next := uniqueSortedStrings(append(user, current...))
-	if stringSlicesEqual(existing, next) && stringSlicesEqual(previous, current) {
+
+	userAdded := subtractStrings(existing, previous)
+	newlyRemoved := subtractStrings(previous, existing)
+	// A model re-added by the user cancels its recorded removal.
+	removedNext := uniqueSortedStrings(append(subtractStrings(removed, existing), newlyRemoved...))
+	// managed stays disjoint from userAdded so pre-existing user exclusions are
+	// never claimed into plugin bookkeeping (which would erase them when the
+	// model is later re-enabled globally).
+	managed := subtractStrings(subtractStrings(current, removedNext), userAdded)
+	next := uniqueSortedStrings(append(userAdded, managed...))
+
+	if stringSlicesEqual(existing, next) && stringSlicesEqual(previous, managed) && stringSlicesEqual(removed, removedNext) &&
+		!(len(next) == 0 && (hasCanonical || hasLegacyAlias)) && !hasLegacyAlias {
 		return raw, false, nil
 	}
 	set := map[string]json.RawMessage{}
@@ -136,20 +177,121 @@ func MergeAuthExcludedModels(raw []byte, disabled []string) ([]byte, bool, error
 		set["excluded_models"] = encoded
 		remove = append(remove, "excluded-models")
 	}
-	if len(current) == 0 {
+	if len(managed) == 0 {
 		remove = append(remove, managedExcludedModelsKey)
 	} else {
-		encoded, err := json.Marshal(current)
+		encoded, err := json.Marshal(managed)
 		if err != nil {
 			return nil, false, err
 		}
 		set[managedExcludedModelsKey] = encoded
+	}
+	if len(removedNext) == 0 {
+		remove = append(remove, managedRemovedModelsKey)
+	} else {
+		encoded, err := json.Marshal(removedNext)
+		if err != nil {
+			return nil, false, err
+		}
+		set[managedRemovedModelsKey] = encoded
 	}
 	out, err := patchTopLevelJSONFields(src, set, remove)
 	if err != nil {
 		return nil, false, err
 	}
 	return out, true, nil
+}
+
+// AuthModelCatalog is the host model-registry view used to scope which disabled
+// models belong on a given credential.
+type AuthModelCatalog struct {
+	// CredModels holds lowercase model IDs registered on this credential.
+	CredModels map[string]struct{}
+	// ProviderModels holds lowercase model IDs registered on any credential of
+	// the same provider.
+	ProviderModels map[string]struct{}
+	// KnownProviders holds normalized provider keys the host knows about; it is
+	// used to recognize provider-qualified model IDs like "devin/swe-1-6".
+	KnownProviders map[string]struct{}
+	// Available is false when the host could not report registered models; only
+	// provider-prefix scoping is applied then.
+	Available bool
+}
+
+// ScopeDisabledModelsForAuth filters the global disabled list down to the
+// models relevant for one credential, so provider-specific exclusions never
+// leak into unrelated auth files (which would also break CPA's
+// oauth-excluded-models inheritance on those files).
+//
+// Rules, applied per model id:
+//   - An explicit provider prefix ("devin/x" where "devin" is a known provider
+//     different from this credential's provider) is always dropped. This also
+//     cleans up prefix-qualified pollution written by older versions.
+//   - Without a host catalog (Available == false), everything else passes.
+//   - With a catalog, a model is kept when it is registered on the credential
+//     or its provider, or already in credit_manager_excluded_models. Keeping
+//     previously managed entries is required: registered catalogs exclude
+//     currently-excluded models, so dropping them would oscillate
+//     (exclude → unregister → un-exclude) on every sync.
+func ScopeDisabledModelsForAuth(raw []byte, provider string, disabled []string, catalog AuthModelCatalog) []string {
+	authProvider := NormalizeProviderKey(provider)
+	var prevSet map[string]struct{}
+	if len(bytes.TrimSpace(raw)) > 0 {
+		if _, fields, err := decodeTopLevelObject(raw); err == nil {
+			previous := stringSliceFromRaw(fields[managedExcludedModelsKey])
+			if len(previous) > 0 {
+				prevSet = make(map[string]struct{}, len(previous))
+				for _, m := range previous {
+					prevSet[strings.ToLower(m)] = struct{}{}
+				}
+			}
+		}
+	}
+	out := make([]string, 0, len(disabled))
+	for _, m := range disabled {
+		lower := strings.ToLower(strings.TrimSpace(m))
+		if lower == "" {
+			continue
+		}
+		if pfx, rest, ok := strings.Cut(m, "/"); ok && strings.TrimSpace(rest) != "" {
+			np := NormalizeProviderKey(pfx)
+			if _, known := catalog.KnownProviders[np]; known && np != authProvider {
+				continue
+			}
+		}
+		if !catalog.Available {
+			out = append(out, m)
+			continue
+		}
+		if _, ok := catalog.CredModels[lower]; ok {
+			out = append(out, m)
+			continue
+		}
+		if _, ok := catalog.ProviderModels[lower]; ok {
+			out = append(out, m)
+			continue
+		}
+		if _, ok := prevSet[lower]; ok {
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// NormalizeProviderKey lowercases a provider identifier and maps the legacy
+// "gemini" file type to its canonical "gemini-cli" provider.
+func NormalizeProviderKey(provider string) string {
+	p := strings.ToLower(strings.TrimSpace(provider))
+	if p == "gemini" {
+		return "gemini-cli"
+	}
+	return p
+}
+
+// boolFieldFalse reports whether raw is the JSON literal false. Anything else
+// (null, true, strings, numbers, objects, missing) does not opt out.
+func boolFieldFalse(raw json.RawMessage) bool {
+	return bytes.Equal(bytes.TrimSpace(raw), []byte("false"))
 }
 
 func decodeTopLevelObject(raw []byte) ([]string, map[string]json.RawMessage, error) {
@@ -179,6 +321,18 @@ func decodeTopLevelObject(raw []byte) ([]string, map[string]json.RawMessage, err
 			order = append(order, key)
 		}
 		fields[key] = value
+	}
+	// The closing '}' must be present; dec.More() alone tolerates truncated input.
+	tok, err = dec.Token()
+	if err != nil {
+		return nil, nil, err
+	}
+	if delim, ok := tok.(json.Delim); !ok || delim != '}' {
+		return nil, nil, errors.New("auth json must end with '}'")
+	}
+	// dec.More() cannot be used here: it also returns false before ']' and '}'.
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, nil, errors.New("auth json has trailing data after '}'")
 	}
 	return order, fields, nil
 }
