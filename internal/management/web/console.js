@@ -598,37 +598,37 @@
   }
 
   function uiIcon(name) {
-    const s = 'viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    const s = 'viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
     const icons = {
-      gauge: '<svg '+s+'><path d="M2.6 11.8a5.8 5.8 0 1 1 10.8 0"/><path d="M8 9.4 10.7 6.7"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M2.6 13.8h10.8"/></svg>',
-      key: '<svg '+s+'><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg>',
-      tag: '<svg '+s+'><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg>',
-      chart: '<svg '+s+'><path d="M2.4 13.3h11.2"/><path d="M5 13.2V8.2M8 13.2V4.4M11 13.2V6.6" stroke-width="2.1"/></svg>',
-      shield: '<svg '+s+'><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg>',
-      plug: '<svg '+s+'><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg>',
-      refresh: '<svg '+s+' stroke-width="1.7"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>',
-      plus: '<svg '+s+'><path d="M8 3v10M3 8h10"/></svg>',
-      copy: '<svg '+s+'><rect x="5.4" y="5.4" width="8" height="8" rx="1.8"/><path d="M10.6 5.4V4.1a1.6 1.6 0 0 0-1.6-1.6H4.1a1.6 1.6 0 0 0-1.6 1.6v4.9a1.6 1.6 0 0 0 1.6 1.6h1.3"/></svg>',
-      trash: '<svg '+s+'><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg>',
-      filter: '<svg '+s+'><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg>',
-      coin: '<svg '+s+'><circle cx="8" cy="8" r="5.5"/><path d="M8 5v6M6.2 6.3h3.6M6.2 9.7h3.6"/></svg>',
-      wallet: '<svg '+s+' stroke-width="1.5"><path d="M2.5 5.5a1.8 1.8 0 0 1 1.8-1.8h7.4a1.8 1.8 0 0 1 1.8 1.8v6a1.8 1.8 0 0 1-1.8 1.8H4.3a1.8 1.8 0 0 1-1.8-1.8z"/><path d="M9.5 8.5h4M2.5 5.5h9.2"/></svg>',
-      trend: '<svg '+s+'><path d="m2.5 11 3.5-3.5 2.4 2.4 4.6-5"/><path d="M9.8 4.9h3.2v3.2"/></svg>',
-      clock: '<svg '+s+'><circle cx="8" cy="8" r="5.6"/><path d="M8 5.2V8l2 1.4"/></svg>',
-      calendar: '<svg '+s+'><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M5.5 2v3M10.5 2v3M2.5 7h11"/></svg>',
-      bolt: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M9.2 1.5 3.6 9h3.2l-.9 5.5L11.9 7H8.6z"/></svg>',
-      chevronL: '<svg '+s+'><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>',
-      chevronR: '<svg '+s+'><path d="m6 3.5 4.5 4.5L6 12.5"/></svg>',
-      activity: '<svg '+s+'><path d="M1.8 8.2h2.7l1.6-4.4 2.8 8 1.7-3.6h3.6"/></svg>',
-      layers: '<svg '+s+'><path d="m8 2 5.6 2.9L8 7.8 2.4 4.9z"/><path d="m2.4 8 5.6 2.9L13.6 8M2.4 11.1l5.6 2.9 5.6-2.9"/></svg>',
-      cpu: '<svg '+s+'><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg>',
-      pie: '<svg '+s+'><circle cx="8" cy="8" r="5.6"/><path fill="currentColor" stroke="none" d="M8 8V2.4A5.6 5.6 0 0 1 13.4 10.4Z"/></svg>',
-      trophy: '<svg '+s+'><path d="M5.2 2.5h5.6v3.5a2.8 2.8 0 0 1-5.6 0z"/><path d="M5.2 3.6H3.3a1.9 1.9 0 0 0 1.9 3M10.8 3.6h1.9a1.9 1.9 0 0 1-1.9 3M8 8.8v2.3M5.5 13.4h5"/></svg>',
-      list: '<svg '+s+'><path d="M5.4 4h8M5.4 8h8M5.4 12h8"/><circle cx="2.7" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r=".9" fill="currentColor" stroke="none"/></svg>',
-      x: '<svg '+s+'><path d="m4 4 8 8M12 4l-8 8"/></svg>',
-      gear: '<svg '+s+'><circle cx="8" cy="8" r="2.2"/><path d="M8 1.8v1.9M8 12.3v1.9M12.9 4.3l-1.6 1M4.7 10.7l-1.6 1M12.9 11.7l-1.6-1M4.7 5.3l-1.6-1M13.4 8h-1.9M4.5 8H2.6"/></svg>',
-      database: '<svg '+s+'><ellipse cx="8" cy="3.6" rx="5.4" ry="1.9"/><path d="M2.6 3.6v8.8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9V3.6M2.6 8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9"/></svg>',
-      info: '<svg '+s+'><circle cx="8" cy="8" r="5.8"/><path d="M8 7.4v3.4"/><circle cx="8" cy="5.2" r=".9" fill="currentColor" stroke="none"/></svg>'
+      gauge: '<svg '+s+'><path d="M4.2 14.8a7.2 7.2 0 1 1 11.6 0"/><path d="M10 11.2l3.1-3.1"/><circle cx="10" cy="11.2" r="1.4" fill="currentColor" stroke="none"/><path d="M6.4 16.4h7.2"/></svg>',
+      key: '<svg '+s+'><circle cx="6.8" cy="13.2" r="3.4"/><path d="M9.2 10.8L16.2 3.8M14 6l1.9 1.9M12 8l1.5 1.5"/></svg>',
+      tag: '<svg '+s+'><path d="M3.2 8.9V4.8a1.6 1.6 0 0 1 1.6-1.6h4.1a1.6 1.6 0 0 1 1.13.47l6.2 6.2a1.6 1.6 0 0 1 0 2.26l-4.1 4.1a1.6 1.6 0 0 1-2.26 0l-6.2-6.2a1.6 1.6 0 0 1-.47-1.13Z"/><circle cx="6.8" cy="6.8" r="1.15" fill="currentColor" stroke="none"/></svg>',
+      chart: '<svg '+s+'><path d="M3.5 4v11.2a1.3 1.3 0 0 0 1.3 1.3h11.7"/><path d="M7.7 13.2V9.8M11.1 13.2V5.6M14.5 13.2V7.8"/></svg>',
+      shield: '<svg '+s+'><path d="M10 2.7L15.8 5v4.3c0 3.7-2.45 6.85-5.8 8-3.35-1.15-5.8-4.3-5.8-8V5L10 2.7Z"/><path d="M7.4 10.1l1.8 1.8 3.5-3.6"/></svg>',
+      plug: '<svg '+s+'><path d="M12.6 7.4l2.9-2.9M9.9 4.7l2.9-2.9"/><path d="M6.6 6.2l7.2 7.2"/><path d="M7.6 7.2L5.4 9.4a3.3 3.3 0 0 0 4.7 4.7l2.2-2.2"/><path d="M5.4 14.6L3 17"/></svg>',
+      refresh: '<svg '+s+'><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg>',
+      plus: '<svg '+s+'><path d="M10 4.2v11.6M4.2 10h11.6"/></svg>',
+      copy: '<svg '+s+'><rect x="7" y="7" width="9.5" height="9.5" rx="2.1"/><path d="M13.5 4.4A1.8 1.8 0 0 0 12 3.5H5.6a2.1 2.1 0 0 0-2.1 2.1V12a1.8 1.8 0 0 0 .9 1.5"/></svg>',
+      trash: '<svg '+s+'><path d="M3.8 5h12.4M7.8 4.9v-.8a1.3 1.3 0 0 1 1.3-1.3h1.8a1.3 1.3 0 0 1 1.3 1.3v.8"/><path d="M5.6 5l.65 10.3a1.6 1.6 0 0 0 1.6 1.5h4.3a1.6 1.6 0 0 0 1.6-1.5L14.4 5"/><path d="M8.4 8.4v5M11.6 8.4v5"/></svg>',
+      filter: '<svg '+s+'><path d="M3.4 4.2h13.2a.7.7 0 0 1 .54 1.15L12 11.3v4.1a.85.85 0 0 1-.46.75l-2.3 1.2a.6.6 0 0 1-.88-.53v-5.5L2.86 5.35a.7.7 0 0 1 .54-1.15Z"/></svg>',
+      coin: '<svg '+s+'><circle cx="10" cy="10" r="6.8"/><path d="M10 5.4v9.2"/><path d="M12.2 7.7c-.4-.7-1.25-1.05-2.2-1.05-1.3 0-2.2.65-2.2 1.55 0 2 4.4 1 4.4 3.1 0 .9-.9 1.65-2.2 1.65-1.05 0-1.9-.4-2.3-1.15"/></svg>',
+      wallet: '<svg '+s+'><path d="M3.2 6.8a2 2 0 0 1 2-2h8.6a1.5 1.5 0 0 1 1.5 1.5v.7"/><path d="M3.2 7v7.6a2 2 0 0 0 2 2h10a1.8 1.8 0 0 0 1.8-1.8V8.8A1.8 1.8 0 0 0 15.2 7H5.2a2 2 0 0 1-2-2"/><path d="M16.8 10.4h-2.3a1.4 1.4 0 0 0 0 2.8h2.3"/></svg>',
+      trend: '<svg '+s+'><path d="M3.2 14l4.4-4.4 2.7 2.7 6.3-6.3"/><path d="M12.6 6h4v4"/></svg>',
+      clock: '<svg '+s+'><circle cx="10" cy="10" r="6.8"/><path d="M10 6.3V10l2.6 1.7"/></svg>',
+      calendar: '<svg '+s+'><rect x="3.2" y="4.2" width="13.6" height="12.6" rx="2.3"/><path d="M3.2 8.4h13.6M7 2.6v3M13 2.6v3M7 12.2h6"/></svg>',
+      bolt: '<svg '+s+'><path d="M11.1 2.7L4.5 11h5l-.9 6.3L15.5 9h-5l.6-6.3Z"/></svg>',
+      chevronL: '<svg '+s+'><path d="M12.2 4.8L7 10l5.2 5.2"/></svg>',
+      chevronR: '<svg '+s+'><path d="M7.8 4.8L13 10l-5.2 5.2"/></svg>',
+      activity: '<svg '+s+'><path d="M2.6 10.2h3.1l2-5.2 3.3 9.8 2.2-4.6h4.2"/></svg>',
+      layers: '<svg '+s+'><path d="M10 3.2L16.8 6.8 10 10.4 3.2 6.8 10 3.2Z"/><path d="M3.2 10.2L10 13.8l6.8-3.6M3.2 13.6L10 17.2l6.8-3.6"/></svg>',
+      cpu: '<svg '+s+'><rect x="5" y="5" width="10" height="10" rx="2"/><rect x="7.8" y="7.8" width="4.4" height="4.4" rx=".8"/><path d="M7.8 5V2.6M12.2 5V2.6M7.8 17.4V15M12.2 17.4V15M5 7.8H2.6M5 12.2H2.6M17.4 7.8H15M17.4 12.2H15"/></svg>',
+      pie: '<svg '+s+'><path d="M9.2 4.8a6 6 0 1 0 6 6h-6v-6Z"/><path d="M11.6 3.2a5.2 5.2 0 0 1 5.2 5.2h-5.2V3.2Z"/></svg>',
+      trophy: '<svg '+s+'><path d="M6.2 3.5h7.6v4.6a3.8 3.8 0 0 1-7.6 0V3.5Z"/><path d="M6.2 4.7H4.4a1.6 1.6 0 0 0-1.6 1.6v.4a2.4 2.4 0 0 0 2.4 2.4h1.1M13.8 4.7h1.8a1.6 1.6 0 0 1 1.6 1.6v.4a2.4 2.4 0 0 1-2.4 2.4h-1.1M10 11.9v4.4M6.8 16.5h6.4"/></svg>',
+      list: '<svg '+s+'><path d="M7.5 5.5h8.8M7.5 10h8.8M7.5 14.5h8.8"/><circle cx="4.2" cy="5.5" r="1.05" fill="currentColor" stroke="none"/><circle cx="4.2" cy="10" r="1.05" fill="currentColor" stroke="none"/><circle cx="4.2" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg>',
+      x: '<svg '+s+'><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>',
+      gear: '<svg '+s+'><circle cx="10" cy="10" r="2.2"/><path d="M8.23 5.00L8.57 2.94L11.43 2.94L11.77 5.00L13.44 5.97L15.40 5.23L16.83 7.71L15.21 9.03L15.21 10.97L16.83 12.29L15.40 14.77L13.44 14.03L11.77 15.00L11.43 17.06L8.57 17.06L8.23 15.00L6.56 14.03L4.60 14.77L3.17 12.29L4.79 10.97L4.79 9.03L3.17 7.71L4.60 5.23L6.56 5.97Z"/></svg>',
+      database: '<svg '+s+'><ellipse cx="10" cy="5.2" rx="6.2" ry="2.2"/><path d="M3.8 5.2v9.6c0 1.22 2.78 2.2 6.2 2.2s6.2-.98 6.2-2.2V5.2M3.8 10c0 1.22 2.78 2.2 6.2 2.2s6.2-.98 6.2-2.2"/></svg>',
+      info: '<svg '+s+'><circle cx="10" cy="10" r="6.8"/><path d="M10 9.4v4.1"/><circle cx="10" cy="6.6" r="1.05" fill="currentColor" stroke="none"/></svg>'
     };
     return icons[name] || '';
   }
@@ -689,7 +689,14 @@
       : state.theme;
     document.documentElement.dataset.theme = state.theme;
     document.documentElement.dataset.palette = palette;
-    Object.values(state.charts).forEach(chart => chart.resize());
+    if (state.overview) {
+      const items = overviewTrendSource();
+      renderOverviewTrend(items);
+      renderOverviewCostTrend(items);
+      renderOverviewModels(state.overview.recent_usage || []);
+    } else {
+      Object.values(state.charts).forEach(chart => chart.resize());
+    }
   }
 
   function initPreferences() {
@@ -2117,7 +2124,71 @@
     })).sort((a, b) => b.tokens - a.tokens || b.requests - a.requests);
   }
 
-  const MODEL_SHARE_COLORS = ['#7c6cf0', '#3ecf8e', '#f0a04b', '#e88b9a', '#4dabf7', '#20c997', '#ff922b', '#cc5de8', '#51cf66', '#339af0'];
+  function overviewChartTheme() {
+    const pal = document.documentElement.dataset.palette || 'white';
+    if (pal === 'dark') {
+      return {
+        panel: '#1D1B18',
+        ink: '#F4F1EC',
+        muted: '#ADA59A',
+        axis: '#3D3731',
+        grid: '#2D2925',
+        tooltipBg: 'rgba(22, 20, 18, .96)',
+        tooltipBorder: '#3A3530',
+        tooltipMuted: '#ADA59A',
+        input: '#49C19E',
+        output: '#8CA6F8',
+        cache: '#F0B44B',
+        hit: '#C084FC',
+        cost: '#49C19E',
+        costFill: 'rgba(73, 193, 158, .16)',
+        zoomBg: '#262320',
+        zoomFill: 'rgba(73, 193, 158, .20)',
+        series: ['#49C19E', '#8CA6F8', '#F0B44B', '#F472B6', '#C084FC', '#5EEAD4', '#FB923C', '#93C5FD', '#34D399', '#A5B4FC'],
+      };
+    }
+    if (pal === 'light') {
+      return {
+        panel: '#FFFDF9',
+        ink: '#24211D',
+        muted: '#655E56',
+        axis: '#D4CEC3',
+        grid: '#E6E1D7',
+        tooltipBg: 'rgba(36, 33, 29, .95)',
+        tooltipBorder: '#3D352E',
+        tooltipMuted: '#CFC8BC',
+        input: '#0E6555',
+        output: '#4A609D',
+        cache: '#C27803',
+        hit: '#7C3AED',
+        cost: '#0E6555',
+        costFill: 'rgba(14, 101, 85, .14)',
+        zoomBg: '#EAE6DD',
+        zoomFill: 'rgba(14, 101, 85, .18)',
+        series: ['#0E6555', '#4A609D', '#C27803', '#BE185D', '#6D28D9', '#0369A1', '#B45309', '#0D9488', '#3730A3', '#15803D'],
+      };
+    }
+    return {
+      panel: '#FFFFFF',
+      ink: '#161C1A',
+      muted: '#5A6661',
+      axis: '#CFD6D3',
+      grid: '#E7ECE9',
+      tooltipBg: 'rgba(22, 28, 26, .95)',
+      tooltipBorder: '#2C3633',
+      tooltipMuted: '#CBD5D1',
+      input: '#0F6D5C',
+      output: '#3F5FA8',
+      cache: '#B45309',
+      hit: '#7C3AED',
+      cost: '#0F6D5C',
+      costFill: 'rgba(15, 109, 92, .13)',
+      zoomBg: '#F1F4F3',
+      zoomFill: 'rgba(15, 109, 92, .16)',
+      series: ['#0F6D5C', '#3F5FA8', '#B45309', '#BE185D', '#6D28D9', '#0284C7', '#C2410C', '#0D9488', '#4F46E5', '#15803D'],
+    };
+  }
+  const MODEL_SHARE_COLORS = ['#0F6D5C', '#3F5FA8', '#B45309', '#BE185D', '#6D28D9', '#0284C7', '#C2410C', '#0D9488', '#4F46E5', '#15803D'];
 
   function getModelShareMetric() {
     const metric = state.modelShareMetric || 'requests';
@@ -2649,21 +2720,24 @@
       renderOverviewEChart(targetID, emptyText, null);
       return;
     }
+    const ct = overviewChartTheme();
     const hasRightAxis = series.some(item => item.axis === 'right');
     const sparse = points.length <= 6;
+    const single = points.length <= 2;
     renderOverviewEChart(targetID, emptyText, {
       color: series.map(item => item.color),
       animationDuration: 420,
       animationEasing: 'cubicOut',
-      grid: { top: 12, right: hasRightAxis ? 8 : 8, bottom: points.length > 10 ? 36 : 8, left: 8, containLabel: true },
+      grid: { top: 12, right: hasRightAxis ? 10 : 40, bottom: points.length > 10 ? 36 : 8, left: 12, containLabel: true },
       legend: { show: false, data: series.map(item => item.label) },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: 'rgba(26, 31, 28, .94)',
-        borderWidth: 0,
+        backgroundColor: ct.tooltipBg,
+        borderColor: ct.tooltipBorder,
+        borderWidth: 1,
         padding: [10, 12],
         textStyle: { color: '#fff', fontSize: 12 },
-        axisPointer: { type: 'line', lineStyle: { color: '#9ea9a1', type: 'dashed' } },
+        axisPointer: { type: 'line', lineStyle: { color: ct.muted, type: 'dashed' } },
         formatter(params) {
           const rows = params.map(param => {
             const item = series[param.seriesIndex];
@@ -2676,23 +2750,23 @@
         type: 'category',
         boundaryGap: false,
         data: points.map(point => point.date),
-        axisLine: { lineStyle: { color: '#dce5de' } },
+        axisLine: { lineStyle: { color: ct.axis } },
         axisTick: { show: false },
-        axisLabel: { color: '#6a766e', fontSize: 11, hideOverlap: true, margin: 10, interval: points.length <= 14 ? 0 : 'auto' },
+        axisLabel: { color: ct.muted, fontSize: 11, hideOverlap: true, margin: 10, interval: points.length <= 14 ? 0 : 'auto' },
       },
       yAxis: [
         {
           type: 'value',
           min: 0,
           splitNumber: 3,
-          axisLabel: { color: '#6a766e', fontSize: 11, formatter: value => options.formatLeft(value) },
-          splitLine: { lineStyle: { color: '#edf1ee', type: 'dashed' } },
+          axisLabel: { color: ct.muted, fontSize: 11, formatter: value => options.formatLeft(value) },
+          splitLine: { lineStyle: { color: ct.grid, type: 'dashed' } },
           axisLine: { show: false },
           axisTick: { show: false },
         },
         ...(hasRightAxis ? [{
           type: 'value', min: 0, max: 100, splitNumber: 2,
-          axisLabel: { color: '#c56b82', fontSize: 11, formatter: value => options.formatRight(value) },
+          axisLabel: { color: ct.hit, fontSize: 11, formatter: value => options.formatRight(value) },
           splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false },
         }] : []),
       ],
@@ -2700,8 +2774,8 @@
         type: 'inside', start: 0, end: 100, zoomOnMouseWheel: 'shift', moveOnMouseMove: true,
       }, {
         type: 'slider', height: 14, bottom: 2, start: 0, end: 100,
-        borderColor: 'transparent', backgroundColor: '#f0f4f1', fillerColor: 'rgba(30,183,135,.20)',
-        handleStyle: { color: '#1eb787', borderColor: '#1eb787' }, textStyle: { color: 'transparent' },
+        borderColor: 'transparent', backgroundColor: ct.zoomBg, fillerColor: ct.zoomFill,
+        handleStyle: { color: ct.input, borderColor: ct.input }, textStyle: { color: 'transparent' },
       }] : [],
       series: series.map(item => ({
         name: item.label,
@@ -2711,9 +2785,9 @@
         smooth: sparse ? false : 0.35,
         showSymbol: points.length <= 24,
         symbol: 'circle',
-        symbolSize: item.dashed ? 4 : 6,
-        lineStyle: { width: item.dashed ? 1.6 : 2.4, type: item.dashed ? 'dashed' : 'solid', opacity: item.dashed ? 0.8 : 1 },
-        itemStyle: { borderWidth: 2, borderColor: '#fff' },
+        symbolSize: single ? (item.dashed ? 6 : 8) : (item.dashed ? 4 : 6),
+        lineStyle: { width: item.dashed ? 1.6 : 2.2, type: item.dashed ? 'dashed' : 'solid', opacity: item.dashed ? 0.85 : 1 },
+        itemStyle: { borderWidth: 2, borderColor: ct.panel },
         areaStyle: item.fill ? { color: item.fill } : undefined,
         emphasis: { focus: 'series', scale: true },
         data: points.map(point => Number(point[item.key] || 0)),
@@ -2721,11 +2795,11 @@
       media: [{
         query: { maxWidth: 560 },
         option: {
-          grid: { top: 10, right: 4, bottom: points.length > 10 ? 34 : 6, left: 4, containLabel: true },
+          grid: { top: 10, right: hasRightAxis ? 8 : 34, bottom: points.length > 10 ? 34 : 6, left: 8, containLabel: true },
           xAxis: { axisLabel: { fontSize: 10 } },
           yAxis: [
             { axisLabel: { fontSize: 10, formatter: value => options.formatLeft(value) } },
-            ...(hasRightAxis ? [{ axisLabel: { fontSize: 10, color: '#c56b82', formatter: value => options.formatRight(value) } }] : []),
+            ...(hasRightAxis ? [{ axisLabel: { fontSize: 10, color: ct.hit, formatter: value => options.formatRight(value) } }] : []),
           ],
         },
       }],
@@ -2733,6 +2807,7 @@
   }
 
   function renderOverviewTrend(items) {
+    const ct = overviewChartTheme();
     const grain = getTrendGrain('token');
     const points = overviewTrendSeries(items, grain);
     const totalInput = points.reduce((sum, point) => sum + point.input, 0);
@@ -2741,10 +2816,10 @@
     const totalCacheRelated = points.reduce((sum, point) => sum + point.cacheRelated, 0);
     const avgHit = totalCacheRelated > 0 ? totalCacheRead / totalCacheRelated * 100 : 0;
     $('overviewTrendTotal').innerHTML = points.length
-      ? trendMetric('入', formatTokens(totalInput), '#1eb787', tokenTitle(totalInput), '输入') +
-        trendMetric('出', formatTokens(totalOutput), '#7968ee', tokenTitle(totalOutput), '输出') +
-        trendMetric('缓存', formatTokens(totalCacheRead), '#f0a04b', tokenTitle(totalCacheRead), '缓存读取') +
-        (totalCacheRelated > 0 ? trendMetric('命中', avgHit.toFixed(1) + '%', '#e56b8a', '', '缓存命中率', true) : '')
+      ? trendMetric('入', formatTokens(totalInput), ct.input, tokenTitle(totalInput), '输入') +
+        trendMetric('出', formatTokens(totalOutput), ct.output, tokenTitle(totalOutput), '输出') +
+        trendMetric('缓存', formatTokens(totalCacheRead), ct.cache, tokenTitle(totalCacheRead), '缓存读取') +
+        (totalCacheRelated > 0 ? trendMetric('命中', avgHit.toFixed(1) + '%', ct.hit, '', '缓存命中率', true) : '')
       : '';
     $('overviewTrendHint').textContent = points.length
       ? points.length + ' ' + trendGrainUnit(grain) + trendZoneSuffix()
@@ -2760,25 +2835,25 @@
         {
           key: 'input',
           label: '输入',
-          color: '#1eb787',
+          color: ct.input,
           format: value => formatTokens(value) + ' Token',
         },
         {
           key: 'output',
           label: '输出',
-          color: '#7968ee',
+          color: ct.output,
           format: value => formatTokens(value) + ' Token',
         },
         {
           key: 'cacheRead',
           label: '缓存读取',
-          color: '#f0a04b',
+          color: ct.cache,
           format: value => formatTokens(value) + ' Token',
         },
         {
           key: 'cacheHitRate',
           label: '缓存命中率',
-          color: '#e56b8a',
+          color: ct.hit,
           axis: 'right',
           dashed: true,
           format: value => value.toFixed(1) + '%',
@@ -2789,10 +2864,11 @@
   }
 
   function renderOverviewCostTrend(items) {
+    const ct = overviewChartTheme();
     const grain = getTrendGrain('cost');
     const points = overviewTrendSeries(items, grain);
     const total = points.reduce((sum, point) => sum + point.cost, 0);
-    $('overviewCostTrendTotal').innerHTML = points.length ? trendMetric('费用', formatMoney(total), '#1eb787', '', '费用') : '';
+    $('overviewCostTrendTotal').innerHTML = points.length ? trendMetric('费用', formatMoney(total), ct.cost, '', '费用') : '';
     $('overviewCostTrendHint').textContent = points.length
       ? points.length + ' ' + trendGrainUnit(grain) + trendZoneSuffix()
       : '';
@@ -2806,8 +2882,8 @@
         {
           key: 'cost',
           label: '费用',
-          color: '#1eb787',
-          fill: 'rgba(30,183,135,.13)',
+          color: ct.cost,
+          fill: ct.costFill,
           format: value => formatMoney(value),
         },
       ],
@@ -2816,6 +2892,7 @@
   }
 
   function renderOverviewModelShareLegend(models, metricTotal) {
+    const ct = overviewChartTheme();
     const legend = $('overviewModelShareLegend');
     if (!legend) return;
     if (!models.length) {
@@ -2827,7 +2904,7 @@
     legend.innerHTML = models.map((item, index) => {
       const value = modelShareMetricValue(item, getModelShareMetric());
       const percent = metricTotal ? value / metricTotal * 100 : 0;
-      const color = MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length];
+      const color = ct.series[index % ct.series.length];
       return '<button type="button" class="share-legend-item" data-model="'+esc(item.model)+'">' +
         '<i class="share-legend-dot" style="background:'+color+'"></i>' +
         '<span class="share-legend-body">' +
@@ -2857,6 +2934,7 @@
   }
 
   function renderOverviewModels(items) {
+    const ct = overviewChartTheme();
     const metric = getModelShareMetric();
     const models = overviewModelStats(items).sort((a, b) =>
       modelShareMetricValue(b, metric) - modelShareMetricValue(a, metric) ||
@@ -2874,44 +2952,45 @@
     const metricTotal = models.reduce((sum, item) => sum + modelShareMetricValue(item, metric), 0);
     renderOverviewModelShareLegend(models, metricTotal);
     renderOverviewEChart('overviewModelShare', '', {
-      color: models.map((_, index) => MODEL_SHARE_COLORS[index % MODEL_SHARE_COLORS.length]),
+      color: models.map((_, index) => ct.series[index % ct.series.length]),
       animationDuration: 420,
       animationEasing: 'cubicOut',
       legend: { show: false },
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(26, 31, 28, .94)',
-        borderWidth: 0,
+        backgroundColor: ct.tooltipBg,
+        borderColor: ct.tooltipBorder,
+        borderWidth: 1,
         padding: [10, 12],
         textStyle: { color: '#fff', fontSize: 12 },
         formatter(param) {
           const item = param.data.item;
           return '<strong>'+esc(item.model)+'</strong><br/>'+
-            '<span style="color:#cdd6cf">'+esc(t('次数'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(item.requests.toLocaleString())+'</span><br/>'+
-            '<span style="color:#cdd6cf">Token</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatTokens(item.tokens))+'</span><br/>'+
-            '<span style="color:#cdd6cf">'+esc(t('费用'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatMoney(item.cost))+'</span><br/>'+
-            '<span style="color:#cdd6cf">'+esc(t('占比'))+'</span><span style="float:right;margin-left:20px">'+param.percent.toFixed(1)+'%</span>';
+            '<span style="color:'+ct.tooltipMuted+'">'+esc(t('次数'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(item.requests.toLocaleString())+'</span><br/>'+
+            '<span style="color:'+ct.tooltipMuted+'">Token</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatTokens(item.tokens))+'</span><br/>'+
+            '<span style="color:'+ct.tooltipMuted+'">'+esc(t('费用'))+'</span><span style="float:right;margin-left:20px;font-weight:700">'+esc(formatMoney(item.cost))+'</span><br/>'+
+            '<span style="color:'+ct.tooltipMuted+'">'+esc(t('占比'))+'</span><span style="float:right;margin-left:20px">'+param.percent.toFixed(1)+'%</span>';
         },
       },
       series: [{
         name: modelShareCenterLabel(metric),
         type: 'pie',
-        radius: ['42%', '66%'],
+        radius: ['46%', '70%'],
         center: ['50%', '50%'],
         minAngle: 3,
         avoidLabelOverlap: true,
-        itemStyle: { borderColor: '#fff', borderWidth: 3, borderRadius: 4 },
+        itemStyle: { borderColor: ct.panel, borderWidth: 3, borderRadius: 4 },
         label: {
           show: true,
           position: 'center',
           formatter: '{total|' + formatModelShareCenter(metricTotal, metric) + '}\n{caption|' + modelShareCenterLabel(metric) + '}',
           rich: {
-            total: { color: '#1f2922', fontSize: 18, fontWeight: 700, lineHeight: 24 },
-            caption: { color: '#5f6a61', fontSize: 11, fontWeight: 600, lineHeight: 16 },
+            total: { color: ct.ink, fontSize: 18, fontWeight: 700, lineHeight: 24 },
+            caption: { color: ct.muted, fontSize: 11, fontWeight: 600, lineHeight: 16 },
           },
         },
         labelLine: { show: false },
-        emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(31,41,34,.18)' } },
+        emphasis: { scale: true, scaleSize: 7, itemStyle: { shadowBlur: 12, shadowColor: 'rgba(15,23,42,.18)' } },
         data: models.map(item => ({ name: item.model, value: modelShareMetricValue(item, metric), item })),
       }],
     }, {
@@ -5600,10 +5679,10 @@
     const icons = {
       codex: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.503 0H4.496A4.496 4.496 0 000 4.496v15.007A4.496 4.496 0 004.496 24h15.007A4.496 4.496 0 0024 19.503V4.496A4.496 4.496 0 0019.503 0z" fill="#fff"/><path d="M9.064 3.344a4.578 4.578 0 012.285-.312c1 .115 1.891.54 2.673 1.275.01.01.024.017.037.021a.09.09 0 00.043 0 4.55 4.55 0 013.046.275l.047.022.116.057a4.581 4.581 0 012.188 2.399c.209.51.313 1.041.315 1.595a4.24 4.24 0 01-.134 1.223.123.123 0 00.03.115c.594.607.988 1.33 1.183 2.17.289 1.425-.007 2.71-.887 3.854l-.136.166a4.548 4.548 0 01-2.201 1.388.123.123 0 00-.081.076c-.191.551-.383 1.023-.74 1.494-.9 1.187-2.222 1.846-3.711 1.838-1.187-.006-2.239-.44-3.157-1.302a.107.107 0 00-.105-.024c-.388.125-.78.143-1.204.138a4.441 4.441 0 01-1.945-.466 4.544 4.544 0 01-1.61-1.335c-.152-.202-.303-.392-.414-.617a5.81 5.81 0 01-.37-.961 4.582 4.582 0 01-.014-2.298.124.124 0 00.006-.056.085.085 0 00-.027-.048 4.467 4.467 0 01-1.034-1.651 3.896 3.896 0 01-.251-1.192 5.189 5.189 0 01.141-1.6c.337-1.112.982-1.985 1.933-2.618.212-.141.413-.251.601-.33.215-.089.43-.164.646-.227a.098.098 0 00.065-.066 4.51 4.51 0 01.829-1.615 4.535 4.535 0 011.837-1.388zm3.482 10.565a.637.637 0 000 1.272h3.636a.637.637 0 100-1.272h-3.636zM8.462 9.23a.637.637 0 00-1.106.631l1.272 2.224-1.266 2.136a.636.636 0 101.095.649l1.454-2.455a.636.636 0 00.005-.64L8.462 9.23z" fill="url(#auth-codex-fill)"/><defs><linearGradient id="auth-codex-fill" x1="12" x2="12" y1="3" y2="21" gradientUnits="userSpaceOnUse"><stop stop-color="#B1A7FF"/><stop offset=".5" stop-color="#7A9DFF"/><stop offset="1" stop-color="#3941FF"/></linearGradient></defs></svg>',
       claude: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#D97757" fill-rule="nonzero" d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z"/></svg>',
-      antigravity: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd"><path d="M21.751 22.607c1.34 1.005 3.35.335 1.508-1.508C17.73 15.74 18.904 1 12.037 1 5.17 1 6.342 15.74.815 21.1c-2.01 2.009.167 2.511 1.507 1.506 5.192-3.517 4.857-9.714 9.715-9.714 4.857 0 4.522 6.197 9.714 9.715z"/></svg>',
+      antigravity: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M20.5 20.5c1.1.85 2.4-.15 1.3-1.65C17.1 12.1 16.4 2.6 12 2.6S6.9 12.1 2.2 18.85c-1.1 1.5.2 2.5 1.3 1.65 4.2-3.2 4.6-8.6 8.5-8.6s4.3 5.4 8.5 8.6Z"/></svg>',
       kimi: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="6" fill="#fff"/><path d="M21.846 0a1.923 1.923 0 110 3.846H20.15a.226.226 0 01-.227-.226V1.923C19.923.861 20.784 0 21.846 0z" fill="#1783FF"/><path d="M11.065 11.199l7.257-7.2c.137-.136.06-.41-.116-.41H14.3a.164.164 0 00-.117.051l-7.82 7.756c-.122.12-.302.013-.302-.179V3.82c0-.127-.083-.23-.185-.23H3.186c-.103 0-.186.103-.186.23V19.77c0 .128.083.23.186.23h2.69c.103 0 .186-.102.186-.23v-3.25c0-.069.025-.135.069-.178l2.424-2.406a.158.158 0 01.205-.023l6.484 4.772a7.677 7.677 0 003.453 1.283c.108.012.2-.095.2-.23v-3.06c0-.117-.07-.212-.164-.227a5.028 5.028 0 01-2.027-.807l-5.613-4.064c-.117-.078-.132-.279-.028-.381z" fill="#000"/></svg>',
       xai: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" fill-rule="evenodd"><path d="M6.469 8.776L16.512 23h-4.464L2.005 8.776H6.47zm-.004 7.9l2.233 3.164L6.467 23H2l4.465-6.324zM22 2.582V23h-3.659V7.764L22 2.582zM22 1l-9.952 14.095-2.233-3.163L17.533 1H22z"/></svg>',
-      default: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="8" r="2.7"/><path d="M8.7 8h5M11.4 8v2.4"/></svg>'
+      default: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.8" cy="14.2" r="3.8"/><path d="M11.6 11.4L19 4M16.5 6.5l2.2 2.2M14.2 8.8l1.8 1.8"/></svg>'
     };
     const key = String(provider || '').toLowerCase();
     const map = { openai: 'codex', chatgpt: 'codex', anthropic: 'claude', google: 'antigravity', gemini: 'antigravity', moonshot: 'kimi', grok: 'xai' };
@@ -6118,7 +6197,7 @@
       const models = Array.isArray(authQuotaValue(schedule, 'models')) ? authQuotaValue(schedule, 'models') : [];
       const frequency = authQuotaValue(schedule, 'frequency') === 'weekly' ? 'weekly' : (authQuotaValue(schedule, 'frequency') === 'once' ? 'once' : 'daily');
       const weekday = authWarmupWeekdayValues(schedule);
-      return '<article class="auth-warmup-task" data-schedule-id="'+esc(id)+'"><header class="auth-warmup-task-head"><div class="auth-warmup-task-title"><span class="auth-warmup-task-index">'+String(index + 1).padStart(2, '0')+'</span><input class="auth-warmup-task-name" value="'+esc(name)+'" aria-label="任务名称"/></div><div class="auth-warmup-task-actions"><label class="auth-warmup-task-toggle" title="启用此任务"><input class="auth-warmup-task-enabled" type="checkbox" role="switch"'+(authQuotaValue(schedule, 'enabled') ? ' checked' : '')+'/><i aria-hidden="true"></i></label><button type="button" class="icon-btn auth-warmup-task-delete" title="删除任务" aria-label="删除 '+esc(name)+'"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 4.55h9.6M6.05 2.7h3.9v1.85H6.05z"/><path d="M5.05 4.55l.52 7.7c.05.66.58 1.15 1.24 1.15h2.38c.66 0 1.19-.49 1.24-1.15l.52-7.7"/><path d="M6.8 6.9v4.15M9.2 6.9v4.15"/></svg></button></div></header><div class="auth-warmup-task-grid"><label><span>频率</span><select class="auth-warmup-task-frequency" aria-label="频率">'+authWarmupFrequencyOptions(frequency)+'</select></label><label class="auth-warmup-task-weekday"><span>星期</span><select class="auth-warmup-task-weekdays" multiple data-empty-text="选择星期" aria-label="星期">'+authWarmupWeekdayOptions(weekday)+'</select></label><label><span>时区</span><select class="auth-warmup-task-timezone" aria-label="时区">'+authWarmupTimezoneOptions(authQuotaValue(schedule, 'timezone') || 'Asia/Shanghai')+'</select></label><label class="auth-warmup-task-datetime"><span>预热时间</span><input class="auth-warmup-task-warmup-datetime" type="datetime-local" value="'+esc(authWarmupDateTimeValue(schedule))+'"/></label><label class="auth-warmup-task-clock"><span>预热时间</span><input class="auth-warmup-task-warmup-at" type="time" value="'+esc(authQuotaValue(schedule, 'warmup_at') || '03:50')+'"/></label></div><div class="auth-warmup-task-pickers"><label><span>认证文件</span><select class="auth-warmup-task-auths" multiple data-empty-text="选择认证文件" aria-label="认证文件">'+authWarmupAuthSelectOptions(auths)+'</select></label><label><span>预热模型</span><select class="auth-warmup-task-models" multiple data-empty-text="选择预热模型" aria-label="预热模型">'+authWarmupSelectOptions(authWarmupModelOptions(models), models)+'</select></label></div><footer><span class="auth-warmup-task-summary"></span><span>每认证仅预热一个匹配模型</span></footer></article>';
+      return '<article class="auth-warmup-task" data-schedule-id="'+esc(id)+'"><header class="auth-warmup-task-head"><div class="auth-warmup-task-title"><span class="auth-warmup-task-index">'+String(index + 1).padStart(2, '0')+'</span><input class="auth-warmup-task-name" value="'+esc(name)+'" aria-label="任务名称"/></div><div class="auth-warmup-task-actions"><label class="auth-warmup-task-toggle" title="启用此任务"><input class="auth-warmup-task-enabled" type="checkbox" role="switch"'+(authQuotaValue(schedule, 'enabled') ? ' checked' : '')+'/><i aria-hidden="true"></i></label><button type="button" class="icon-btn auth-warmup-task-delete" title="删除任务" aria-label="删除 '+esc(name)+'">'+uiIcon('trash')+'</button></div></header><div class="auth-warmup-task-grid"><label><span>频率</span><select class="auth-warmup-task-frequency" aria-label="频率">'+authWarmupFrequencyOptions(frequency)+'</select></label><label class="auth-warmup-task-weekday"><span>星期</span><select class="auth-warmup-task-weekdays" multiple data-empty-text="选择星期" aria-label="星期">'+authWarmupWeekdayOptions(weekday)+'</select></label><label><span>时区</span><select class="auth-warmup-task-timezone" aria-label="时区">'+authWarmupTimezoneOptions(authQuotaValue(schedule, 'timezone') || 'Asia/Shanghai')+'</select></label><label class="auth-warmup-task-datetime"><span>预热时间</span><input class="auth-warmup-task-warmup-datetime" type="datetime-local" value="'+esc(authWarmupDateTimeValue(schedule))+'"/></label><label class="auth-warmup-task-clock"><span>预热时间</span><input class="auth-warmup-task-warmup-at" type="time" value="'+esc(authQuotaValue(schedule, 'warmup_at') || '03:50')+'"/></label></div><div class="auth-warmup-task-pickers"><label><span>认证文件</span><select class="auth-warmup-task-auths" multiple data-empty-text="选择认证文件" aria-label="认证文件">'+authWarmupAuthSelectOptions(auths)+'</select></label><label><span>预热模型</span><select class="auth-warmup-task-models" multiple data-empty-text="选择预热模型" aria-label="预热模型">'+authWarmupSelectOptions(authWarmupModelOptions(models), models)+'</select></label></div><footer><span class="auth-warmup-task-summary"></span><span>每认证仅预热一个匹配模型</span></footer></article>';
     }).join('');
     initCustomControls(list);
     list.querySelectorAll('.auth-warmup-task').forEach(card => {

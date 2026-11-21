@@ -20,6 +20,11 @@
     } catch (_) { return raw; }
   }
   try {
+    if (window.self !== window.top) root.classList.add('cm-embedded');
+  } catch (_) {
+    root.classList.add('cm-embedded');
+  }
+  try {
     var theme = String(stored('cli-proxy-theme', 'theme') || 'auto').toLowerCase();
     if (['auto', 'white', 'light', 'dark'].indexOf(theme) < 0) theme = 'auto';
     var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -144,21 +149,21 @@
           <b id="usdCnyRate" data-no-i18n>—</b>
           <span>CNY</span>
         </span>
-        <button class="btn ghost connection-trigger" id="btnOpenConnection"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg>连接设置</button>
-        <button class="btn primary" id="btnRefresh"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新</button>
+        <button class="btn ghost connection-trigger" id="btnOpenConnection"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.6 7.4l2.9-2.9M9.9 4.7l2.9-2.9"/><path d="M6.6 6.2l7.2 7.2"/><path d="M7.6 7.2L5.4 9.4a3.3 3.3 0 0 0 4.7 4.7l2.2-2.2"/><path d="M5.4 14.6L3 17"/></svg>连接设置</button>
+        <button class="btn primary" id="btnRefresh"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg>刷新</button>
       </div>
     </header>
 
     <div id="flash" class="flash" role="status" aria-live="polite" aria-atomic="true">
       <div class="flash-message" id="flashMessage"></div>
-      <button type="button" class="flash-close" id="btnCloseFlash" aria-label="关闭提示"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+      <button type="button" class="flash-close" id="btnCloseFlash" aria-label="关闭提示"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
     </div>
 
     <div class="modal-backdrop" id="connectionModal" aria-hidden="true">
       <section class="connection-modal" role="dialog" aria-modal="true" aria-labelledby="connectionModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 2.5v3M10.5 2.5v3M3.9 5.5h8.2v2.3a4.1 4.1 0 0 1-8.2 0z"/><path d="M8 11.9v1.6"/></svg></span>连接设置</h2><p class="hint">不勾选「记住密钥」仅保留在当前标签页；不勾选「自定义 API 地址」仅连接当前站点。</p></div>
-          <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+          <div><h2 class="panel-title" id="connectionModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M12.6 7.4l2.9-2.9M9.9 4.7l2.9-2.9"/><path d="M6.6 6.2l7.2 7.2"/><path d="M7.6 7.2L5.4 9.4a3.3 3.3 0 0 0 4.7 4.7l2.2-2.2"/><path d="M5.4 14.6L3 17"/></svg></span>连接设置</h2><p class="hint">不勾选「记住密钥」仅保留在当前标签页；不勾选「自定义 API 地址」仅连接当前站点。</p></div>
+          <button class="modal-close" id="btnCloseConnection" aria-label="关闭连接设置"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
         </div>
         <div class="modal-body">
           <div class="connection-form">
@@ -179,13 +184,11 @@
       </section>
     </div>
 
-    </div>
-
     <div class="modal-backdrop" id="keyModal" aria-hidden="true">
       <section class="connection-modal key-modal" role="dialog" aria-modal="true" aria-labelledby="keyModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>添加密钥</h2><p class="hint" id="keyModalHint"></p></div>
-          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭密钥弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+          <div><h2 class="panel-title" id="keyModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.8" cy="13.2" r="3.4"/><path d="M9.2 10.8L16.2 3.8M14 6l1.9 1.9M12 8l1.5 1.5"/></svg></span>添加密钥</h2><p class="hint" id="keyModalHint"></p></div>
+          <button class="modal-close" id="btnCloseKeyModal" aria-label="关闭密钥弹窗"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="keyModalMode" value="create"/>
@@ -329,8 +332,8 @@
     <div class="modal-backdrop" id="priceModal" aria-hidden="true">
       <section class="connection-modal price-modal" role="dialog" aria-modal="true" aria-labelledby="priceModalTitle">
         <div class="modal-header">
-          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint" id="modelPriceStatus"></p></div>
-          <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+          <div><h2 class="panel-title" id="priceModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M3.2 8.9V4.8a1.6 1.6 0 0 1 1.6-1.6h4.1a1.6 1.6 0 0 1 1.13.47l6.2 6.2a1.6 1.6 0 0 1 0 2.26l-4.1 4.1a1.6 1.6 0 0 1-2.26 0l-6.2-6.2a1.6 1.6 0 0 1-.47-1.13Z"/><circle cx="6.8" cy="6.8" r="1.15" fill="currentColor" stroke="none"/></svg></span>新增价格规则</h2><p class="hint" id="modelPriceStatus"></p></div>
+          <button class="modal-close" id="btnClosePriceModal" aria-label="关闭价格规则弹窗"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
         </div>
         <div class="modal-body">
           <input type="hidden" id="priceModalMode" value="create"/>
@@ -424,18 +427,18 @@
 
     <div class="workspace-content">
       <div class="tabs" id="tabs">
-        <button class="tab active" data-tab="overview"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.6 11.8a5.8 5.8 0 1 1 10.8 0"/><path d="M8 9.4 10.7 6.7"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M2.6 13.8h10.8"/></svg>概览</button>
-        <button class="tab" data-tab="keys"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg>密钥管理</button>
-        <button class="tab" data-tab="pricing"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.2V3.4a.9.9 0 0 1 .9-.9h3.8a1.6 1.6 0 0 1 1.1.5l5.2 5.2a1.6 1.6 0 0 1 0 2.3l-3.6 3.6a1.6 1.6 0 0 1-2.3 0L3 8.3a1.6 1.6 0 0 1-.5-1.1z"/><circle cx="5.7" cy="5.7" r=".9" fill="currentColor" stroke="none"/></svg>模型价格</button>
-        <button class="tab" data-tab="usage"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 13.5h11"/><path d="M4.2 13.2V8.4M7.6 13.2V4.2M11 13.2V6.4"/></svg>使用统计</button>
-        <button class="tab" data-tab="auth-quotas"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg>认证额度</button>
+        <button class="tab active" data-tab="overview"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 14.8a7.2 7.2 0 1 1 11.6 0"/><path d="M10 11.2l3.1-3.1"/><circle cx="10" cy="11.2" r="1.4" fill="currentColor" stroke="none"/><path d="M6.4 16.4h7.2"/></svg>概览</button>
+        <button class="tab" data-tab="keys"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6.8" cy="13.2" r="3.4"/><path d="M9.2 10.8L16.2 3.8M14 6l1.9 1.9M12 8l1.5 1.5"/></svg>密钥管理</button>
+        <button class="tab" data-tab="pricing"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 8.9V4.8a1.6 1.6 0 0 1 1.6-1.6h4.1a1.6 1.6 0 0 1 1.13.47l6.2 6.2a1.6 1.6 0 0 1 0 2.26l-4.1 4.1a1.6 1.6 0 0 1-2.26 0l-6.2-6.2a1.6 1.6 0 0 1-.47-1.13Z"/><circle cx="6.8" cy="6.8" r="1.15" fill="currentColor" stroke="none"/></svg>模型价格</button>
+        <button class="tab" data-tab="usage"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 4v11.2a1.3 1.3 0 0 0 1.3 1.3h11.7"/><path d="M7.7 13.2V9.8M11.1 13.2V5.6M14.5 13.2V7.8"/></svg>使用统计</button>
+        <button class="tab" data-tab="auth-quotas"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.7L15.8 5v4.3c0 3.7-2.45 6.85-5.8 8-3.35-1.15-5.8-4.3-5.8-8V5L10 2.7Z"/><path d="M7.4 10.1l1.8 1.8 3.5-3.6"/></svg>认证额度</button>
       </div>
 
   <section id="tab-overview" class="tabpane">
     <div class="card filter-card overview-filter-card">
       <div class="filter-heading">
         <div>
-          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>筛选</h2>
+          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 4.2h13.2a.7.7 0 0 1 .54 1.15L12 11.3v4.1a.85.85 0 0 1-.46.75l-2.3 1.2a.6.6 0 0 1-.88-.53v-5.5L2.86 5.35a.7.7 0 0 1 .54-1.15Z"/></svg></span>筛选</h2>
         </div>
         <span class="overview-filter-state" id="overviewFilterState">今日</span>
       </div>
@@ -493,7 +496,7 @@
       <div class="overview-trends-column">
         <div class="card overview-trend-card">
           <div class="section-heading">
-            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.4 13.3h11.2"/><path d="M5 13.2V8.2M8 13.2V4.4M11 13.2V6.6" stroke-width="2.1"/></svg></span>Token 趋势</h2><p class="hint" id="overviewTrendHint"></p></div>
+            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4v11.2a1.3 1.3 0 0 0 1.3 1.3h11.7"/><path d="M7.7 13.2V9.8M11.1 13.2V5.6M14.5 13.2V7.8"/></svg></span>Token 趋势</h2><p class="hint" id="overviewTrendHint"></p></div>
             <div class="unit-switch trend-grain-switch" data-trend-chart="token" role="group" aria-label="Token 趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
@@ -505,7 +508,7 @@
         </div>
         <div class="card overview-trend-card">
           <div class="section-heading">
-            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v6M6.2 6.3h3.6M6.2 9.7h3.6"/></svg></span>费用趋势</h2><p class="hint" id="overviewCostTrendHint"></p></div>
+            <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 5.4v9.2"/><path d="M12.2 7.7c-.4-.7-1.25-1.05-2.2-1.05-1.3 0-2.2.65-2.2 1.55 0 2 4.4 1 4.4 3.1 0 .9-.9 1.65-2.2 1.65-1.05 0-1.9-.4-2.3-1.15"/></svg></span>费用趋势</h2><p class="hint" id="overviewCostTrendHint"></p></div>
             <div class="unit-switch trend-grain-switch" data-trend-chart="cost" role="group" aria-label="费用趋势时间维度">
               <button type="button" data-trend-grain="hour">时</button>
               <button type="button" data-trend-grain="day" class="active">日</button>
@@ -518,7 +521,7 @@
       </div>
       <div class="card overview-share-card">
         <div class="section-heading">
-          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.6"/><path fill="currentColor" stroke="none" d="M8 8V2.4A5.6 5.6 0 0 1 13.4 10.4Z"/></svg></span>模型占比</h2></div>
+          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M9.2 4.8a6 6 0 1 0 6 6h-6v-6Z"/><path d="M11.6 3.2a5.2 5.2 0 0 1 5.2 5.2h-5.2V3.2Z"/></svg></span>模型占比</h2></div>
           <div class="overview-model-tools">
             <div class="unit-switch" id="modelShareMetricSwitch" role="group" aria-label="模型占比指标">
               <button type="button" data-model-metric="requests" class="active">次数</button>
@@ -535,7 +538,7 @@
       </div>
       <div class="card overview-rank-card">
         <div class="section-heading">
-          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 2.5h5.6v3.5a2.8 2.8 0 0 1-5.6 0z"/><path d="M5.2 3.6H3.3a1.9 1.9 0 0 0 1.9 3M10.8 3.6h1.9a1.9 1.9 0 0 1-1.9 3M8 8.8v2.3M5.5 13.4h5"/></svg></span>模型效率排行</h2></div>
+          <div><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 3.5h7.6v4.6a3.8 3.8 0 0 1-7.6 0V3.5Z"/><path d="M6.2 4.7H4.4a1.6 1.6 0 0 0-1.6 1.6v.4a2.4 2.4 0 0 0 2.4 2.4h1.1M13.8 4.7h1.8a1.6 1.6 0 0 1 1.6 1.6v.4a2.4 2.4 0 0 1-2.4 2.4h-1.1M10 11.9v4.4M6.8 16.5h6.4"/></svg></span>模型效率排行</h2></div>
           <div class="overview-model-tools">
             <div class="unit-switch" id="modelRankMetricSwitch" role="group" aria-label="模型效率指标">
               <button type="button" data-rank-metric="value" class="active">性价比</button>
@@ -555,13 +558,13 @@
     <div class="card keys-card">
       <div class="section-heading list-header keys-list-header">
         <div class="list-heading">
-          <div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>密钥</h2><span class="list-count" id="keysCount"></span></div>
+          <div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.8" cy="13.2" r="3.4"/><path d="M9.2 10.8L16.2 3.8M14 6l1.9 1.9M12 8l1.5 1.5"/></svg></span>密钥</h2><span class="list-count" id="keysCount"></span></div>
         </div>
         <div class="keys-list-tools">
-          <div class="list-search"><input id="keyNameFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索标签" aria-label="搜索密钥标签"/><button class="list-search-clear" type="button" data-clear-search="keyNameFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div>
-          <button class="btn ghost" id="btnResetSelectedKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg><span id="selectedKeyResetLabel">重置已选额度</span></button>
-          <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>重置全部额度</button>
-          <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>添加密钥</button>
+          <div class="list-search"><input id="keyNameFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索标签" aria-label="搜索密钥标签"/><button class="list-search-clear" type="button" data-clear-search="keyNameFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button></div>
+          <button class="btn ghost" id="btnResetSelectedKeySpend" type="button" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg><span id="selectedKeyResetLabel">重置已选额度</span></button>
+          <button class="btn ghost" id="btnResetAllKeySpend" type="button" disabled><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg>重置全部额度</button>
+          <button class="btn primary" id="btnOpenCreateKey"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M10 4.2v11.6M4.2 10h11.6"/></svg>添加密钥</button>
         </div>
       </div>
       <div id="keysTable"></div>
@@ -572,7 +575,7 @@
   <section id="tab-pricing" class="tabpane hidden">
     <div class="pricing-layout">
     <div class="card list-card">
-      <div class="section-heading list-header pricing-list-header"><div class="list-heading"><div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>模型列表</h2><span class="list-count" id="modelCatalogCount"></span></div><p class="hint" id="modelCatalogStatus">禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="pricing-list-tools"><div class="list-search"><input id="pricingModelFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索模型 ID" aria-label="搜索模型 ID"/><button class="list-search-clear" type="button" data-clear-search="pricingModelFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5 5 6 6m0-6-6 6"/></svg></button></div><button class="btn primary" id="btnLoadModelCatalog"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><ellipse cx="8" cy="3.6" rx="5.4" ry="1.9"/><path d="M2.6 3.6v8.8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9V3.6M2.6 8c0 1 2.4 1.9 5.4 1.9s5.4-.9 5.4-1.9"/></svg>加载模型</button></div></div>
+      <div class="section-heading list-header pricing-list-header"><div class="list-heading"><div class="list-heading-title"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="10" height="10" rx="2"/><rect x="7.8" y="7.8" width="4.4" height="4.4" rx=".8"/><path d="M7.8 5V2.6M12.2 5V2.6M7.8 17.4V15M12.2 17.4V15M5 7.8H2.6M5 12.2H2.6M17.4 7.8H15M17.4 12.2H15"/></svg></span>模型列表</h2><span class="list-count" id="modelCatalogCount"></span></div><p class="hint" id="modelCatalogStatus">禁用后无法调用，也不会出现在客户端模型列表中。</p></div><div class="pricing-list-tools"><div class="list-search"><input id="pricingModelFilter" type="text" autocomplete="off" enterkeyhint="search" placeholder="搜索模型 ID" aria-label="搜索模型 ID"/><button class="list-search-clear" type="button" data-clear-search="pricingModelFilter" aria-label="清除搜索" title="清除搜索" hidden><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button></div><button class="btn primary" id="btnLoadModelCatalog"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="10" cy="5.2" rx="6.2" ry="2.2"/><path d="M3.8 5.2v9.6c0 1.22 2.78 2.2 6.2 2.2s6.2-.98 6.2-2.2V5.2M3.8 10c0 1.22 2.78 2.2 6.2 2.2s6.2-.98 6.2-2.2"/></svg>加载模型</button></div></div>
       <div id="pricingTable"></div>
       <div class="usage-pagination table-pagination" id="pricingPagination"></div>
     </div>
@@ -583,7 +586,7 @@
     <div class="card filter-card">
       <div class="filter-heading">
         <div>
-          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg></span>筛选</h2>
+          <h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 4.2h13.2a.7.7 0 0 1 .54 1.15L12 11.3v4.1a.85.85 0 0 1-.46.75l-2.3 1.2a.6.6 0 0 1-.88-.53v-5.5L2.86 5.35a.7.7 0 0 1 .54-1.15Z"/></svg></span>筛选</h2>
         </div>
         <span class="filter-state" id="usageFilterState">今日</span>
       </div>
@@ -651,15 +654,15 @@
     <div class="grid stats" id="usageStats"></div>
     <div class="usage-grid">
     <div class="card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.6" cy="10.4" r="3.1"/><path d="m7.9 8.1 5.2-5.2M10.7 5.3l1.9 1.9M12.5 3.5l1.7 1.7"/></svg></span>按密钥</h2><span class="muted" id="usageByKeyCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.8" cy="13.2" r="3.4"/><path d="M9.2 10.8L16.2 3.8M14 6l1.9 1.9M12 8l1.5 1.5"/></svg></span>按密钥</h2><span class="muted" id="usageByKeyCount"></span></div>
       <div id="usageByKey"></div>
     </div>
     <div class="card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.6"/><rect x="6.4" y="6.4" width="3.2" height="3.2" rx=".8"/><path d="M6.5 4V2.2M9.5 4V2.2M6.5 13.8V12M9.5 13.8V12M4 6.5H2.2M4 9.5H2.2M13.8 6.5H12M13.8 9.5H12"/></svg></span>按模型</h2><span class="muted" id="usageByModelCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="10" height="10" rx="2"/><rect x="7.8" y="7.8" width="4.4" height="4.4" rx=".8"/><path d="M7.8 5V2.6M12.2 5V2.6M7.8 17.4V15M12.2 17.4V15M5 7.8H2.6M5 12.2H2.6M17.4 7.8H15M17.4 12.2H15"/></svg></span>按模型</h2><span class="muted" id="usageByModelCount"></span></div>
       <div id="usageByModel"></div>
     </div>
     <div class="card usage-recent-card">
-      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.4 4h8M5.4 8h8M5.4 12h8"/><circle cx="2.7" cy="4" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r=".9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r=".9" fill="currentColor" stroke="none"/></svg></span>明细</h2><span class="muted" id="usageRecentCount"></span></div>
+      <div class="section-heading"><h2 class="panel-title"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5.5h8.8M7.5 10h8.8M7.5 14.5h8.8"/><circle cx="4.2" cy="5.5" r="1.05" fill="currentColor" stroke="none"/><circle cx="4.2" cy="10" r="1.05" fill="currentColor" stroke="none"/><circle cx="4.2" cy="14.5" r="1.05" fill="currentColor" stroke="none"/></svg></span>明细</h2><span class="muted" id="usageRecentCount"></span></div>
       <div id="usageRecent"></div>
       <div class="usage-pagination" id="usagePagination"></div>
     </div>
@@ -683,12 +686,12 @@
           <span>批量并发</span>
           <input id="authQuotaBatchConcurrency" type="number" min="0" step="1" inputmode="numeric" placeholder="不限" title="最大并发，0 或留空为不限"/>
         </label>
-        <button type="button" class="btn" id="btnAuthQuotaBatchPage" title="应用本页" aria-label="应用本页"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><path d="m5.6 8.2 1.7 1.7 3.1-3.5"/></svg>应用本页</button>
-        <button type="button" class="btn ghost" id="btnAuthQuotaBatchFilter" title="应用筛选" aria-label="应用筛选"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 3.5h11L9.3 8.4v3.4l-2.6 1.4V8.4z"/></svg>应用筛选</button>
+        <button type="button" class="btn" id="btnAuthQuotaBatchPage" title="应用本页" aria-label="应用本页"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.2" y="3.2" width="13.6" height="13.6" rx="3"/><path d="M6.8 10.2l2.1 2.1 4.3-4.5"/></svg>应用本页</button>
+        <button type="button" class="btn ghost" id="btnAuthQuotaBatchFilter" title="应用筛选" aria-label="应用筛选"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.4 4.2h13.2a.7.7 0 0 1 .54 1.15L12 11.3v4.1a.85.85 0 0 1-.46.75l-2.3 1.2a.6.6 0 0 1-.88-.53v-5.5L2.86 5.35a.7.7 0 0 1 .54-1.15Z"/></svg>应用筛选</button>
       </div>
-      <button type="button" class="btn ghost" id="btnAuthRoutingSettings" title="选号策略与会话粘性"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg>路由策略</button>
-      <button type="button" class="btn ghost" id="btnAuthWarmupSettings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.3 1.8-4.6 6h3.45l-1.1 6.4 4.2-6H7.9l1.4-6.4Z"/></svg>预热设置</button>
-      <button type="button" class="btn" id="btnRefreshAuthQuotaPage" title="请求上游刷新本页额度"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg>刷新本页</button>
+      <button type="button" class="btn ghost" id="btnAuthRoutingSettings" title="选号策略与会话粘性"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4.8" cy="10" r="1.9"/><circle cx="15.2" cy="5.4" r="1.9"/><circle cx="15.2" cy="14.6" r="1.9"/><path d="M6.7 10C9.8 10 10.2 5.4 13.3 5.4M6.7 10C9.8 10 10.2 14.6 13.3 14.6"/></svg>路由策略</button>
+      <button type="button" class="btn ghost" id="btnAuthWarmupSettings"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.1 2.7L4.5 11h5l-.9 6.3L15.5 9h-5l.6-6.3Z"/></svg>预热设置</button>
+      <button type="button" class="btn" id="btnRefreshAuthQuotaPage" title="请求上游刷新本页额度"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg>刷新本页</button>
     </div>
     <div id="authQuotaList" class="auth-quota-list"></div>
     <div class="usage-pagination" id="authQuotaPagination"></div>
@@ -697,8 +700,8 @@
   <div class="modal-backdrop" id="resetSpendModal" aria-hidden="true">
     <section class="connection-modal reset-spend-modal" role="dialog" aria-modal="true" aria-labelledby="resetSpendModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 8A5.2 5.2 0 1 1 11.7 4.3M13.4 1.8v2.9h-2.9"/></svg></span>重置已用额度</h2><p class="hint">选择长周期会自动包含更短周期。</p></div>
-        <button class="modal-close" id="btnCloseResetSpendModal" aria-label="关闭重置确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+        <div><h2 class="panel-title" id="resetSpendModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M15.4 13.1a6.2 6.2 0 1 1-.3-6.6"/><path d="M15.6 3.5v3.3h-3.3"/></svg></span>重置已用额度</h2><p class="hint">选择长周期会自动包含更短周期。</p></div>
+        <button class="modal-close" id="btnCloseResetSpendModal" aria-label="关闭重置确认"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
       </div>
       <div class="modal-body reset-spend-body">
         <div class="reset-spend-target">
@@ -725,7 +728,7 @@
           </label>
         </fieldset>
         <div class="reset-spend-note" id="resetSpendNote">
-          <span class="reset-spend-note-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.7"/><path d="M8 7.2v3.4"/><circle cx="8" cy="5.1" r=".75" fill="currentColor" stroke="none"/></svg></span>
+          <span class="reset-spend-note-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 9.4v4.1"/><circle cx="10" cy="6.6" r="1.05" fill="currentColor" stroke="none"/></svg></span>
           <p>仅重置所选周期的已用统计，历史账本与上限配置保留。</p>
         </div>
         <p class="reset-spend-utc-note" id="resetSpendUtcNote">日、周、月将在下一个 UTC 边界恢复自然周期。</p>
@@ -742,8 +745,8 @@
   <div class="modal-backdrop" id="authQuotaBatchModal" aria-hidden="true">
     <section class="connection-modal auth-quota-batch-modal" role="dialog" aria-modal="true" aria-labelledby="authQuotaBatchModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authQuotaBatchModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.9 13 3.8v3.4c0 3.2-2 5.6-5 6.9-3-1.3-5-3.7-5-6.9V3.8z"/><path d="m5.9 7.8 1.5 1.5 2.7-3"/></svg></span>确认批量并发</h2></div>
-        <button class="modal-close" id="btnCloseAuthQuotaBatchModal" aria-label="关闭批量并发确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+        <div><h2 class="panel-title" id="authQuotaBatchModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.7L15.8 5v4.3c0 3.7-2.45 6.85-5.8 8-3.35-1.15-5.8-4.3-5.8-8V5L10 2.7Z"/><path d="M7.4 10.1l1.8 1.8 3.5-3.6"/></svg></span>确认批量并发</h2></div>
+        <button class="modal-close" id="btnCloseAuthQuotaBatchModal" aria-label="关闭批量并发确认"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
       </div>
       <div class="modal-body auth-quota-batch-body">
         <div class="auth-quota-batch-preview">
@@ -751,7 +754,7 @@
           <div><span>目标并发</span><strong id="authQuotaBatchValue"></strong></div>
         </div>
         <div class="auth-quota-batch-confirm-note">
-          <span class="auth-quota-batch-confirm-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.7"/><path d="M8 7.2v3.4"/><circle cx="8" cy="5.1" r=".75" fill="currentColor" stroke="none"/></svg></span>
+          <span class="auth-quota-batch-confirm-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="6.8"/><path d="M10 9.4v4.1"/><circle cx="10" cy="6.6" r="1.05" fill="currentColor" stroke="none"/></svg></span>
           <p>确认后立即覆盖目标认证；0 或留空为不限。</p>
         </div>
       </div>
@@ -768,8 +771,8 @@
   <div class="modal-backdrop" id="authRoutingModal" aria-hidden="true">
     <section class="connection-modal auth-routing-modal" role="dialog" aria-modal="true" aria-labelledby="authRoutingModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authRoutingModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.2" cy="4.2" r="1.7"/><circle cx="11.8" cy="4.2" r="1.7"/><circle cx="8" cy="11.8" r="1.7"/><path d="M5.6 4.8 6.7 9.4M10.4 4.8 9.3 9.4M5.9 11.2h4.2"/></svg></span>路由策略</h2><p class="hint">跳过已满与预热中的认证。</p></div>
-        <button class="modal-close" id="btnCloseAuthRoutingModal" aria-label="关闭路由策略"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+        <div><h2 class="panel-title" id="authRoutingModalTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.8" cy="10" r="1.9"/><circle cx="15.2" cy="5.4" r="1.9"/><circle cx="15.2" cy="14.6" r="1.9"/><path d="M6.7 10C9.8 10 10.2 5.4 13.3 5.4M6.7 10C9.8 10 10.2 14.6 13.3 14.6"/></svg></span>路由策略</h2><p class="hint">跳过已满与预热中的认证。</p></div>
+        <button class="modal-close" id="btnCloseAuthRoutingModal" aria-label="关闭路由策略"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
       </div>
       <div class="modal-body auth-routing-body">
         <div class="auth-routing-list" role="list">
@@ -814,8 +817,8 @@
   <div class="modal-backdrop" id="authWarmupSettingsModal" aria-hidden="true">
     <section class="connection-modal auth-warmup-settings-modal" role="dialog" aria-modal="true" aria-labelledby="authWarmupSettingsTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="authWarmupSettingsTitle">预热设置</h2><p class="hint">定时发送最小请求以提前触发滚动额度周期。</p></div>
-        <button class="modal-close" id="btnCloseAuthWarmupSettings" aria-label="关闭预热设置"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+        <div><h2 class="panel-title" id="authWarmupSettingsTitle"><span class="heading-icon" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M11.1 2.7L4.5 11h5l-.9 6.3L15.5 9h-5l.6-6.3Z"/></svg></span>预热设置</h2><p class="hint">定时发送最小请求以提前触发滚动额度周期。</p></div>
+        <button class="modal-close" id="btnCloseAuthWarmupSettings" aria-label="关闭预热设置"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
       </div>
       <div class="modal-body auth-warmup-settings-form">
         <div class="auth-warmup-intro"><div><strong>定时任务</strong><p>单次任务执行后自动停用。</p></div><button type="button" class="btn primary sm" id="btnAddAuthWarmupSchedule">添加任务</button></div>
@@ -829,8 +832,8 @@
   <div class="modal-backdrop" id="deleteKeyModal" aria-hidden="true">
     <section class="connection-modal delete-key-modal" role="dialog" aria-modal="true" aria-labelledby="deleteKeyModalTitle">
       <div class="modal-header">
-        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.8 4.2h10.4M6.4 4V3a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1M4.2 4.4l.6 8.2a1.4 1.4 0 0 0 1.4 1.3h3.6a1.4 1.4 0 0 0 1.4-1.3l.6-8.2M6.6 7v4M9.4 7v4"/></svg></span>删除密钥</h2><p class="hint">密钥将立即失效，历史记录保留。</p></div>
-        <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>
+        <div><h2 class="panel-title" id="deleteKeyModalTitle"><span class="heading-icon danger" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><path d="M3.8 5h12.4M7.8 4.9v-.8a1.3 1.3 0 0 1 1.3-1.3h1.8a1.3 1.3 0 0 1 1.3 1.3v.8"/><path d="M5.6 5l.65 10.3a1.6 1.6 0 0 0 1.6 1.5h4.3a1.6 1.6 0 0 0 1.6-1.5L14.4 5"/><path d="M8.4 8.4v5M11.6 8.4v5"/></svg></span>删除密钥</h2><p class="hint">密钥将立即失效，历史记录保留。</p></div>
+        <button class="modal-close" id="btnCloseDeleteKeyModal" aria-label="关闭删除确认"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" aria-hidden="true"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button>
       </div>
       <div class="modal-body">
         <p class="delete-key-target" id="deleteKeyTarget"></p>
