@@ -117,6 +117,10 @@
     '匹配多个密钥，请从搜索建议中选择完整项': { 'zh-TW':'匹配多個密鑰，請從搜尋建議中選擇完整項', en:'Multiple keys matched; select one from suggestions', ru:'Найдено несколько ключей; выберите из списка' },
     '匹配多个账号，请从搜索建议中选择完整项': { 'zh-TW':'匹配多個帳號，請從搜尋建議中選擇完整項', en:'Multiple accounts matched; select one from suggestions', ru:'Найдено несколько аккаунтов; выберите из списка' },
     '未知账号': { 'zh-TW':'未知帳號', en:'Unknown account', ru:'Неизвестный аккаунт' },
+    '未分配账号': { 'zh-TW':'未分配帳號', en:'Unassigned', ru:'Не назначен' },
+    '未分配到可用上游账号即结束': { 'zh-TW':'未分配到可用上游帳號即結束', en:'Ended before assigning an upstream account', ru:'Завершено до выбора апстрим-аккаунта' },
+    '客户端已取消': { 'zh-TW':'用戶端已取消', en:'Client cancelled', ru:'Отменено клиентом' },
+    '失败原因': { 'zh-TW':'失敗原因', en:'Failure reason', ru:'Причина сбоя' },
     '开始时间不能晚于结束时间': { 'zh-TW':'開始時間不能晚於結束時間', en:'Start time must precede end time', ru:'Начало не может быть позже конца' },
     '费用范围必须是非负数字': { 'zh-TW':'費用範圍必須是非負數字', en:'Cost range must be non-negative', ru:'Стоимость должна быть ≥ 0' },
 
@@ -2357,11 +2361,12 @@
     ['usageByModel', 'table'], ['usageRecent', 'table'], ['authQuotaList', 'authQuota'],
   ];
 
-  function dataSkeleton(kind) {
+  function dataSkeleton(kind, id) {
     const line = (width, extra) => '<span class="sk'+(extra ? ' '+extra : '')+'" style="--w:'+width+'"></span>';
     if (kind === 'stats') {
-      // Match loaded .stat layout: label line then value line, top-aligned in a short card.
-      return [0, 1, 2, 3, 4].map(() => '<div class="stat stat-skeleton data-skeleton" aria-hidden="true">'+line('42%')+line('58%', 'sk-lg')+'</div>').join('');
+      // Match loaded .stat layout and count: overview renders 5 cards, usage renders 4.
+      const cards = [0, 1, 2, 3, 4].map(() => '<div class="stat stat-skeleton data-skeleton" aria-hidden="true">'+line('42%')+line('58%', 'sk-lg')+'</div>');
+      return (id === 'usageStats' ? cards.slice(0, 4) : cards).join('');
     }
     if (kind === 'chart') {
       return '<div class="data-skeleton chart-skeleton" aria-hidden="true"><span class="sk sk-chart"></span></div>';
@@ -2424,7 +2429,7 @@
         if (!state.authQuotas) showAuthQuotaSkeleton();
         return;
       }
-      target.innerHTML = dataSkeleton(kind);
+      target.innerHTML = dataSkeleton(kind, id);
     });
   }
 
@@ -4970,6 +4975,7 @@
     if (filter.auth_id || filter.auth_index || filter.auth_account) filterLabels.push('账号');
     if (filter.model) filterLabels.push('模型: ' + filter.model);
     if (filter.source) filterLabels.push('来源: ' + filter.source);
+    if (filter.result) filterLabels.push(t('结果') + ': ' + filter.result);
     if (filter.min_cost_micro_usd || filter.max_cost_micro_usd) filterLabels.push('费用范围');
     if (filter.min_tokens || filter.max_tokens) filterLabels.push('Token 范围');
     $('usageFilterState').textContent = filterLabels.length ? filterLabels.join(' · ') : '今日';
@@ -4991,16 +4997,59 @@
     });
     const cacheHit = u => Number(u.cache_read_tokens || 0) > 0 ? '是' : '否';
     const totalUsageTokens = u => usageTokens(u);
+    const isUnassignedUsageAuth = u => {
+      const result = String((u && u.result) || '').trim().toLowerCase();
+      const source = String((u && u.source) || '').trim().toLowerCase();
+      return result === 'failed' || result === 'cancelled' || source.startsWith('attempt_');
+    };
+    const parseUsageFailureSummary = u => {
+      const raw = String((u && u.settlement_summary) || '').trim();
+      const result = String((u && u.result) || '').trim().toLowerCase();
+      const source = String((u && u.source) || '').trim().toLowerCase();
+      if (!raw) return { raw: '', detail: '' };
+      if (result === 'success' && !source.startsWith('attempt_')) return { raw: '', detail: '' };
+      if (raw === 'missing_usage_pending_host' || raw === 'host_usage_callback' || raw.startsWith('format=')) {
+        return { raw: '', detail: '' };
+      }
+      const jsonStart = raw.indexOf('{');
+      if (jsonStart >= 0) {
+        try {
+          const parsed = JSON.parse(raw.slice(jsonStart));
+          const err = parsed && parsed.error && typeof parsed.error === 'object' ? parsed.error : parsed;
+          const code = String((err && (err.code || err.type)) || '').trim();
+          const msg = String((err && (err.message || err.last_upstream_error)) || '').trim();
+          const prefix = raw.slice(0, jsonStart).replace(/[:\s]+$/, '').trim();
+          return { raw, detail: [code, msg].filter(Boolean).join(' · ') || prefix || raw };
+        } catch (_) {}
+      }
+      if (raw === 'client_disconnected_before_upstream') {
+        return { raw, detail: t('客户端已取消') };
+      }
+      const cleaned = raw.replace(/^upstream_(?:stream_)?error:host_call_failed:\s*/i, '').trim() || raw;
+      return { raw, detail: cleaned };
+    };
     const usageAuthCell = u => {
       const provider = String(u.auth_provider || u.auth_type || '').trim();
       const account = String(u.auth_label || u.auth_email || u.auth_name || u.auth_id || u.auth_index || '').trim();
       const providerDisplay = formatProviderDisplay(provider);
       const accountDisplay = formatAuthAccount(account, provider, providerDisplay);
-      const display = formatAuthDisplay(provider, account) || t('未知账号');
-      const raw = [provider, account].filter(Boolean).join(' · ') || display;
+      const unassigned = !provider && !account && isUnassignedUsageAuth(u);
+      const fallback = unassigned ? t('未分配账号') : t('未知账号');
+      const display = formatAuthDisplay(provider, account) || fallback;
+      const raw = [provider, account].filter(Boolean).join(' · ') || (unassigned ? t('未分配到可用上游账号即结束') : display);
       const secondary = accountDisplay && providerDisplay && !sameAuthText(accountDisplay, providerDisplay) ? providerDisplay : '';
       const primary = accountDisplay || providerDisplay || display;
-      return '<td class="usage-key" title="'+esc(raw)+'"><div class="usage-key-label"><strong>'+esc(primary)+'</strong>'+(secondary ? '<div class="mono">'+esc(secondary)+'</div>' : '')+'</div></td>';
+      return '<td class="usage-key" title="'+esc(raw)+'"><div class="usage-key-label'+(unassigned ? ' is-unassigned' : '')+'"><strong>'+esc(primary)+'</strong>'+(secondary ? '<div class="mono">'+esc(secondary)+'</div>' : '')+'</div></td>';
+    };
+    const usageResultCell = u => {
+      const result = String(u.result || '').trim();
+      if (!result) return '<td class="usage-result">—</td>';
+      const normalized = result.toLowerCase();
+      const badgeClass = normalized === 'success' ? 'ok' : (normalized === 'cancelled' ? 'warn' : 'bad');
+      const parsed = parseUsageFailureSummary(u);
+      const title = parsed.raw ? t('失败原因') + ': ' + parsed.raw : result;
+      const detail = parsed.detail ? '<div class="usage-result-detail'+(normalized === 'cancelled' ? ' is-warn' : '')+'" title="'+esc(parsed.raw)+'">'+esc(parsed.detail)+'</div>' : '';
+      return '<td class="usage-result" title="'+esc(title)+'"><div class="usage-result-head"><span class="badge '+badgeClass+'">'+esc(result)+'</span></div>'+detail+'</td>';
     };
     const usageModelCell = u => {
       const model = String(u.model || '').trim() || '—';
@@ -5020,7 +5069,7 @@
         const settledCost = u.cost_micro_usd;
         const cell = (value) => '<td title="'+esc(tokenTitle(value))+'">'+esc(formatTokens(value))+'</td>';
         return '<tr><td class="mono" title="'+esc(u.created_at)+'">'+esc(formatDateTime(u.created_at))+'</td>'+usageAuthCell(u)+
-          usageModelCell(u)+'<td>'+esc(u.source || '—')+'</td><td class="mono">'+esc(u.executor_type || '—')+'</td><td>'+esc(u.result || '—')+'</td><td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
+          usageModelCell(u)+'<td>'+esc(u.source || '—')+'</td><td class="mono">'+esc(u.executor_type || '—')+'</td>'+usageResultCell(u)+'<td>'+esc(formatMilliseconds(u.first_token_latency_ms))+'</td><td>'+esc(formatMilliseconds(u.generation_duration_ms))+'</td><td>'+esc(formatTPS(u.tokens_per_second))+'</td><td>'+esc(u.thinking_intensity || '—')+'</td>'+
           cell(u.input_tokens || 0)+cell(u.output_tokens || 0)+cell(u.reasoning_tokens || 0)+cell(u.cache_read_tokens || 0)+cell(u.cache_creation_tokens || 0)+cell(totalUsageTokens(u))+
           '<td>'+esc(cacheHit(u))+'</td><td title="'+esc(moneyTitle(settledCost))+'">'+esc(formatMoney(settledCost))+'</td></tr>';
       }).join('') + '</tbody></table></div>' : emptyState('暂无数据');
@@ -5086,6 +5135,7 @@
       auth_account: auth.auth_account,
       model: value('usageModelFilter'),
       source: value('usageSourceFilter'),
+      result: value('usageResultFilter'),
       from: range.from,
       to: range.to,
       min_cost_micro_usd: toMicro('usageMinCost'),
@@ -7087,7 +7137,7 @@
   });
   $('btnClearUsageFilters').addEventListener('click', async () => {
     $('usageRangeFilter').value = 'today';
-    ['usageKeyFilter', 'usageAuthFilter', 'usageModelFilter', 'usageSourceFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
+    ['usageKeyFilter', 'usageAuthFilter', 'usageModelFilter', 'usageSourceFilter', 'usageResultFilter', 'usageFromFilter', 'usageToFilter', 'usageMinCost', 'usageMaxCost', 'usageMinTokens', 'usageMaxTokens'].forEach(id => { $(id).value = ''; });
     closeKeySearch('usage');
     closeAuthSearch('usage');
     refreshCustomControls();

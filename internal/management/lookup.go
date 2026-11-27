@@ -3,6 +3,7 @@ package management
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/yuluo688/credit-manager/internal/money"
@@ -228,10 +229,45 @@ func publicUsageView(entry store.UsageEntry) map[string]any {
 		"estimated_cost_micro_usd": entry.EstimatedCostMicroUSD,
 		"source":                   entry.Source,
 		"result":                   entry.Metrics.Result,
+		"failure_reason":           publicFailureReason(entry),
 		"first_token_latency_ms":   durationMilliseconds(entry.Metrics.FirstTokenLatency),
 		"generation_duration_ms":   durationMilliseconds(entry.Metrics.GenerationDuration),
 		"tokens_per_second":        entry.Metrics.TokensPerSecond,
 		"thinking_intensity":       entry.Metrics.ThinkingIntensity,
 		"created_at":               entry.CreatedAt,
+	}
+}
+
+// publicFailureReason maps internal settlement details to a coarse category so
+// public key lookup surfaces failure causes without leaking upstream or auth info.
+func publicFailureReason(entry store.UsageEntry) string {
+	result := ""
+	if entry.Metrics.Result != nil {
+		result = strings.ToLower(strings.TrimSpace(*entry.Metrics.Result))
+	}
+	if result != "failed" && result != "cancelled" {
+		return ""
+	}
+	if result == "cancelled" || entry.Source == service.SourceAttemptCancelled {
+		return "cancelled"
+	}
+	summary := strings.ToLower(strings.TrimSpace(entry.SettlementSummary))
+	switch {
+	case strings.Contains(summary, "model_cooldown"):
+		return "model_cooldown"
+	case strings.Contains(summary, "usage_limit_reached"), strings.Contains(summary, "rate_limit"), strings.Contains(summary, "http_429"):
+		return "upstream_rate_limit"
+	case strings.HasPrefix(summary, "model_disabled:"):
+		return "model_disabled"
+	case strings.HasPrefix(summary, "model_not_allowed:"):
+		return "model_not_allowed"
+	case strings.HasPrefix(summary, "limit_rejected:"), strings.HasPrefix(summary, "auth_concurrency:"), strings.HasPrefix(summary, "scheduler_reject:"):
+		return "limit_rejected"
+	case strings.HasPrefix(summary, "reserve_rejected:"):
+		return "reserve_rejected"
+	case strings.HasPrefix(summary, "upstream_"), strings.HasPrefix(summary, "bad_host_stream"), strings.HasPrefix(summary, "empty_stream_id"), strings.HasPrefix(summary, "image_failed"):
+		return "upstream_error"
+	default:
+		return "failed"
 	}
 }

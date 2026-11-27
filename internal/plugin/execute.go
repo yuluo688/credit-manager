@@ -86,7 +86,7 @@ func execute(raw []byte) ([]byte, error) {
 	completedAt := time.Now()
 	metrics := usageMetricsFromRequest(body, startedAt, completedAt, resultFromStatus(status))
 	if errHost != nil {
-		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, "upstream_error:"+errHost.Error())
+		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, formatAttemptError("upstream_error", errHost))
 		if isAuthConcurrencyError(errHost) {
 			return errorEnvelope("limit_rejected", errHost.Error()), nil
 		}
@@ -95,6 +95,7 @@ func execute(raw []byte) ([]byte, error) {
 	captureUpstreamResponseModel(svc, reservation.ID, hostBody, false)
 	if status >= 400 {
 		// Upstream executed; settle conservatively unless body has usage.
+		metrics.FailureReason = formatAttemptSummary("upstream_http_error", extractErrorSummary(hostBody, status))
 		parsed := usageparse.FromResponseBody(hostBody, req.SourceFormat)
 		if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, req.SourceFormat, metrics); settleErr != nil {
 			_ = svc.Release(ctx, reservation.ID, "settle_failed")
@@ -192,20 +193,21 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		HostCallbackID: req.HostCallbackID,
 	})
 	if err != nil {
-		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, "upstream_stream_error")
+		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, formatAttemptError("upstream_stream_error", err))
 		return err
 	}
 	var stream pluginapi.HostModelStreamResponse
 	if err := json.Unmarshal(raw, &stream); err != nil {
-		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, "bad_host_stream")
+		settleAttemptOrRelease(ctx, svc, reservation, plan.Model, "failed", service.SourceAttemptFailed, formatAttemptError("bad_host_stream", err))
 		return err
 	}
 	initialCompletedAt := time.Now()
 	if stream.StatusCode >= 400 {
 		_ = closeHostModelStream(stream.StreamID)
 		parsed := usageparse.Result{}
-		if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, req.SourceFormat,
-			usageMetricsFromStream(body, startedAt, time.Time{}, initialCompletedAt, "failed")); settleErr != nil {
+		metrics := usageMetricsFromStream(body, startedAt, time.Time{}, initialCompletedAt, "failed")
+		metrics.FailureReason = formatAttemptSummary("upstream_stream_status", httpStatusDetail(stream.StatusCode))
+		if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, req.SourceFormat, metrics); settleErr != nil {
 			_ = svc.Release(ctx, reservation.ID, "settle_failed")
 		}
 		return fmt.Errorf("host model status %d", stream.StatusCode)
@@ -230,8 +232,9 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 			completedAt = time.Now()
 			parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
 			captureStreamResponseModel()
-			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
-				usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")); settleErr != nil {
+			metrics := usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")
+			metrics.FailureReason = formatAttemptError("upstream_stream_read_error", errRead)
+			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format), metrics); settleErr != nil {
 				_ = svc.Release(ctx, reservation.ID, "settle_failed")
 			}
 			return errRead
@@ -240,8 +243,9 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 		if err := json.Unmarshal(chunkRaw, &chunk); err != nil {
 			completedAt = time.Now()
 			captureStreamResponseModel()
-			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, req.SourceFormat,
-				usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")); settleErr != nil {
+			metrics := usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")
+			metrics.FailureReason = formatAttemptError("bad_host_stream_chunk", err)
+			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, usageparse.Result{}, req.SourceFormat, metrics); settleErr != nil {
 				_ = svc.Release(ctx, reservation.ID, "settle_failed")
 			}
 			return err
@@ -250,8 +254,9 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 			completedAt = time.Now()
 			parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
 			captureStreamResponseModel()
-			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
-				usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")); settleErr != nil {
+			metrics := usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "failed")
+			metrics.FailureReason = formatAttemptSummary("upstream_stream_error", chunk.Error)
+			if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format), metrics); settleErr != nil {
 				_ = svc.Release(ctx, reservation.ID, "settle_failed")
 			}
 			return fmt.Errorf("%s", chunk.Error)
@@ -277,8 +282,9 @@ func runStream(ctx context.Context, svc *service.Service, req rpcExecutorRequest
 				completedAt = time.Now()
 				parsed := parseExecutorStreamUsage(buffer.Bytes(), req)
 				captureStreamResponseModel()
-				if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format),
-					usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "cancelled")); settleErr != nil {
+				metrics := usageMetricsFromStream(body, startedAt, firstChunkAt, completedAt, "cancelled")
+				metrics.FailureReason = formatAttemptError("downstream_stream_closed", err)
+				if settleErr := svc.SettleFromUsage(ctx, reservation, plan, parsed, firstNonEmpty(req.SourceFormat, req.Format), metrics); settleErr != nil {
 					_ = svc.Release(ctx, reservation.ID, "settle_failed")
 				}
 				return err

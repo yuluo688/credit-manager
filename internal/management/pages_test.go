@@ -369,9 +369,25 @@ func TestConsoleStatSkeletonKeepsCardPadding(t *testing.T) {
 		"min-height:78px",
 		"align-self:start",
 		`[0, 1, 2, 3, 4].map(() => '<div class="stat stat-skeleton data-skeleton"`,
+		"id === 'usageStats' ? cards.slice(0, 4) : cards",
 	} {
 		if !strings.Contains(page, want) {
 			t.Fatalf("console page missing stat skeleton layout fix: %q", want)
+		}
+	}
+}
+
+func TestConsoleMobileBootSkeletonAlignment(t *testing.T) {
+	page := string(consolePage().Body)
+	for _, want := range []string{
+		".topbar, .boot-skeleton-top { display: block; }",
+		".topbar-actions, .boot-skeleton-actions { width: 100%; margin-top: 10px; justify-content: flex-start; }",
+		"#tokenUnitSwitch, .boot-skeleton-actions .sk-pill:first-child { flex: 1 1 100%; width: 100%; }",
+		".overview-filter-grid, .filter-grid, .boot-skeleton-filters { grid-template-columns: 1fr; }",
+		"html.cm-embedded .boot-skeleton-brand { max-width: 100%; min-width: 0; }",
+	} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("console page missing mobile boot skeleton alignment rule: %q", want)
 		}
 	}
 }

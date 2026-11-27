@@ -813,6 +813,21 @@ th {
 tbody tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 tbody tr:last-child td { border-bottom: 0; }
 td.model { max-width: 250px; overflow: hidden; font-family: var(--font-mono); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+td.result-cell { max-width: 220px; white-space: normal; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+  font-size: .72rem; font-weight: 600; color: var(--ink);
+}
+.badge::before { content: ""; flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.badge.ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 10%, var(--panel)); border-color: color-mix(in srgb, var(--ok) 30%, var(--line)); }
+.badge.ok::before { background: var(--ok); }
+.badge.bad { color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, var(--panel)); border-color: color-mix(in srgb, var(--danger) 30%, var(--line)); }
+.badge.bad::before { background: var(--danger); }
+.badge.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); border-color: color-mix(in srgb, var(--warn) 30%, var(--line)); }
+.badge.warn::before { background: var(--warn); }
+.result-detail { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--danger); font-size: .71rem; font-weight: 550; }
+.result-detail.is-warn { color: var(--warn); }
 .empty-row td { padding: 0; border-bottom: 0; }
 .empty-row .empty { position: sticky; left: 0; width: 100cqi; box-sizing: border-box; }
 

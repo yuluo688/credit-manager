@@ -49,6 +49,26 @@ func TestInsertRejectedAttemptWritesZeroCostLedger(t *testing.T) {
 	if err != nil || len(entries) != 1 {
 		t.Fatalf("list usage: %v %#v", err, entries)
 	}
+	if entries[0].SettlementSummary != "limit_rejected:quota" {
+		t.Fatalf("settlement_summary = %q, want limit_rejected:quota", entries[0].SettlementSummary)
+	}
+
+	got, err := st.GetUsage(ctx, entries[0].ID)
+	if err != nil {
+		t.Fatalf("GetUsage: %v", err)
+	}
+	if got.SettlementSummary != "limit_rejected:quota" {
+		t.Fatalf("GetUsage settlement_summary = %q, want limit_rejected:quota", got.SettlementSummary)
+	}
+
+	failed, err := st.ListUsage(ctx, UsageFilter{PluginKeyID: key.ID, Result: "failed", Limit: 10})
+	if err != nil || len(failed) != 1 {
+		t.Fatalf("list failed usage: %v %#v", err, failed)
+	}
+	succeeded, err := st.ListUsage(ctx, UsageFilter{PluginKeyID: key.ID, Result: "success", Limit: 10})
+	if err != nil || len(succeeded) != 0 {
+		t.Fatalf("list succeeded usage: %v %#v", err, succeeded)
+	}
 }
 
 func TestInsertRejectedAttemptRejectsCallerMismatch(t *testing.T) {

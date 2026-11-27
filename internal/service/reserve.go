@@ -242,6 +242,13 @@ func (s *Service) resolvedUsageSettlement(reservation store.Reservation, plan Re
 	if plan.AllowUnpriced {
 		cost = 0
 	}
+	if reason := strings.TrimSpace(metrics.FailureReason); reason != "" {
+		if strings.TrimSpace(summary) == "" {
+			summary = reason
+		} else {
+			summary = strings.TrimSpace(summary) + "; " + reason
+		}
+	}
 	metrics.TokensPerSecond = tokensPerSecond(usage.Output, metrics.GenerationDuration)
 	return store.Settlement{
 		ReservationID:         reservation.ID,
@@ -261,6 +268,10 @@ func (s *Service) resolvedUsageSettlement(reservation store.Reservation, plan Re
 // fallback ledger row after the response has returned.
 func (s *Service) settleMissingUsage(ctx context.Context, reservation store.Reservation, plan ReservePlan, metrics store.UsageMetrics) error {
 	ledgerID := store.NewID()
+	summary := "missing_usage_pending_host"
+	if reason := strings.TrimSpace(metrics.FailureReason); reason != "" {
+		summary = reason
+	}
 	settlement := store.Settlement{
 		LedgerID:              ledgerID,
 		ReservationID:         reservation.ID,
@@ -271,7 +282,7 @@ func (s *Service) settleMissingUsage(ctx context.Context, reservation store.Rese
 		EstimatedCostMicroUSD: reservation.HeldMicroUSD,
 		Source:                "reserved_fallback",
 		Metrics:               metrics,
-		SettlementSummary:     "missing_usage_pending_host",
+		SettlementSummary:     summary,
 	}
 
 	s.authMu.Lock()

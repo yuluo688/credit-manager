@@ -119,6 +119,14 @@
     '实时美元兑人民币汇率': { 'zh-TW':'即時美元兌人民幣匯率', en:'Live USD/CNY rate', ru:'Курс USD/CNY' },
     '汇率获取失败，已使用上次汇率': { 'zh-TW':'匯率取得失敗，已使用上次匯率', en:'Rate refresh failed; using saved rate', ru:'Не удалось обновить курс; взято прошлое значение' },
     '汇率获取失败': { 'zh-TW':'匯率取得失敗', en:'Rate fetch failed', ru:'Ошибка курса' },
+    '上游账号冷却中': { 'zh-TW':'上游帳號冷卻中', en:'Upstream credentials cooling down', ru:'Аккаунты апстрима на паузе' },
+    '上游限流': { 'zh-TW':'上游限流', en:'Rate limited', ru:'Лимит апстрима' },
+    '额度或并发超限': { 'zh-TW':'額度或併發超限', en:'Quota or concurrency limit', ru:'Лимит квоты или потоков' },
+    '模型未授权': { 'zh-TW':'模型未授權', en:'Model not allowed', ru:'Модель не разрешена' },
+    '模型已禁用': { 'zh-TW':'模型已停用', en:'Model disabled', ru:'Модель отключена' },
+    '请求参数被拒': { 'zh-TW':'請求參數被拒', en:'Request rejected', ru:'Запрос отклонён' },
+    '上游请求失败': { 'zh-TW':'上游請求失敗', en:'Upstream error', ru:'Ошибка апстрима' },
+    '客户端已取消': { 'zh-TW':'用戶端已取消', en:'Client cancelled', ru:'Отменено клиентом' },
   };
   const textSources = new WeakMap(), attributeSources = new WeakMap();
   let translationObserver, locale='zh-CN', theme='auto';
@@ -199,7 +207,27 @@
   }
   function concurrent(active, maximum) { if (!Number(maximum||0)) return '<div class="quota-card"><div class="quota-top"><span class="quota-name">'+esc(t('最大并发'))+'</span><span class="unlimited">'+esc(t('不限制'))+'</span></div><div class="quota-used">'+count(active)+'</div><div class="quota-detail">'+esc(t('在途'))+'</div></div>'; const p=Math.min(100,Number(active)/Number(maximum)*100), tone=p>=90?'danger':p>=70?'warn':''; return '<div class="quota-card"><div class="quota-top"><span class="quota-name">'+esc(t('最大并发'))+'</span><span class="quota-cap">'+Math.round(p)+'%</span></div><div class="quota-used">'+count(active)+'<small>/ '+count(maximum)+'</small></div><div class="quota-detail">'+esc(t('在途'))+'</div><div class="progress '+tone+'"><i style="width:'+p+'%"></i></div></div>'; }
   function table(headers, rows) { const head='<table><thead><tr>'+headers.map(h=>'<th>'+esc(t(h))+'</th>').join('')+'</tr></thead>'; return rows.length?head+'<tbody>'+rows.join('')+'</tbody></table>':head+'<tbody><tr class="empty-row"><td colspan="'+headers.length+'"><div class="empty"><span class="empty-icon" aria-hidden="true">'+uiIcon('list')+'</span><span>'+esc(t('暂无数据'))+'</span></div></td></tr></tbody></table>'; }
-  function renderRecentTable(items) { return table(['时间','模型','来源','结果','首字延迟','生成时间','TPS','思考强度','输入','输出','思考','缓存读','缓存写','总 Token','缓存命中','费用'],(items||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td class="model" title="'+esc(x.model)+'">'+esc(x.model)+'</td><td>'+esc(x.source||'—')+'</td><td>'+esc(x.result||'—')+'</td><td>'+esc(duration(x.first_token_latency_ms))+'</td><td>'+esc(duration(x.generation_duration_ms))+'</td><td>'+esc(tps(x.tokens_per_second))+'</td><td>'+esc(x.thinking_intensity||'—')+'</td><td>'+tokenValue(x.input_tokens)+'</td><td>'+tokenValue(x.output_tokens)+'</td><td>'+tokenValue(x.reasoning_tokens)+'</td><td>'+tokenValue(x.cache_read_tokens)+'</td><td>'+tokenValue(x.cache_creation_tokens)+'</td><td>'+tokenValue(allTokens(x))+'</td><td>'+esc(Number(x.cache_read_tokens||0)>0?t('是'):t('否'))+'</td><td>'+money(x.cost_micro_usd)+'</td></tr>')); }
+  const FAILURE_REASON_LABELS = {
+    model_cooldown: '上游账号冷却中',
+    upstream_rate_limit: '上游限流',
+    limit_rejected: '额度或并发超限',
+    model_not_allowed: '模型未授权',
+    model_disabled: '模型已禁用',
+    reserve_rejected: '请求参数被拒',
+    upstream_error: '上游请求失败',
+    cancelled: '客户端已取消',
+  };
+  function renderRecentResultCell(x) {
+    const result = String((x && x.result) || '').trim();
+    if (!result) return '<td class="result-cell">—</td>';
+    const normalized = result.toLowerCase();
+    const badgeClass = normalized === 'success' ? 'ok' : (normalized === 'cancelled' ? 'warn' : 'bad');
+    const reasonKey = FAILURE_REASON_LABELS[String((x && x.failure_reason) || '').trim()] || '';
+    const detail = reasonKey ? t(reasonKey) : '';
+    const title = detail ? result + ' · ' + detail : result;
+    return '<td class="result-cell" title="'+esc(title)+'"><div><span class="badge '+badgeClass+'">'+esc(result)+'</span></div>'+(detail ? '<div class="result-detail'+(normalized==='cancelled'?' is-warn':'')+'">'+esc(detail)+'</div>' : '')+'</td>';
+  }
+  function renderRecentTable(items) { return table(['时间','模型','来源','结果','首字延迟','生成时间','TPS','思考强度','输入','输出','思考','缓存读','缓存写','总 Token','缓存命中','费用'],(items||[]).map(x=>'<tr><td>'+esc(new Date(x.created_at).toLocaleString())+'</td><td class="model" title="'+esc(x.model)+'">'+esc(x.model)+'</td><td>'+esc(x.source||'—')+'</td>'+renderRecentResultCell(x)+'<td>'+esc(duration(x.first_token_latency_ms))+'</td><td>'+esc(duration(x.generation_duration_ms))+'</td><td>'+esc(tps(x.tokens_per_second))+'</td><td>'+esc(x.thinking_intensity||'—')+'</td><td>'+tokenValue(x.input_tokens)+'</td><td>'+tokenValue(x.output_tokens)+'</td><td>'+tokenValue(x.reasoning_tokens)+'</td><td>'+tokenValue(x.cache_read_tokens)+'</td><td>'+tokenValue(x.cache_creation_tokens)+'</td><td>'+tokenValue(allTokens(x))+'</td><td>'+esc(Number(x.cache_read_tokens||0)>0?t('是'):t('否'))+'</td><td>'+money(x.cost_micro_usd)+'</td></tr>')); }
   function duration(value) { if(value==null||value==='')return '—'; const n=Number(value);return Number.isFinite(n)?(n<1000?(n<100?n.toFixed(1):n.toFixed(0))+' ms':(n/1000).toFixed(2)+' s'):'—'; }
   function tps(value) { const n=Number(value); return Number.isFinite(n)?n.toFixed(2):'—'; }
   function allTokens(item) { const reported=Number(item.total_tokens||0); if(reported>0) return reported; const total=Number(item.input_tokens||0)+Number(item.output_tokens||0)+Number(item.reasoning_tokens||0); return total>0?total:Number(item.cached_tokens||0); }

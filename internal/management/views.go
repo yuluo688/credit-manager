@@ -169,6 +169,7 @@ func usageView(entry store.UsageEntry) map[string]any {
 		"cost_micro_usd":           entry.CostMicroUSD,
 		"estimated_cost_micro_usd": entry.EstimatedCostMicroUSD,
 		"source":                   entry.Source,
+		"settlement_summary":       entry.SettlementSummary,
 		"tier":                     entry.Metrics.Tier,
 		"result":                   entry.Metrics.Result,
 		"first_token_latency_ms":   durationMilliseconds(entry.Metrics.FirstTokenLatency),

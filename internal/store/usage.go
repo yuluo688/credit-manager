@@ -20,6 +20,7 @@ type UsageMetrics struct {
 	GenerationDuration *time.Duration
 	TokensPerSecond    *float64
 	ThinkingIntensity  *string
+	FailureReason      string
 }
 
 type UsageEntry struct {
@@ -35,6 +36,7 @@ type UsageEntry struct {
 	CostMicroUSD          money.MicroUSD
 	EstimatedCostMicroUSD money.MicroUSD
 	Source                string
+	SettlementSummary     string
 	Auth                  AuthIdentity
 	Metrics               UsageMetrics
 	CreatedAt             time.Time
@@ -341,12 +343,14 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 	query := `SELECT u.id, u.reservation_id, u.caller_id, u.plugin_key_id,
 		COALESCE(u.executor_type, ''), u.model, COALESCE(u.upstream_response_model, ''), u.pricing_rule_id,
 		u.input_tokens, u.output_tokens, u.reasoning_tokens, u.cached_tokens, u.cache_read_tokens,
-		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd, 0), u.source, u.tier, u.result, u.first_token_latency_ms,
+		u.cache_creation_tokens, u.total_tokens, u.cost_micro_usd, COALESCE(u.estimated_cost_micro_usd, u.cost_micro_usd, 0), u.source,
+		COALESCE(r.settlement_summary, ''), u.tier, u.result, u.first_token_latency_ms,
 		u.generation_duration_ms, u.tokens_per_second, u.thinking_intensity,
 		COALESCE(u.auth_id, ''), COALESCE(u.auth_index, ''), COALESCE(u.auth_name, ''), COALESCE(u.auth_label, ''),
 		COALESCE(u.auth_provider, ''), COALESCE(u.auth_type, ''), COALESCE(u.auth_email, ''), COALESCE(u.auth_path, ''),
 		u.created_at_unix_ms
-		FROM usage_ledger u`
+		FROM usage_ledger u
+		LEFT JOIN reservations r ON r.id = u.reservation_id`
 	where, args := usageWhere(filter, "u")
 	if where != "" {
 		query += ` WHERE ` + where
@@ -368,7 +372,8 @@ func (s *Store) ListUsage(ctx context.Context, filter UsageFilter) ([]UsageEntry
 		var tier, resultLabel, thinkingIntensity sql.NullString
 		if err := rows.Scan(&entry.ID, &entry.ReservationID, &entry.CallerID, &entry.PluginKeyID,
 			&entry.ExecutorType, &entry.Model, &entry.UpstreamResponseModel, &pricing, &entry.Usage.Input, &entry.Usage.Output, &entry.Usage.Reasoning, &entry.Usage.Cached,
-			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.Usage.ReportedTotal, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source, &tier,
+			&entry.Usage.CacheRead, &entry.Usage.CacheCreation, &entry.Usage.ReportedTotal, &entry.CostMicroUSD, &entry.EstimatedCostMicroUSD, &entry.Source,
+			&entry.SettlementSummary, &tier,
 			&resultLabel, &firstTokenLatency, &generationDuration, &tokensPerSecond, &thinkingIntensity,
 			&entry.Auth.AuthID, &entry.Auth.AuthIndex, &entry.Auth.Name, &entry.Auth.Label,
 			&entry.Auth.Provider, &entry.Auth.Type, &entry.Auth.Email, &entry.Auth.Path,
@@ -428,6 +433,7 @@ type UsageFilter struct {
 	PluginKeyID  string
 	Model        string
 	Source       string
+	Result       string
 	AuthID       string
 	AuthProvider string
 	AuthIndex    string
@@ -488,6 +494,10 @@ func usageWhere(filter UsageFilter, alias string) (string, []any) {
 	if strings.TrimSpace(filter.Source) != "" {
 		conds = append(conds, prefix+"source = ?")
 		args = append(args, filter.Source)
+	}
+	if result := strings.TrimSpace(filter.Result); result != "" {
+		conds = append(conds, "LOWER(TRIM(COALESCE("+prefix+"result, ''))) = LOWER(?)")
+		args = append(args, result)
 	}
 	authID := strings.TrimSpace(filter.AuthID)
 	authIndex := strings.TrimSpace(filter.AuthIndex)

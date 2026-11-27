@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/yuluo688/credit-manager/internal/money"
 	"github.com/yuluo688/credit-manager/internal/service"
 	"github.com/yuluo688/credit-manager/internal/store"
 
+	"github.com/router-for-me/CLIProxyAPI/v8/sdk/pluginabi"
 	"github.com/router-for-me/CLIProxyAPI/v8/sdk/pluginapi"
 )
 
@@ -196,4 +198,101 @@ func TestReserveRejectedRecordsLedger(t *testing.T) {
 	if entries[0].Source != service.SourceAttemptRejected || entries[0].CostMicroUSD != 0 {
 		t.Fatalf("entry = %#v", entries[0])
 	}
+}
+
+func TestRunStreamUpstreamErrorPreservesDetailInSettlementSummary(t *testing.T) {
+	ctx := context.Background()
+	svc := newLifecycleTestService(t)
+	if err := svc.Store().PutPricingRule(ctx, store.PricingRule{
+		ID: "all", MatchKind: store.MatchGlob, Pattern: "*", Priority: 10, Enabled: true,
+		Price: money.PricePerMTok{Input: 1_000_000, Output: 1_000_000},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	key, material, err := svc.MintKey(ctx, service.BootstrapCallerID, "stream-cooldown", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldHost := HostCall
+	defer func() { HostCall = oldHost }()
+	HostCall = func(method string, raw []byte) ([]byte, int, error) {
+		if method == pluginabi.MethodHostModelExecuteStream {
+			return nil, 0, fmt.Errorf(`host_call_failed: {"error":{"code":"model_cooldown","message":"All credentials for model gpt-6.2-sol are cooling down"}}`)
+		}
+		return nil, 0, fmt.Errorf("unexpected host method %s", method)
+	}
+	body := []byte(`{"model":"gpt-6.2-sol","stream":true,"max_tokens":1,"messages":[{"role":"user","content":"hi"}]}`)
+	err = runStream(ctx, svc, rpcExecutorRequest{ExecutorRequest: pluginapi.ExecutorRequest{
+		Model: "gpt-6.2-sol", SourceFormat: "openai-response", Format: "openai-response", Stream: true,
+		Headers: http.Header{"Authorization": []string{"Bearer " + material.Plaintext}}, Payload: body,
+	}}, "downstream", "")
+	if err == nil || !strings.Contains(err.Error(), "model_cooldown") {
+		t.Fatalf("runStream error = %v, want model_cooldown", err)
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 5})
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if entries[0].CostMicroUSD != 0 || entries[0].Source != service.SourceAttemptFailed {
+		t.Fatalf("entry = %#v", entries[0])
+	}
+	if !strings.HasPrefix(entries[0].SettlementSummary, "upstream_stream_error:") || !strings.Contains(entries[0].SettlementSummary, "model_cooldown") {
+		t.Fatalf("settlement_summary = %q, want upstream_stream_error with model_cooldown", entries[0].SettlementSummary)
+	}
+}
+
+func TestRunStreamHTTPStatusErrorPreservesStatusSummary(t *testing.T) {
+	ctx := context.Background()
+	svc := newLifecycleTestService(t)
+	key, material, err := svc.MintKey(ctx, service.BootstrapCallerID, "stream-http-500", 10_000_000, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldHost := HostCall
+	defer func() { HostCall = oldHost }()
+	HostCall = func(method string, raw []byte) ([]byte, int, error) {
+		switch method {
+		case pluginabi.MethodHostModelExecuteStream:
+			result, _ := json.Marshal(pluginapi.HostModelStreamResponse{StatusCode: http.StatusTooManyRequests, StreamID: "s-429"})
+			return mustMarshalEnvelopeOK(result), 0, nil
+		case pluginabi.MethodHostModelStreamClose:
+			return mustMarshalEnvelopeOK([]byte(`{}`)), 0, nil
+		default:
+			return nil, 0, fmt.Errorf("unexpected host method %s", method)
+		}
+	}
+	body := []byte(`{"model":"gpt-6.2-sol","stream":true,"max_tokens":1,"messages":[{"role":"user","content":"hi"}]}`)
+	err = runStream(ctx, svc, rpcExecutorRequest{ExecutorRequest: pluginapi.ExecutorRequest{
+		Model: "gpt-6.2-sol", SourceFormat: "openai-response", Format: "openai-response", Stream: true,
+		Headers: http.Header{"Authorization": []string{"Bearer " + material.Plaintext}}, Payload: body,
+	}}, "downstream", "")
+	if err == nil {
+		t.Fatal("expected error for 429 stream status")
+	}
+	entries, err := svc.Store().ListUsage(ctx, store.UsageFilter{PluginKeyID: key.ID, Limit: 5})
+	if err != nil || len(entries) != 1 {
+		t.Fatalf("list usage: %v %#v", err, entries)
+	}
+	if entries[0].SettlementSummary != "upstream_stream_status:http_429" {
+		t.Fatalf("settlement_summary = %q, want upstream_stream_status:http_429", entries[0].SettlementSummary)
+	}
+}
+
+func TestFormatAttemptSummaryNormalizesAndCaps(t *testing.T) {
+	long := strings.Repeat("x", maxAttemptSummaryDetailRunes+50)
+	got := formatAttemptSummary("upstream_stream_error", "  line1\n\tline2  "+long)
+	if strings.ContainsAny(got, "\n\t") {
+		t.Fatalf("summary contains raw whitespace: %q", got)
+	}
+	if !strings.HasPrefix(got, "upstream_stream_error:line1 line2 ") || !strings.HasSuffix(got, "...") {
+		t.Fatalf("summary = %q", got)
+	}
+	if got := formatAttemptSummary("upstream_stream_error", "   "); got != "upstream_stream_error" {
+		t.Fatalf("empty detail summary = %q", got)
+	}
+}
+
+func mustMarshalEnvelopeOK(result json.RawMessage) []byte {
+	raw, _ := json.Marshal(envelope{OK: true, Result: result})
+	return raw
 }

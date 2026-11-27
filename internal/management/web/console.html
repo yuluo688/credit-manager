@@ -91,10 +91,10 @@
         <span class="boot-skeleton-stack"><span class="sk" style="--w:96px"></span><span class="sk sk-lg" style="--w:168px"></span></span>
       </div>
       <div class="boot-skeleton-actions">
-        <span class="sk sk-pill" style="--w:236px"></span>
+        <span class="sk sk-pill" style="--w:244px"></span>
+        <span class="sk sk-pill" style="--w:106px"></span>
         <span class="sk sk-pill" style="--w:112px"></span>
-        <span class="sk sk-pill" style="--w:132px"></span>
-        <span class="sk sk-pill sk-accent" style="--w:104px"></span>
+        <span class="sk sk-pill sk-accent" style="--w:78px"></span>
       </div>
     </div>
     <div class="boot-skeleton-tabs">
@@ -631,6 +631,17 @@
             <option value="gemini">gemini</option>
             <option value="responses">responses</option>
             <option value="reserved_fallback">reserved_fallback</option>
+            <option value="attempt_failed">attempt_failed</option>
+            <option value="attempt_rejected">attempt_rejected</option>
+            <option value="attempt_cancelled">attempt_cancelled</option>
+          </select>
+        </label>
+        <label>结果
+          <select id="usageResultFilter">
+            <option value="">全部</option>
+            <option value="success">success</option>
+            <option value="failed">failed</option>
+            <option value="cancelled">cancelled</option>
           </select>
         </label>
         <label>最低费用（USD）

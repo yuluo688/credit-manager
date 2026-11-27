@@ -155,7 +155,8 @@ func completeInterceptedRequest(raw []byte) ([]byte, error) {
 		if req.Outcome == pluginapi.RequestCompletionCanceled {
 			result, source = "cancelled", service.SourceAttemptCancelled
 		}
-		settleAttemptOrRelease(ctx, svc, hold.reservation, hold.plan.Model, result, source, "image_"+string(req.Outcome))
+		summary := formatAttemptSummary("image_"+string(req.Outcome), firstNonEmpty(req.Error, httpStatusDetail(req.StatusCode)))
+		settleAttemptOrRelease(ctx, svc, hold.reservation, hold.plan.Model, result, source, summary)
 		return okEnvelope(map[string]any{})
 	}
 	metrics := usageMetricsFromRequest(nil, req.StartedAt, req.CompletedAt, resultFromStatus(req.StatusCode))
